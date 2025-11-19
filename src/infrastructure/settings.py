@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 
+
 @dataclass
 class Settings:
     process_name: str = "VRChat.exe"
@@ -13,5 +14,6 @@ class Settings:
     whisper_model_size: str = "base"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
+
 
 settings = Settings()

@@ -1,10 +1,12 @@
-from src.infrastructure.audio_recorder import AudioRecorder
 import signal
 import sys
 
+from src.infrastructure.audio_recorder import AudioRecorder
+
+
 def main():
     recorder = AudioRecorder()
-    
+
     def signal_handler(sig, frame):
         recorder.stop()
         sys.exit(0)
@@ -13,6 +15,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     recorder.start()
+
 
 if __name__ == "__main__":
     main()

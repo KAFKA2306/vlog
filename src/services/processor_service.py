@@ -1,15 +1,18 @@
-import os
 import glob
+import os
 from datetime import datetime
+
 from src.infrastructure.settings import settings
-from src.infrastructure.transcriber import Transcriber
 from src.infrastructure.summarizer import Summarizer
+from src.infrastructure.transcriber import Transcriber
+
 
 def get_latest_recording():
-    list_of_files = glob.glob(os.path.join(settings.recording_dir, '*.wav'))
+    list_of_files = glob.glob(os.path.join(settings.recording_dir, "*.wav"))
     if not list_of_files:
         return None
     return max(list_of_files, key=os.path.getctime)
+
 
 def main():
     audio_path = get_latest_recording()
@@ -18,7 +21,7 @@ def main():
 
     transcriber = Transcriber()
     text = transcriber.transcribe(audio_path)
-    
+
     summarizer = Summarizer()
     summary = summarizer.summarize(text)
 
@@ -30,6 +33,7 @@ def main():
         f.write(f"\n## Session {datetime.now().strftime('%H:%M')}\n\n")
         f.write(f"{summary}\n\n")
         f.write(f"### Raw Log\n{text}\n")
+
 
 if __name__ == "__main__":
     main()
