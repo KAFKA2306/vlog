@@ -20,6 +20,13 @@ VRChatが起動している間、自動的にマイク音声を録音し、終�
 - PortAudio (`sudo apt-get install libportaudio2`)
 - Google Gemini APIキー
 
+### WSL (Windows Subsystem for Linux) での使用
+
+**プロセス検出**: ✅ Windows上のVRChatを自動検出可能  
+**音声録音**: ⚠️ WSLから直接Windowsの音声デバイスにアクセスできないため、音声録音はWindows版での実行が必要
+
+完全な機能を使うにはWindows上で直接実行してください。
+
 ## セットアップ
 
 1. リポジトリをクローン
