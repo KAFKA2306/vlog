@@ -24,5 +24,6 @@ if "%VLOG_DIR:~0,2%"=="\\" (
 :Run
 echo Starting VRChat Auto-Diary...
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
+set "UV_LINK_MODE=copy"
 uv run python -m src.main
 pause
