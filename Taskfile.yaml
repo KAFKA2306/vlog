@@ -28,6 +28,13 @@ tasks:
       - task: format
       - task: lint
 
+  commit:
+    desc: Gitコミットを実行（MESSAGE必須）
+    cmds:
+      - test -n "{{.MESSAGE}}" || (echo "MESSAGEを指定してください" && exit 1)
+      - git status --short
+      - git commit -am "{{.MESSAGE}}"
+
   sync:
     desc: Sync dependencies
     cmd: uv sync
