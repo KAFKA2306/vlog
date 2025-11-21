@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO)
     load_dotenv()
     url = os.environ["SUPABASE_URL"]
     key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -48,6 +49,7 @@ def main() -> None:
                 "title": path.stem,
                 "content": content,
                 "tags": ["summary"],
+                "is_public": True,
             }
         )
 
