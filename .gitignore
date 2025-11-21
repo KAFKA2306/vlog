@@ -27,5 +27,9 @@ dist/
 
 # Runtime artifacts
 recordings/
+!recordings/README.md
 diaries/
+!diaries/README.md
+transcripts/
+!transcripts/README.md
 vlog.log

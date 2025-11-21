@@ -23,7 +23,9 @@ class ProcessorService:
     def process_session(self, session: RecordingSession) -> DiaryEntry:
         logger.info(f"Processing session: {session}")
         logger.info("Transcribing audio...")
-        transcript = self._transcriber.transcribe(session.file_path)
+        transcript, transcript_path = self._transcriber.transcribe_and_save(
+            session.file_path
+        )
         self._transcriber.unload()
         logger.info("Summarizing transcript...")
         summary = self._summarizer.summarize(transcript, session)
@@ -34,9 +36,14 @@ class ProcessorService:
             raw_log=transcript,
             session_start=session.start_time,
             session_end=completed_at,
+            transcript_path=transcript_path,
         )
         logger.info("Writing diary entry...")
         diary_path = self._diary_writer.write(entry)
         entry.diary_path = diary_path
-        logger.info(f"Processing complete. Diary saved to {diary_path}")
+        logger.info(
+            "Processing complete. Transcript saved to %s, diary saved to %s",
+            transcript_path,
+            diary_path,
+        )
         return entry

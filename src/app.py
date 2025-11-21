@@ -27,13 +27,9 @@ class Application:
 
     def run(self):
         logger.info("Application started")
-        try:
-            while True:
-                self._tick()
-                time.sleep(settings.check_interval)
-        except KeyboardInterrupt:
-            logger.info("Application stopping due to KeyboardInterrupt")
-            self._shutdown()
+        while True:
+            self._tick()
+            time.sleep(settings.check_interval)
 
     def _tick(self):
         running = self._monitor.is_running()

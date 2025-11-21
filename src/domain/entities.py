@@ -17,3 +17,4 @@ class DiaryEntry:
     session_start: datetime
     session_end: datetime
     diary_path: str | None = None
+    transcript_path: str | None = None

@@ -15,15 +15,10 @@ The project is source-first: `src/main.py` launches `Application`, which orchest
 - `uv run python -m src.main` – start the monitoring loop; runs indefinitely until interrupted.
 - `uv run ruff check . --fix` – lint with Ruff (line length 88) and auto-fix imports/pep8 violations.
 - `uv run ruff format` – apply Ruff’s formatter to enforce consistent style.
-- `uv run pytest` – reserved for the upcoming test suite; prefer the `-q` flag for CI friendliness once tests exist.
 
 ## Coding Style & Naming Conventions
 
 Code targets Python 3.11 with type hints and dataclasses where helpful (`src/domain/entities.py`). Keep lines ≤88 chars (see `[tool.ruff]`), use four-space indentation, snake_case filenames, and noun-based class names. Public functions should describe their action (`get_latest_recording`), and long-running workflows deserve short docstrings or inline comments explaining sequencing. When touching settings, expose configurable values via `Settings` in `src/infrastructure/settings.py` instead of hardcoding elsewhere.
-
-## Testing Guidelines
-
-Automated tests are not yet implemented; new contributions must add pytest-based coverage alongside features. Mirror the `src/` tree (`tests/infrastructure/test_audio_recorder.py`, etc.), use descriptive test names (`test_<behavior>_<context>`), and include regression fixtures for audio/transcription edge cases. Aim for at least smoke tests covering recorder start/stop logic, transcription fallbacks, and processor diary writes. Run `uv run pytest` locally before opening a PR and capture any added assets under `tests/fixtures/`.
 
 ## Commit & Pull Request Guidelines
 

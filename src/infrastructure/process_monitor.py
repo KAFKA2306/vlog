@@ -33,15 +33,8 @@ class ProcessMonitor:
         return False
 
     def _check_windows_processes(self) -> bool:
-        try:
-            result = subprocess.run(
-                ["tasklist.exe"],
-                capture_output=True,
-                timeout=5,
-            )
-            if result.returncode == 0:
-                output_lower = result.stdout.decode("utf-8", errors="ignore").lower()
-                return any(target in output_lower for target in self._targets)
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
+        result = subprocess.run(["tasklist.exe"], capture_output=True)
+        if result.returncode == 0:
+            output_lower = result.stdout.decode("utf-8", errors="ignore").lower()
+            return any(target in output_lower for target in self._targets)
         return False

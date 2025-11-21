@@ -55,14 +55,10 @@ class AudioRecorder:
         start_time = datetime.now()
 
         while not self._stop_event.is_set():
-            # Check for rollover (30 minutes)
             if (datetime.now() - start_time).total_seconds() > 1800:
                 filename = datetime.now().strftime("%Y%m%d_%H%M%S.flac")
                 current_file_path = os.path.join(settings.recording_dir, filename)
                 start_time = datetime.now()
-                # Update self._file_path so stop() returns the latest file
-                # Note: This might be slightly racy if stop() is called exactly now,
-                # but acceptable for this use case.
                 with self._lock:
                     self._file_path = current_file_path
 
@@ -80,12 +76,9 @@ class AudioRecorder:
                     blocksize=settings.block_size,
                 ) as stream:
                     while not self._stop_event.is_set():
-                        # Check for rollover inside the inner loop too
                         if (datetime.now() - start_time).total_seconds() > 1800:
                             break
-
                         data, _ = stream.read(settings.block_size)
-                        # Calculate RMS amplitude (supports numpy array or raw bytes)
                         if isinstance(data, bytes):
                             rms_source = np.frombuffer(data, dtype=np.int16)
                         else:

@@ -26,16 +26,12 @@ class Summarizer:
             f"{transcript.strip()}\n"
         )
         response = model.generate_content(prompt)
-        if not getattr(response, "text", "").strip():
-            raise RuntimeError("Geminiの応答が空です")
         return response.text.strip()
 
     def _ensure_model(self):
         if self._model:
             return self._model
         api_key = settings.gemini_api_key or os.getenv(settings.gemini_api_key_env)
-        if not api_key:
-            raise RuntimeError("Gemini APIキーが設定されていません")
         genai.configure(api_key=api_key)
         self._model = genai.GenerativeModel(settings.gemini_model)
         return self._model

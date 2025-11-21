@@ -21,20 +21,12 @@ def cmd_check(args):
 def cmd_record(args):
     recorder = AudioRecorder()
     print("Recording... Press Ctrl+C to stop.")
-    try:
-        path = recorder.start()
-        while True:
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        print("\nStopping...")
-        path = recorder.stop()
-        print(f"Saved to: {path}")
+    recorder.start()
+    while True:
+        time.sleep(0.1)
 
 
 def cmd_transcribe(args):
-    if not args.file:
-        print("Error: --file is required")
-        return
     transcriber = Transcriber()
     print(f"Transcribing {args.file}...")
     text = transcriber.transcribe(args.file)
@@ -44,17 +36,11 @@ def cmd_transcribe(args):
 
 
 def cmd_summarize(args):
-    if not args.file:
-        print("Error: --file is required")
-        return
     with open(args.file, "r", encoding="utf-8") as f:
         text = f.read()
-
-    # Dummy session for Summarizer
     session = RecordingSession(
         file_path="dummy", start_time=datetime.now(), end_time=datetime.now()
     )
-
     summarizer = Summarizer()
     print("Summarizing...")
     summary = summarizer.summarize(text, session)
@@ -63,58 +49,39 @@ def cmd_summarize(args):
 
 
 def cmd_write(args):
-    if not args.file:
-        print("Error: --file is required")
-        return
     with open(args.file, "r", encoding="utf-8") as f:
         text = f.read()
-
     now = datetime.now()
     entry = DiaryEntry(
         date=now,
-        summary=text,  # Assuming input file contains the summary
-        raw_log="",  # No raw log for manual write
+        summary=text,
+        raw_log="",
         session_start=now,
         session_end=now,
     )
-
     writer = DiaryWriter()
     path = writer.write(entry)
     print(f"Diary entry written to: {path}")
 
 
 def cmd_process(args):
-    if not args.file:
-        print("Error: --file is required")
-        return
-
-    # 1. Transcribe
     transcriber = Transcriber()
     print(f"Transcribing {args.file}...")
     transcript = transcriber.transcribe(args.file)
     transcriber.unload()
-
-    # 2. Summarize
-    # Create a session object for context
-    # We try to parse date from filename, else use now
     try:
-        # Expected format: YYYYMMDD_HHMMSS.wav
         basename = args.file.split("/")[-1].split(".")[0]
         start_time = datetime.strptime(basename, "%Y%m%d_%H%M%S")
     except ValueError:
         start_time = datetime.now()
-
     session = RecordingSession(
         file_path=args.file,
         start_time=start_time,
-        end_time=datetime.now(),  # Approximate
+        end_time=datetime.now(),
     )
-
     summarizer = Summarizer()
     print("Summarizing...")
     summary = summarizer.summarize(transcript, session)
-
-    # 3. Write
     entry = DiaryEntry(
         date=start_time,
         summary=summary,
@@ -122,7 +89,6 @@ def cmd_process(args):
         session_start=start_time,
         session_end=datetime.now(),
     )
-
     writer = DiaryWriter()
     path = writer.write(entry)
     print(f"Processing complete. Diary entry written to: {path}")

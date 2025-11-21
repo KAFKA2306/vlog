@@ -13,16 +13,9 @@ VRChatが起動している間、自動的にマイク音声を録音し、終�
 - **文字起こし**: Faster Whisperを使用した高速・高精度な文字起こし
 - **要約生成**: Gemini APIを使用して日記形式に要約
 - **Markdown出力**: 日付ごとにMarkdownファイルとして保存
-
-## 文字起こしの信頼性向上（必ず出力するための設計）
-
-- WhisperモデルのロードがCUDAライブラリ不足等で失敗しても、
-  自動的にCPU `int8`/`base` 構成へ段階的にフォールバックします。
-- CUDA利用時は、仮想環境に同梱された `cudnn` / `cublas` のパスを
-  コード側で自動的に `LD_LIBRARY_PATH` に追加するため、環境変数の
-  手動設定を忘れても推論が落ちません。
-- 無音や例外発生時でも空文字は返さず、必ずプレースホルダ文を
-  返すため、後続の要約処理が停止しません。
+- **生文字起こし保存**: 文字起こし結果を必ず `transcripts/` に保存
+  （CUDA失敗時はCPU/baseに自動フォールバックし、無音・例外でも
+  プレースホルダ文字列を出力）
 
 ## 必要要件
 
@@ -37,13 +30,7 @@ VRChatが起動している間、自動的にマイク音声を録音し、終�
 
 完全な機能を使うにはWindows上で直接実行してください。
 
-### Windowsでの実行（推奨）
-
-**PowerShell（推奨）**:
-
-```powershell
-.\run.ps1
-```
+### Windowsでの実行
 
 **コマンドプロンプト**:
 
@@ -83,6 +70,10 @@ VRChatが起動している間、自動的にマイク音声を録音し、終�
      compute_type: "float16"       # int8, float16, float32
      beam_size: 5
      vad_filter: true
+   paths:
+     recording_dir: "./recordings"
+     diary_dir: "./diaries"
+     transcript_dir: "./transcripts"
    ```
 
    環境変数でも上書き可能です:
@@ -91,6 +82,7 @@ VRChatが起動している間、自動的にマイク音声を録音し、終�
    export VLOG_WHISPER_MODEL_SIZE=large-v3-turbo
    export VLOG_WHISPER_DEVICE=cuda
    export VLOG_WHISPER_COMPUTE_TYPE=float16
+   export VLOG_TRANSCRIPT_DIR=./transcripts
    ```
 
 ## 設定
@@ -148,9 +140,6 @@ task --list
 # アプリケーション実行
 task run
 
-# テスト実行
-task test
-
 # コード整形・リント
 task format
 task lint
@@ -174,6 +163,6 @@ uv run python -m src.main
 ## ディレクトリ構成
 
 - `src/`: ソースコード
-- `tests/`: テストコード
 - `recordings/`: 録音データ（自動生成）
 - `diaries/`: 日記データ（自動生成）
+- `transcripts/`: 生文字起こしテキスト（自動生成）

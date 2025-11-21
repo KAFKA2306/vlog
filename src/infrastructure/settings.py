@@ -15,6 +15,7 @@ class Settings:
     check_interval: int
     recording_dir: str
     diary_dir: str
+    transcript_dir: str
     sample_rate: int
     channels: int
     block_size: int
@@ -59,20 +60,14 @@ def _env_int(name: str, default: int) -> int:
     value = os.getenv(name)
     if value is None:
         return default
-    try:
-        return int(value)
-    except ValueError:
-        return default
+    return int(value)
 
 
 def _env_float(name: str, default: float) -> float:
     value = os.getenv(name)
     if value is None:
         return default
-    try:
-        return float(value)
-    except ValueError:
-        return default
+    return float(value)
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -133,6 +128,15 @@ def _load_settings() -> Settings:
             "VLOG_DIARY_DIR",
             _get_nested(
                 config, "paths", "diary_dir", default=os.path.join(cwd, "diaries")
+            ),
+        ),
+        transcript_dir=_env_str(
+            "VLOG_TRANSCRIPT_DIR",
+            _get_nested(
+                config,
+                "paths",
+                "transcript_dir",
+                default=os.path.join(cwd, "transcripts"),
             ),
         ),
         sample_rate=_env_int(

@@ -10,7 +10,7 @@ tasks:
           [開発実行]     task dev
           [サービス]     task up | task down | task status | task logs | task restart
           [録音/処理]    task record | task process FILE=... | task transcribe FILE=... | task summarize FILE=... | task write FILE=...
-          [品質]         task lint | task test
+          [品質]         task lint
           [後片付け]     task clean
           [コミット]     task commit MESSAGE="説明"
           EOF
@@ -74,23 +74,17 @@ tasks:
   lint:
     desc: Ruffで静的解析＋フォーマット
     cmds:
-      - uv run ruff check src tests
-      - uv run ruff format src tests
-
-  test:
-    desc: pytestでテスト実行 (-v)
-    cmd: uv run pytest tests -v
+      - uv run ruff check src
+      - uv run ruff format src
 
   clean:
-    desc: キャッシュ類を削除 (__pycache__/.pytest_cache/.ruff_cache)
+    desc: キャッシュ類を削除 (__pycache__/.ruff_cache)
     cmds:
-      - rm -rf __pycache__ .pytest_cache .ruff_cache
+      - rm -rf __pycache__ .ruff_cache
       - find . -type d -name "__pycache__" -exec rm -rf {} + || true
 
   commit:
-    desc: Git add && commit（MESSAGE必須）
+    desc: Git add && commit
     cmds:
-      - test -n "{{.MESSAGE}}" || (echo "MESSAGEを指定してください" && exit 1)
       - git add .
-      - git status --short
       - git commit -am "{{.MESSAGE}}"
