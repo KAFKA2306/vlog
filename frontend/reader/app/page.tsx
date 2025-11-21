@@ -12,16 +12,42 @@ const Tags = ({ tags }: { tags: string[] }) => (
 export default function Page() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [selected, setSelected] = useState<Entry>()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>()
+  const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    getSupabase()
-      ?.from('daily_entries')
+  const fetchEntries = async () => {
+    setLoading(true)
+    setError(undefined)
+    const supabase = getSupabase()
+    if (!supabase) {
+      setError('Supabase not configured')
+      setLoading(false)
+      return
+    }
+    const { data, error: fetchError } = await supabase
+      .from('daily_entries')
       .select('id,date,title,content,tags')
       .eq('is_public', true)
       .order('date', { ascending: false })
       .limit(120)
-      .then(({ data }) => setEntries((data as Entry[]) ?? []))
-  }, [])
+    if (fetchError) {
+      setError(fetchError.message)
+    } else {
+      setEntries((data as Entry[]) ?? [])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchEntries() }, [])
+
+  const filteredEntries = search
+    ? entries.filter(e =>
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.content.toLowerCase().includes(search.toLowerCase()) ||
+      e.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
+    )
+    : entries
 
   return (
     <main className="page">
@@ -35,20 +61,61 @@ export default function Page() {
           <div className="halo" />
         </header>
 
-        <div className="list">
-          {entries.map(e => (
-            <button key={e.id} className="entry" onClick={() => setSelected(e)}>
-              <div className="meta">
-                <span>{new Date(e.date).toLocaleDateString()}</span>
-                <span className="dot" />
-                <span>{(e.tags ?? []).slice(0, 2).join(' · ') || 'untagged'}</span>
-              </div>
-              <h3>{e.title}</h3>
-              <p className="preview">{e.content}</p>
-              {e.tags?.length ? <Tags tags={e.tags} /> : null}
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="🔍 Search diaries..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+          {search && (
+            <button className="ghost clear-btn" onClick={() => setSearch('')}>
+              Clear
             </button>
-          ))}
+          )}
         </div>
+
+        {loading && (
+          <div className="list">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="entry skeleton">
+                <div className="skeleton-line" />
+                <div className="skeleton-line short" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <div className="empty-state">
+            <p>❌ {error}</p>
+            <button className="ghost" onClick={fetchEntries}>再試行</button>
+          </div>
+        )}
+
+        {!loading && !error && filteredEntries.length === 0 && (
+          <div className="empty-state">
+            <p>{search ? `🔍 "${search}" に一致する日記がありません` : '📝 まだ日記がありません'}</p>
+          </div>
+        )}
+
+        {!loading && !error && filteredEntries.length > 0 && (
+          <div className="list">
+            {filteredEntries.map(e => (
+              <button key={e.id} className="entry" onClick={() => setSelected(e)}>
+                <div className="meta">
+                  <span>{new Date(e.date).toLocaleDateString()}</span>
+                  <span className="dot" />
+                  <span>{(e.tags ?? []).slice(0, 2).join(' · ') || 'untagged'}</span>
+                </div>
+                <h3>{e.title}</h3>
+                <p className="preview">{e.content}</p>
+                {e.tags?.length ? <Tags tags={e.tags} /> : null}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {selected && (

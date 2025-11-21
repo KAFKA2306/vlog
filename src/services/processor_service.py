@@ -24,21 +24,18 @@ class ProcessorService:
     def process_session(self, session: RecordingSession) -> str:
         logger.info(f"Processing session: {session}")
         logger.info("Transcribing audio...")
-        texts: list[str] = []
-        transcript_paths: list[str] = []
-        for path in session.file_paths:
-            text, transcript_path = self._transcriber.transcribe_and_save(path)
-            texts.append(text)
-            transcript_paths.append(transcript_path)
+        transcripts = []
+        for i, path in enumerate(session.file_paths, 1):
+            logger.info(f"Transcribing segment {i}/{len(session.file_paths)}...")
+            transcripts.append(self._transcriber.transcribe_and_save(path))
         self._transcriber.unload()
 
         logger.info("Preprocessing transcript...")
-        merged = " ".join(texts)
-        cleaned_transcript = self._preprocessor.process(merged)
+        merged_text = " ".join(text for text, _ in transcripts)
+        cleaned_transcript = self._preprocessor.process(merged_text)
 
-        last_transcript = Path(transcript_paths[-1])
-        cleaned_path = last_transcript.with_name(
-            f"cleaned_{last_transcript.name}"
+        cleaned_path = Path(transcripts[-1][1]).with_name(
+            f"cleaned_{Path(transcripts[-1][1]).name}"
         )
         cleaned_path.write_text(cleaned_transcript, encoding="utf-8")
         logger.info(f"Cleaned transcript saved to {cleaned_path}")
@@ -46,11 +43,26 @@ class ProcessorService:
         logger.info("Summarizing transcript...")
         summary = self._summarizer.summarize(cleaned_transcript, session)
 
-        summary_name = f"{Path(session.file_paths[0]).stem}_summary.txt"
-        summary_path = Path("summaries") / summary_name
+        date_str = session.start_time.strftime("%Y%m%d")
+        summary_path = Path("summaries") / f"{date_str}_summary.txt"
         summary_path.parent.mkdir(exist_ok=True)
-        summary_path.write_text(summary, encoding="utf-8")
 
-        logger.info("Processing complete. Summary saved to %s", summary_path)
+        if summary_path.exists():
+            existing = summary_path.read_text(encoding="utf-8")
+            start = session.start_time.strftime("%H:%M")
+            end = (session.end_time or session.start_time).strftime("%H:%M")
+            time_range = f"{start}-{end}"
+            combined = f"{existing}\n\n---\n\n## Session {time_range}\n\n{summary}"
+            summary_path.write_text(combined, encoding="utf-8")
+            logger.info(f"Appended to existing daily summary: {summary_path}")
+        else:
+            summary_path.write_text(summary, encoding="utf-8")
+            logger.info(f"Created new daily summary: {summary_path}")
+
         sync_supabase()
+
+        for path in session.file_paths:
+            Path(path).unlink()
+            logger.info(f"Deleted processed recording: {path}")
+
         return str(summary_path)

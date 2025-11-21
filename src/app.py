@@ -34,11 +34,11 @@ class Application:
     def _tick(self):
         running = self._monitor.is_running()
         active_session = self._recorder_service.active_session
-        if running and active_session is None:
+        if running and not active_session:
             logger.info("VRChat process detected. Starting recording session.")
             self._recorder_service.start_session()
             return
-        if not running and active_session is not None:
+        if not running and active_session:
             logger.info("VRChat process ended. Stopping recording session.")
             session = self._recorder_service.stop_session()
             if session:

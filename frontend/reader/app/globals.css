@@ -132,6 +132,49 @@ body {
     transform: translateY(-1px) scale(1)
 }
 
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 3rem 1rem;
+    color: var(--gray-400);
+    text-align: center
+}
+
+.search-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    align-items: center
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
+    border-radius: 0.5rem;
+    color: var(--gray-100);
+    font-size: 0.95rem;
+    transition: all 0.2s ease
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1)
+}
+
+.search-input::placeholder {
+    color: var(--gray-500)
+}
+
+.clear-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem
+}
+
 .meta {
     display: flex;
     gap: 8px;
@@ -311,4 +354,43 @@ body {
     50% {
         opacity: 1
     }
+}
+
+.skeleton {
+    pointer-events: none;
+    opacity: .6
+}
+
+.skeleton-line {
+    height: 14px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .1), rgba(255, 255, 255, .05));
+    background-size: 200% 100%;
+    border-radius: 6px;
+    margin: 8px 0;
+    animation: shimmer 1.5s infinite
+}
+
+.skeleton-line.short {
+    width: 60%
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0
+    }
+
+    100% {
+        background-position: -200% 0
+    }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted)
+}
+
+.empty-state p {
+    font-size: 16px;
+    margin-bottom: 16px
 }

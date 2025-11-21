@@ -11,7 +11,9 @@ class Summarizer:
     def __init__(self):
         self._model = None
         self._prompt_template = (
-            Path(__file__).with_name("summarizer_prompt.txt").read_text(encoding="utf-8")
+            Path(__file__)
+            .with_name("summarizer_prompt.txt")
+            .read_text(encoding="utf-8")
         )
 
     def summarize(self, transcript: str, session: RecordingSession) -> str:
