@@ -102,10 +102,8 @@ def main():
     p_transcribe.add_argument("--file", help="Path to audio file")
     p_summarize = subparsers.add_parser("summarize", help="Summarize text file")
     p_summarize.add_argument("--file", help="Path to text file")
-    p_write = subparsers.add_parser("write", help="Write diary entry from text file")
-    p_write.add_argument("--file", help="Path to text file containing summary")
     p_process = subparsers.add_parser(
-        "process", help="Process audio file (Transcribe -> Summarize -> Write)"
+        "process", help="Process audio file (Transcribe -> Summarize)"
     )
     p_process.add_argument("--file", help="Path to audio file")
 

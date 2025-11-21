@@ -10,11 +10,9 @@ load_dotenv()
 
 @dataclass
 class Settings:
-    process_name: str
     process_names: tuple[str, ...]
     check_interval: int
     recording_dir: str
-    diary_dir: str
     transcript_dir: str
     sample_rate: int
     channels: int
@@ -28,7 +26,6 @@ class Settings:
     gemini_api_key_env: str
     gemini_api_key: str | None
     silence_threshold: float
-    retention_days: int
 
 
 def _load_yaml_config() -> dict:
@@ -105,12 +102,13 @@ def _load_settings() -> Settings:
     cwd = os.getcwd()
     config = _load_yaml_config()
 
-    process_name = _env_str("VLOG_PROCESS_NAME", "VRChat.exe") or "VRChat.exe"
     yaml_process_names = _get_nested(config, "process", "names", default="")
 
     return Settings(
-        process_name=process_name,
-        process_names=_process_names(process_name, yaml_process_names),
+        process_names=_process_names(
+            _env_str("VLOG_PROCESS_NAME", "VRChat.exe") or "VRChat.exe",
+            yaml_process_names,
+        ),
         check_interval=_env_int(
             "VLOG_CHECK_INTERVAL",
             _get_nested(config, "process", "check_interval", default=30),
@@ -122,12 +120,6 @@ def _load_settings() -> Settings:
                 "paths",
                 "recording_dir",
                 default=os.path.join(cwd, "recordings"),
-            ),
-        ),
-        diary_dir=_env_str(
-            "VLOG_DIARY_DIR",
-            _get_nested(
-                config, "paths", "diary_dir", default=os.path.join(cwd, "diaries")
             ),
         ),
         transcript_dir=_env_str(
@@ -178,9 +170,6 @@ def _load_settings() -> Settings:
         silence_threshold=_env_float(
             "VLOG_SILENCE_THRESHOLD",
             _get_nested(config, "audio", "silence_threshold", default=0.02),
-        ),
-        retention_days=_env_int(
-            "VLOG_RETENTION_DAYS", _get_nested(config, "retention", "days", default=7)
         ),
     )
 
