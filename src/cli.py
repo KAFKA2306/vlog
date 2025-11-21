@@ -101,26 +101,14 @@ def main():
 
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
-
-    # Check
     subparsers.add_parser("check", help="Check if VRChat is running")
-
-    # Record
     subparsers.add_parser("record", help="Record audio manually")
-
-    # Transcribe
     p_transcribe = subparsers.add_parser("transcribe", help="Transcribe audio file")
     p_transcribe.add_argument("--file", help="Path to audio file")
-
-    # Summarize
     p_summarize = subparsers.add_parser("summarize", help="Summarize text file")
     p_summarize.add_argument("--file", help="Path to text file")
-
-    # Write
     p_write = subparsers.add_parser("write", help="Write diary entry from text file")
     p_write.add_argument("--file", help="Path to text file containing summary")
-
-    # Process
     p_process = subparsers.add_parser(
         "process", help="Process audio file (Transcribe -> Summarize -> Write)"
     )

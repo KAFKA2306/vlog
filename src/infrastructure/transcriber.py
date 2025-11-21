@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from src.infrastructure.settings import settings
 
-if TYPE_CHECKING:  # 型チェック用
+if TYPE_CHECKING:
     from faster_whisper import WhisperModel
 
 
@@ -37,7 +37,7 @@ class Transcriber:
                 try:
                     ctypes.CDLL(str(lib), mode=ctypes.RTLD_GLOBAL)
                     logger.debug("CUDAライブラリをプリロード: %s", lib)
-                except OSError as exc:  # noqa: BLE001
+                except OSError as exc:
                     logger.warning("CUDAライブラリをロードできませんでした: %s (%s)", lib, exc)
 
     def _cuda_libraries_present(self) -> bool:
@@ -54,7 +54,7 @@ class Transcriber:
             try:
                 ctypes.CDLL(str(lib_path))
                 loaded_any = True
-            except OSError as exc:  # noqa: BLE001
+            except OSError as exc:
                 logger.warning("CUDAライブラリ未検出: %s (%s)", lib_path, exc)
                 return False
         return loaded_any
@@ -95,7 +95,7 @@ class Transcriber:
     def model(self) -> "WhisperModel":
         if self._model is None:
             self._preload_cuda_libraries()
-            from faster_whisper import WhisperModel  # type: ignore  # noqa: WPS433
+            from faster_whisper import WhisperModel
 
             errors: list[str] = []
             for model_size, device, compute_type in self._candidate_configs():
@@ -112,7 +112,7 @@ class Transcriber:
                         compute_type=compute_type,
                     )
                     break
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     msg = (
                         f"size={model_size} device={device} compute={compute_type}: {exc}"
                     )
@@ -138,7 +138,7 @@ class Transcriber:
             if transcript.strip():
                 return transcript.strip()
             return "（無音または音声が検出できませんでした）"
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error("文字起こしに失敗しました", exc_info=exc)
             return "（文字起こしに失敗しました。このログを確認してください）"
 
