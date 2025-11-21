@@ -20,3 +20,8 @@ transcripts/
 summaries/
 !summaries/README.md
 vlog.log
+frontend/reader/node_modules/
+frontend/reader/.next/
+frontend/reader/.vercel/
+frontend/reader/cloudflared
+frontend/reader/package-lock.json
