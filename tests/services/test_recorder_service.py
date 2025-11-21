@@ -1,6 +1,7 @@
-from datetime import datetime
 from unittest.mock import MagicMock
+
 from src.services.recorder_service import RecorderService
+
 
 def test_start_session():
     mock_recorder = MagicMock()

@@ -24,6 +24,7 @@ class Settings:
     gemini_model: str
     gemini_api_key_env: str
     gemini_api_key: str | None
+    silence_threshold: float
 
 
 def _env_str(name: str, default: str | None = None) -> str | None:
@@ -39,6 +40,16 @@ def _env_int(name: str, default: int) -> int:
         return default
     try:
         return int(value)
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
     except ValueError:
         return default
 
@@ -92,6 +103,7 @@ def _load_settings() -> Settings:
         gemini_model=_env_str("VLOG_GEMINI_MODEL", "gemini-3-pro-preview"),
         gemini_api_key_env=_env_str("VLOG_GEMINI_API_KEY_ENV", "GOOGLE_API_KEY"),
         gemini_api_key=_env_str("VLOG_GEMINI_API_KEY"),
+        silence_threshold=_env_float("VLOG_SILENCE_THRESHOLD", 0.01),
     )
 
 

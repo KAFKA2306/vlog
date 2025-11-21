@@ -1,6 +1,7 @@
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from src.infrastructure.audio_recorder import AudioRecorder
+
 
 def test_start_creates_file_and_thread():
     recorder = AudioRecorder()

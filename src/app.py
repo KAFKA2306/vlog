@@ -11,7 +11,6 @@ from src.infrastructure.transcriber import Transcriber
 from src.services.processor_service import ProcessorService
 from src.services.recorder_service import RecorderService
 
-
 logger = logging.getLogger(__name__)
 
 

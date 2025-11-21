@@ -6,7 +6,6 @@ from src.infrastructure.diary_writer import DiaryWriter
 from src.infrastructure.summarizer import Summarizer
 from src.infrastructure.transcriber import Transcriber
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +24,7 @@ class ProcessorService:
         logger.info(f"Processing session: {session}")
         logger.info("Transcribing audio...")
         transcript = self._transcriber.transcribe(session.file_path)
+        self._transcriber.unload()
         logger.info("Summarizing transcript...")
         summary = self._summarizer.summarize(transcript, session)
         completed_at = session.end_time or datetime.now()

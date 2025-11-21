@@ -2,6 +2,7 @@ import os
 import threading
 from datetime import datetime
 
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
@@ -63,4 +64,13 @@ class AudioRecorder:
             ) as stream:
                 while not self._stop_event.is_set():
                     data, _ = stream.read(settings.block_size)
-                    file.write(data)
+                    # Calculate RMS amplitude (supports numpy array or raw bytes)
+                    if isinstance(data, bytes):
+                        rms_source = np.frombuffer(data, dtype=np.int16)
+                    else:
+                        rms_source = data
+                    if rms_source.size == 0:
+                        continue
+                    rms = np.sqrt(np.mean(np.square(rms_source)))
+                    if rms > settings.silence_threshold:
+                        file.write(data)

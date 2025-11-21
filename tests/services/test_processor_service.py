@@ -1,7 +1,9 @@
 from datetime import datetime
 from unittest.mock import MagicMock
+
 from src.domain.entities import RecordingSession
 from src.services.processor_service import ProcessorService
+
 
 def test_process_session():
     mock_transcriber = MagicMock()

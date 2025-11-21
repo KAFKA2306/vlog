@@ -25,3 +25,6 @@ class Transcriber:
         )
         transcript = " ".join(segment.text.strip() for segment in segments)
         return transcript.strip()
+
+    def unload(self) -> None:
+        self._model = None

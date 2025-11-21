@@ -29,9 +29,10 @@ tasks:
       - task: lint
 
   commit:
-    desc: Gitコミットを実行（MESSAGE必須）
+    desc: Git add && commitを実行（MESSAGE必須）
     cmds:
       - test -n "{{.MESSAGE}}" || (echo "MESSAGEを指定してください" && exit 1)
+      - git add .
       - git status --short
       - git commit -am "{{.MESSAGE}}"
 

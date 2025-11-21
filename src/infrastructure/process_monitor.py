@@ -5,7 +5,6 @@ import psutil
 
 from src.infrastructure.settings import settings
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +14,9 @@ class ProcessMonitor:
         self._last_status = False
 
     def is_running(self) -> bool:
-        current_status = self._check_linux_processes() or self._check_windows_processes()
+        current_status = (
+            self._check_linux_processes() or self._check_windows_processes()
+        )
         if current_status != self._last_status:
             if current_status:
                 logger.info("Target process detected.")

@@ -4,7 +4,6 @@ from datetime import datetime
 from src.domain.entities import RecordingSession
 from src.infrastructure.audio_recorder import AudioRecorder
 
-
 logger = logging.getLogger(__name__)
 
 
