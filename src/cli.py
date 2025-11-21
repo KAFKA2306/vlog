@@ -46,7 +46,7 @@ def cmd_summarize(args):
     cleaned_text = preprocessor.process(text)
 
     session = RecordingSession(
-        file_path="dummy", start_time=datetime.now(), end_time=datetime.now()
+        file_paths=("dummy",), start_time=datetime.now(), end_time=datetime.now()
     )
     summarizer = Summarizer()
     print("Summarizing...")
@@ -72,7 +72,7 @@ def cmd_process(args):
     except ValueError:
         start_time = datetime.now()
     session = RecordingSession(
-        file_path=args.file,
+        file_paths=(args.file,),
         start_time=start_time,
         end_time=datetime.now(),
     )

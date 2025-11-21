@@ -5,5 +5,5 @@ from datetime import datetime
 @dataclass
 class RecordingSession:
     start_time: datetime
-    file_path: str
+    file_paths: tuple[str, ...]
     end_time: datetime | None = None

@@ -15,6 +15,7 @@ class AudioRecorder:
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._file_path: str | None = None
+        self._segments: list[str] = []
         self._lock = threading.Lock()
 
     def start(self) -> str:
@@ -26,6 +27,7 @@ class AudioRecorder:
             self._base_dir.mkdir(parents=True, exist_ok=True)
             filename = datetime.now().strftime("%Y%m%d_%H%M%S.wav")
             self._file_path = str(self._base_dir / filename)
+            self._segments = [self._file_path]
             self._stop_event.clear()
             self._thread = threading.Thread(
                 target=self._record_loop,
@@ -35,17 +37,17 @@ class AudioRecorder:
             self._thread.start()
             return self._file_path
 
-    def stop(self) -> str | None:
+    def stop(self) -> tuple[str, ...] | None:
         thread: threading.Thread | None
         with self._lock:
             thread = self._thread
             if not thread:
-                return self._file_path
+                return tuple(self._segments) if self._segments else None
             self._stop_event.set()
         thread.join()
         with self._lock:
             self._thread = None
-            return self._file_path
+            return tuple(self._segments)
 
     @property
     def is_recording(self) -> bool:
@@ -62,6 +64,7 @@ class AudioRecorder:
                 start_time = datetime.now()
                 with self._lock:
                     self._file_path = str(current_file_path)
+                    self._segments.append(self._file_path)
 
             with sf.SoundFile(
                 current_file_path,

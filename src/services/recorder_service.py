@@ -21,19 +21,23 @@ class RecorderService:
             return self._active_session
         file_path = self._recorder.start()
         logger.info(f"Started recording to {file_path}")
-        session = RecordingSession(start_time=datetime.now(), file_path=file_path)
+        session = RecordingSession(
+            start_time=datetime.now(), file_paths=(file_path,)
+        )
         self._active_session = session
         return session
 
     def stop_session(self) -> RecordingSession | None:
         if not self._active_session:
             return None
-        recorded_path = self._recorder.stop() or self._active_session.file_path
+        recorded_paths = (
+            self._recorder.stop() or self._active_session.file_paths
+        )
         session = RecordingSession(
             start_time=self._active_session.start_time,
-            file_path=recorded_path,
+            file_paths=recorded_paths,
             end_time=datetime.now(),
         )
-        logger.info(f"Stopped recording. Saved to {recorded_path}")
+        logger.info(f"Stopped recording. Saved to {recorded_paths[-1]}")
         self._active_session = None
         return session

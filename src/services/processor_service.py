@@ -24,16 +24,21 @@ class ProcessorService:
     def process_session(self, session: RecordingSession) -> str:
         logger.info(f"Processing session: {session}")
         logger.info("Transcribing audio...")
-        transcript, transcript_path = self._transcriber.transcribe_and_save(
-            session.file_path
-        )
+        texts: list[str] = []
+        transcript_paths: list[str] = []
+        for path in session.file_paths:
+            text, transcript_path = self._transcriber.transcribe_and_save(path)
+            texts.append(text)
+            transcript_paths.append(transcript_path)
         self._transcriber.unload()
 
         logger.info("Preprocessing transcript...")
-        cleaned_transcript = self._preprocessor.process(transcript)
+        merged = " ".join(texts)
+        cleaned_transcript = self._preprocessor.process(merged)
 
-        cleaned_path = Path(transcript_path).with_name(
-            f"cleaned_{Path(transcript_path).name}"
+        last_transcript = Path(transcript_paths[-1])
+        cleaned_path = last_transcript.with_name(
+            f"cleaned_{last_transcript.name}"
         )
         cleaned_path.write_text(cleaned_transcript, encoding="utf-8")
         logger.info(f"Cleaned transcript saved to {cleaned_path}")
@@ -41,13 +46,11 @@ class ProcessorService:
         logger.info("Summarizing transcript...")
         summary = self._summarizer.summarize(cleaned_transcript, session)
 
-        summary_path = Path("summaries") / f"{Path(session.file_path).stem}_summary.txt"
+        summary_name = f"{Path(session.file_paths[0]).stem}_summary.txt"
+        summary_path = Path("summaries") / summary_name
         summary_path.parent.mkdir(exist_ok=True)
         summary_path.write_text(summary, encoding="utf-8")
 
-        logger.info(
-            "Processing complete. Summary saved to %s",
-            summary_path,
-        )
+        logger.info("Processing complete. Summary saved to %s", summary_path)
         sync_supabase()
         return str(summary_path)
