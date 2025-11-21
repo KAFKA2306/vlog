@@ -14,19 +14,11 @@ tasks:
     desc: Run tests
     cmd: uv run pytest tests -v
 
-  format:
-    desc: Format code with ruff
-    cmd: uv run ruff format src tests
-
   lint:
     desc: Lint code with ruff
-    cmd: uv run ruff check src tests
-
-  check:
-    desc: Run both format and lint
     cmds:
-      - task: format
-      - task: lint
+      - uv run ruff check src tests
+      - uv run ruff format src tests
 
   commit:
     desc: Git add && commitを実行（MESSAGE必須）

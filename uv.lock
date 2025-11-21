@@ -1344,6 +1344,7 @@ dependencies = [
     { name = "pytest" },
     { name = "pytest-mock" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "sounddevice" },
     { name = "soundfile" },
 ]
@@ -1357,6 +1358,7 @@ requires-dist = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-mock", specifier = ">=3.12.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "sounddevice", specifier = ">=0.4.6" },
     { name = "soundfile", specifier = ">=0.12.1" },
 ]

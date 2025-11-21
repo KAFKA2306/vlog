@@ -52,14 +52,63 @@ VRChatが起動している間、自動的にマイク音声を録音し、終�
    uv sync
    ```
 
-3. 環境変数の設定
+3. 設定ファイルの準備
+
+   **APIキーの設定（必須）**:
 
    ```bash
    cp .env.example .env
    # .envを編集してGOOGLE_API_KEYを設定
    ```
 
-   無音区間の書き込みを抑えたい場合は `.env` に `VLOG_SILENCE_THRESHOLD` を追記してください（デフォルト: 0.01、値を大きくすると無音カットが強まります）。
+   **アプリケーション設定**:
+
+   基本設定は `config.yaml` で管理されています。GPU（CUDA）を使ったlarge-v3-turboなど、設定を変更したい場合は `config.yaml` を編集してください。
+
+   ```yaml
+   # config.yaml の例
+   whisper:
+     model_size: "large-v3-turbo"  # tiny, base, small, medium, large-v3, large-v3-turbo
+     device: "cuda"                # cpu, cuda, auto
+     compute_type: "float16"       # int8, float16, float32
+     beam_size: 5
+     vad_filter: true
+   ```
+
+   環境変数でも上書き可能です:
+
+   ```bash
+   export VLOG_WHISPER_MODEL_SIZE=large-v3-turbo
+   export VLOG_WHISPER_DEVICE=cuda
+   export VLOG_WHISPER_COMPUTE_TYPE=float16
+   ```
+
+## 設定
+
+### large-v3-turbo（GPU推奨）
+
+VRAM 6GB以上のGPUをお持ちの場合、`large-v3-turbo`の使用を推奨します：
+
+- **性能**: large-v3比で5〜8倍高速、モデルサイズ約1.6GB
+- **VRAM**: 約6GB（FP16使用時）、16GBなら余裕あり
+- **精度**: baseより大幅に向上
+
+`config.yaml`で以下のように設定してください：
+
+```yaml
+whisper:
+  model_size: "large-v3-turbo"
+  device: "cuda"
+  compute_type: "float16"
+```
+
+初回実行時にモデル（約1.6GB）をダウンロードします。
+
+### 設定ファイルの優先順位
+
+1. **環境変数** (`VLOG_*`) - 最優先
+2. **config.yaml** - デフォルト設定
+3. **コードのデフォルト値** - config.yamlがない場合のフォールバック
 
 ## 使い方
 
