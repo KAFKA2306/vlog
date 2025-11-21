@@ -1,6 +1,6 @@
 process:
   names: "VRChat.exe,VRChat,VRChatClient.exe"
-  check_interval: 30
+  check_interval: 300
 paths:
   recording_dir: "./recordings"
 audio:
