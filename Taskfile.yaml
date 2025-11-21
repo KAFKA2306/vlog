@@ -2,82 +2,95 @@ version: '3'
 
 tasks:
   default:
-    desc: Show available tasks
+    desc: ユーザーストーリー別クイックガイド
     cmds:
-      - task --list
+      - |
+          cat <<'EOF'
+          [セットアップ] task setup
+          [開発実行]     task dev
+          [サービス]     task up | task down | task status | task logs | task restart
+          [録音/処理]    task record | task process FILE=... | task transcribe FILE=... | task summarize FILE=... | task write FILE=...
+          [品質]         task lint | task test
+          [後片付け]     task clean
+          [コミット]     task commit MESSAGE="説明"
+          EOF
 
-  run:
-    desc: Run the VRChat Auto-Diary application
+  setup:
+    desc: 依存同期 (uv sync)
+    cmd: uv sync
+
+  dev:
+    desc: アプリをフォアグラウンド実行
     cmd: uv run python -m src.main
 
-  test:
-    desc: Run tests
-    cmd: uv run pytest tests -v
+  up:
+    desc: systemdユーザーサービスを有効化して起動
+    cmd: systemctl --user enable --now vlog.service
+
+  down:
+    desc: systemdユーザーサービスを無効化して停止
+    cmd: systemctl --user disable --now vlog.service
+
+  status:
+    desc: systemdユーザーサービスの状態表示
+    cmd: systemctl --user status vlog
+
+  logs:
+    desc: systemdユーザーサービスのログ追尾
+    cmd: journalctl --user -u vlog -f
+
+  restart:
+    desc: systemdユーザーサービスを再起動
+    cmd: systemctl --user restart vlog
+
+  record:
+    desc: 手動録音を開始 (Ctrl+Cで停止)
+    cmd: uv run python -m src.cli record
+
+  process:
+    desc: 録音ファイル一括処理 (Transcribe→Summarize→Write) FILE=path/to/audio.wav
+    cmds:
+      - test -n "{{.FILE}}" || (echo "FILEを指定してください" && exit 1)
+      - uv run python -m src.cli process --file {{.FILE}}
+
+  transcribe:
+    desc: 音声→テキスト変換 (FILE=path/to/audio.wav)
+    cmds:
+      - test -n "{{.FILE}}" || (echo "FILEを指定してください" && exit 1)
+      - uv run python -m src.cli transcribe --file {{.FILE}}
+
+  summarize:
+    desc: テキスト要約 (FILE=path/to/text.txt)
+    cmds:
+      - test -n "{{.FILE}}" || (echo "FILEを指定してください" && exit 1)
+      - uv run python -m src.cli summarize --file {{.FILE}}
+
+  write:
+    desc: 要約テキストから日記出力 (FILE=path/to/summary.txt)
+    cmds:
+      - test -n "{{.FILE}}" || (echo "FILEを指定してください" && exit 1)
+      - uv run python -m src.cli write --file {{.FILE}}
 
   lint:
-    desc: Lint code with ruff
+    desc: Ruffで静的解析＋フォーマット
     cmds:
       - uv run ruff check src tests
       - uv run ruff format src tests
 
+  test:
+    desc: pytestでテスト実行 (-v)
+    cmd: uv run pytest tests -v
+
+  clean:
+    desc: キャッシュ類を削除 (__pycache__/.pytest_cache/.ruff_cache)
+    cmds:
+      - rm -rf __pycache__ .pytest_cache .ruff_cache
+      - find . -type d -name "__pycache__" -exec rm -rf {} + || true
+
   commit:
-    desc: Git add && commitを実行（MESSAGE必須）
+    desc: Git add && commit（MESSAGE必須）
     cmds:
       - test -n "{{.MESSAGE}}" || (echo "MESSAGEを指定してください" && exit 1)
       - git add .
       - git status --short
       - git commit -am "{{.MESSAGE}}"
-
-  sync:
-    desc: Sync dependencies
-    cmd: uv sync
-
-  service:enable:
-    desc: Enable and start systemd service
-    cmd: systemctl --user enable --now vlog.service
-
-  service:disable:
-    desc: Disable and stop systemd service
-    cmd: systemctl --user disable --now vlog.service
-
-  service:status:
-    desc: Check systemd service status
-    cmd: systemctl --user status vlog
-
-  service:logs:
-    desc: View systemd service logs
-    cmd: journalctl --user -u vlog -f
-
-  service:restart:
-    desc: Restart systemd service
-    cmd: systemctl --user restart vlog
-
-  clean:
-    desc: Clean generated files
-    cmds:
-      - rm -rf __pycache__ .pytest_cache .ruff_cache
-      - find . -type d -name "__pycache__" -exec rm -rf {} + || true
-
-  check:
-    desc: Check if VRChat is running
-    cmd: uv run python -m src.cli check
-
-  record:
-    desc: Record audio manually (Ctrl+C to stop)
-    cmd: uv run python -m src.cli record
-
-  transcribe:
-    desc: 'Transcribe audio file (usage: task transcribe FILE=path/to/audio.wav)'
-    cmd: uv run python -m src.cli transcribe --file {{.FILE}}
-
-  summarize:
-    desc: 'Summarize text file (usage: task summarize FILE=path/to/text.txt)'
-    cmd: uv run python -m src.cli summarize --file {{.FILE}}
-
-  write:
-    desc: 'Write diary entry from text file (usage: task write FILE=path/to/summary.txt)'
-    cmd: uv run python -m src.cli write --file {{.FILE}}
-
-  process:
-    desc: 'Process audio file (Transcribe -> Summarize -> Write) (usage: task process FILE=path/to/audio.wav)'
-    cmd: uv run python -m src.cli process --file {{.FILE}}
