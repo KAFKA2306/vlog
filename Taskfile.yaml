@@ -9,9 +9,9 @@ tasks:
           [セットアップ] task setup
           [開発実行]     task dev
           [サービス]     task up | task down | task status | task logs | task restart
-          [録音/処理]    task record | task process FILE=... | task transcribe FILE=... | task summarize FILE=...
+          [録音/処理]    task record | task process FILE=... | task process:all
           [品質]         task lint
-          [同期]         task sync
+          [同期]         task sync | task sync:force
           [後片付け]     task clean
           [コミット]     task commit MESSAGE="説明"
           EOF
@@ -47,9 +47,14 @@ tasks:
   record:    {desc: 手動録音開始, cmd: uv run python -m src.cli record}
 
   process:
-    desc: 録音→要約
+    desc: 録音→要約 (単一ファイル)
     deps: [require_file]
     cmds: ["uv run python -m src.cli process --file {{.FILE}}"]
+
+  process:all:
+    desc: 録音→要約 (全ファイル一括)
+    cmds:
+      - for f in recordings/*.wav recordings/*.flac; do [ -f "$f" ] && task process FILE="$f"; done || true
 
   transcribe:
     desc: 音声→テキスト
@@ -62,6 +67,12 @@ tasks:
     cmds: ["uv run python -m src.cli summarize --file {{.FILE}}"]
 
   sync: {desc: summaries を Supabase 同期, cmd: uv run python src/sync_supabase.py}
+
+  sync:force:
+    desc: 全件強制同期 (touch & sync)
+    cmds:
+      - touch summaries/*.txt
+      - task sync
 
   lint:
     desc: Ruff check+format
