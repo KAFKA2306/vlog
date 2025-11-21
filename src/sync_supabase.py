@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -12,14 +13,20 @@ def main() -> None:
     key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
     client = create_client(url, key)
     rows: list[dict[str, object]] = []
+    tz = ZoneInfo("Asia/Tokyo")
     for path in sorted(Path("summaries").glob("*.txt")):
         content = path.read_text(encoding="utf-8")
         stat = path.stat()
-        date = datetime.fromtimestamp(stat.st_mtime, timezone.utc).date().isoformat()
+        date = (
+            datetime.fromtimestamp(stat.st_mtime, timezone.utc)
+            .astimezone(tz)
+            .date()
+            .isoformat()
+        )
         title = path.stem
         rows.append(
             {
-                "file_path": str(path),
+                "file_path": path.as_posix(),
                 "date": date,
                 "title": title,
                 "content": content,
