@@ -64,6 +64,10 @@ tasks:
       - test -n "{{.FILE}}" || (echo "FILEを指定してください" && exit 1)
       - uv run python -m src.cli summarize --file {{.FILE}}
 
+  sync:
+    desc: summaries/*.txt を Supabase に同期
+    cmd: uv run python src/sync_supabase.py
+
   lint:
     desc: Ruffで静的解析＋フォーマット
     cmds:
