@@ -16,7 +16,7 @@ def test_start_creates_file_and_thread():
         
         path = recorder.start()
         
-        assert path.endswith(".wav")
+        assert path.endswith(".flac")
         assert recorder.is_recording
         
         # Start again should return same path
@@ -39,4 +39,4 @@ def test_stop_stops_thread():
         
         path = recorder.stop()
         assert not recorder.is_recording
-        assert path.endswith(".wav")
+        assert path.endswith(".flac")

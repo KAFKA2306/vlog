@@ -23,7 +23,7 @@ class AudioRecorder:
             if self.is_recording:
                 return ""
             os.makedirs(settings.recording_dir, exist_ok=True)
-            filename = datetime.now().strftime("%Y%m%d_%H%M%S.wav")
+            filename = datetime.now().strftime("%Y%m%d_%H%M%S.flac")
             self._file_path = os.path.join(settings.recording_dir, filename)
             self._stop_event.clear()
             self._thread = threading.Thread(
@@ -50,27 +50,48 @@ class AudioRecorder:
     def is_recording(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
 
-    def _record_loop(self, file_path: str):
-        with sf.SoundFile(
-            file_path,
-            mode="w",
-            samplerate=settings.sample_rate,
-            channels=settings.channels,
-        ) as file:
-            with sd.InputStream(
+    def _record_loop(self, initial_file_path: str):
+        current_file_path = initial_file_path
+        start_time = datetime.now()
+
+        while not self._stop_event.is_set():
+            # Check for rollover (30 minutes)
+            if (datetime.now() - start_time).total_seconds() > 1800:
+                filename = datetime.now().strftime("%Y%m%d_%H%M%S.flac")
+                current_file_path = os.path.join(settings.recording_dir, filename)
+                start_time = datetime.now()
+                # Update self._file_path so stop() returns the latest file
+                # Note: This might be slightly racy if stop() is called exactly now,
+                # but acceptable for this use case.
+                with self._lock:
+                    self._file_path = current_file_path
+
+            with sf.SoundFile(
+                current_file_path,
+                mode="w",
                 samplerate=settings.sample_rate,
                 channels=settings.channels,
-                blocksize=settings.block_size,
-            ) as stream:
-                while not self._stop_event.is_set():
-                    data, _ = stream.read(settings.block_size)
-                    # Calculate RMS amplitude (supports numpy array or raw bytes)
-                    if isinstance(data, bytes):
-                        rms_source = np.frombuffer(data, dtype=np.int16)
-                    else:
-                        rms_source = data
-                    if rms_source.size == 0:
-                        continue
-                    rms = np.sqrt(np.mean(np.square(rms_source)))
-                    if rms > settings.silence_threshold:
-                        file.write(data)
+                subtype="PCM_16",
+                format="FLAC",
+            ) as file:
+                with sd.InputStream(
+                    samplerate=settings.sample_rate,
+                    channels=settings.channels,
+                    blocksize=settings.block_size,
+                ) as stream:
+                    while not self._stop_event.is_set():
+                        # Check for rollover inside the inner loop too
+                        if (datetime.now() - start_time).total_seconds() > 1800:
+                            break
+
+                        data, _ = stream.read(settings.block_size)
+                        # Calculate RMS amplitude (supports numpy array or raw bytes)
+                        if isinstance(data, bytes):
+                            rms_source = np.frombuffer(data, dtype=np.int16)
+                        else:
+                            rms_source = data
+                        if rms_source.size == 0:
+                            continue
+                        rms = np.sqrt(np.mean(np.square(rms_source)))
+                        if rms > settings.silence_threshold:
+                            file.write(data)

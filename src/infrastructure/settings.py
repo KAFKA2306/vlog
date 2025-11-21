@@ -25,6 +25,7 @@ class Settings:
     gemini_api_key_env: str
     gemini_api_key: str | None
     silence_threshold: float
+    retention_days: int
 
 
 def _env_str(name: str, default: str | None = None) -> str | None:
@@ -92,7 +93,7 @@ def _load_settings() -> Settings:
         check_interval=_env_int("VLOG_CHECK_INTERVAL", 30),
         recording_dir=_env_str("VLOG_RECORDING_DIR", os.path.join(cwd, "recordings")),
         diary_dir=_env_str("VLOG_DIARY_DIR", os.path.join(cwd, "diaries")),
-        sample_rate=_env_int("VLOG_SAMPLE_RATE", 44100),
+        sample_rate=_env_int("VLOG_SAMPLE_RATE", 16000),
         channels=_env_int("VLOG_CHANNELS", 1),
         block_size=_env_int("VLOG_BLOCK_SIZE", 1024),
         whisper_model_size=_env_str("VLOG_WHISPER_MODEL_SIZE", "base"),
@@ -103,7 +104,8 @@ def _load_settings() -> Settings:
         gemini_model=_env_str("VLOG_GEMINI_MODEL", "gemini-3-pro-preview"),
         gemini_api_key_env=_env_str("VLOG_GEMINI_API_KEY_ENV", "GOOGLE_API_KEY"),
         gemini_api_key=_env_str("VLOG_GEMINI_API_KEY"),
-        silence_threshold=_env_float("VLOG_SILENCE_THRESHOLD", 0.01),
+        silence_threshold=_env_float("VLOG_SILENCE_THRESHOLD", 0.02),
+        retention_days=_env_int("VLOG_RETENTION_DAYS", 7),
     )
 
 

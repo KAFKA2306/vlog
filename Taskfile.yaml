@@ -65,3 +65,27 @@ tasks:
     cmds:
       - rm -rf __pycache__ .pytest_cache .ruff_cache
       - find . -type d -name "__pycache__" -exec rm -rf {} + || true
+
+  check:
+    desc: Check if VRChat is running
+    cmd: uv run python -m src.cli check
+
+  record:
+    desc: Record audio manually (Ctrl+C to stop)
+    cmd: uv run python -m src.cli record
+
+  transcribe:
+    desc: 'Transcribe audio file (usage: task transcribe FILE=path/to/audio.wav)'
+    cmd: uv run python -m src.cli transcribe --file {{.FILE}}
+
+  summarize:
+    desc: 'Summarize text file (usage: task summarize FILE=path/to/text.txt)'
+    cmd: uv run python -m src.cli summarize --file {{.FILE}}
+
+  write:
+    desc: 'Write diary entry from text file (usage: task write FILE=path/to/summary.txt)'
+    cmd: uv run python -m src.cli write --file {{.FILE}}
+
+  process:
+    desc: 'Process audio file (Transcribe -> Summarize -> Write) (usage: task process FILE=path/to/audio.wav)'
+    cmd: uv run python -m src.cli process --file {{.FILE}}
