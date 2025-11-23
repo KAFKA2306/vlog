@@ -136,18 +136,20 @@ tasks:
   # Windows bootstrap
   # ────────────────────────────────────────
   bootstrap:
-    desc: Windows 自動起動セットアップ（管理者PowerShellで実行）
-    cmd: |
-      WINPS=$(command -v powershell.exe || echo /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe)
-      WINROOT=$(wslpath -w "$PWD")
-      "$WINPS" -NoProfile -ExecutionPolicy Bypass -File "$WINROOT\\bootstrap.ps1"
+    desc: Windows 自動起動セットアップ（管理者 PowerShellで実行）
+    cmds:
+      - |
+        WINPS="$(command -v powershell.exe || echo /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe)"
+        WINROOT="$(wslpath -w "$PWD")"
+        "$WINPS" -NoProfile -ExecutionPolicy Bypass -File "$WINROOT\\bootstrap.ps1"
 
   bootstrap:test:
-    desc: WSL→Windows でスケジュール登録なしの動作確認
-    cmd: |
-      WINPS=$(command -v powershell.exe || echo /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe)
-      WINPWD=$(wslpath -w "$PWD")
-      "$WINPS" -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\bootstrap.ps1" -NoSchedule
+    desc: WSL→Windows 経由の起動テスト（スケジュール登録なし）
+    cmds:
+      - |
+        WINPS="$(command -v powershell.exe || echo /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe)"
+        WINROOT="$(wslpath -w "$PWD")"
+        "$WINPS" -NoProfile -ExecutionPolicy Bypass -File "$WINROOT\\bootstrap.ps1" -NoSchedule
 
   # ────────────────────────────────────────
   # Web UI

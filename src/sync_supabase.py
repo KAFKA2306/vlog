@@ -1,8 +1,7 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -14,7 +13,7 @@ def main() -> None:
     client = create_client(
         os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_ROLE_KEY"]
     )
-    tz = ZoneInfo("Asia/Tokyo")
+    tz = timezone(timedelta(hours=9))
 
     existing = {
         r["file_path"]: r["created_at"]
