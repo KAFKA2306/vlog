@@ -16,8 +16,8 @@ cp .env.example .env
 
 ```bash
 task up      # サービス起動
-task status  # 状態確認
-task logs    # ログ確認
+task status  # 全体状態確認（systemd + ログ解析）
+task logs    # ログ追尾
 task down    # サービス停止
 ```
 
@@ -55,6 +55,6 @@ src/          ソースコード
 
 ## フロントエンド（reader）
 
-- ローカル: `cd frontend/reader && npm run dev -- --hostname 0.0.0.0 --port 3000`
-- 本番URL: https://kaflog.vercel.app （最新デプロイ: https://kaflog-nhqwf8dpm-kafka2306s-projects.vercel.app）
-- デプロイ: `cd frontend/reader && npx vercel --prod`（Vercelプロジェクト名 `kaflog`）
+- ローカル: `task web:dev`
+- 本番URL: <https://kaflog.vercel.app>
+- デプロイ: `task web:deploy`

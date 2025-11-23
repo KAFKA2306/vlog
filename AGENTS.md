@@ -22,13 +22,25 @@ task clean     キャッシュ削除
 
 task up        systemdサービス起動
 task down      systemdサービス停止
-task status    サービス状態
-task logs      ログ確認
+task restart   systemdサービス再起動
+task status    全体状態確認（systemd + ログ解析）
+task logs      ログ追尾
 
 task record                         手動録音
-task transcribe FILE=audio.wav      文字起こし
-task summarize FILE=transcript.txt  要約
 task process FILE=audio.wav         一括処理
+task process:all                    全録音を一括処理
+
+task sync                           Supabase同期
+task sync:full                      全件強制同期
+
+task web:dev                        フロントエンド開発
+task web:deploy                     Vercelデプロイ
+
+# デバッグ用
+task service:status                 systemd状態のみ
+task log:status                     ログ解析のみ
+task transcribe FILE=audio.wav      文字起こしのみ
+task summarize FILE=transcript.txt  要約のみ
 ```
 
 ## 設定

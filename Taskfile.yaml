@@ -1,43 +1,143 @@
 version: '3'
 
 tasks:
+  # ────────────────────────────────────────
+  # ヘルプ
+  # ────────────────────────────────────────
   default:
     desc: クイックガイド
     cmds:
       - |
           cat <<'EOF'
-          [セットアップ] task setup
-          [開発実行]     task dev
-          [サービス]     task up | task down | task status | task logs | task restart
-          [ログ確認]     task log:status
-          [録音/処理]    task record | task process FILE=... | task process:all
-          [品質]         task lint
-          [同期]         task sync | task sync:force
-          [後片付け]     task clean
-          [コミット]     task commit MESSAGE="説明"
+          ■ セットアップ（初回のみ）
+            task setup
+
+          ■ 開発・実行
+            task dev                      ローカル実行
+            task up                       systemd起動
+            task down                     systemd停止
+            task restart                  systemd再起動
+            task status                   全体状態確認
+            task logs                     ログ追尾
+
+          ■ 録音・処理（メイン機能）
+            task record                   手動録音
+            task process FILE=録音.wav    1ファイル処理
+            task process:all              全録音を一括処理
+
+          ■ データ同期
+            task sync                     Supabase同期
+            task sync:full                全件強制同期
+
+          ■ Web UI
+            task web:dev                  開発サーバー
+            task web:build                本番ビルド
+            task web:deploy               Vercelデプロイ
+
+          ■ メンテナンス
+            task lint                     コード品質チェック
+            task clean                    キャッシュ削除
+            task commit MESSAGE="..."     Git commit
+
+          ■ デバッグ用
+            task service:status           systemd状態のみ
+            task log:status               ログ解析のみ
+            task transcribe FILE=...      文字起こしのみ
+            task summarize FILE=...       要約のみ
           EOF
 
-  setup: {desc: 依存同期, cmd: uv sync}
-  dev:   {desc: アプリ実行, cmd: uv run python -m src.main}
+  # ────────────────────────────────────────
+  # セットアップ
+  # ────────────────────────────────────────
+  setup:
+    desc: 依存同期
+    cmd: uv sync
 
-  up:      {desc: systemd有効化+起動, cmd: systemctl --user enable --now "$(pwd)/vlog.service"}
-  down:    {desc: systemd無効化+停止, cmd: systemctl --user disable --now vlog.service}
-  status:  {desc: systemd状態, cmd: systemctl --user status vlog}
-  logs:    {desc: systemdログ追尾, cmd: journalctl --user -u vlog -f}
-  restart: {desc: systemd再起動, cmd: systemctl --user restart vlog}
+  # ────────────────────────────────────────
+  # 開発・実行
+  # ────────────────────────────────────────
+  dev:
+    desc: アプリ実行
+    cmd: uv run python -m src.main
 
-  log:status: {desc: ログ状態確認, cmd: python3 view_logs.py}
+  up:
+    desc: systemd起動
+    cmd: systemctl --user enable --now "$(pwd)/vlog.service"
 
-  reader:dev:    {desc: frontend/reader dev, cmd: cd frontend/reader && npm run dev -- --hostname 0.0.0.0 --port 3000}
-  reader:build:  {desc: frontend/reader build, cmd: cd frontend/reader && npm run build}
-  reader:start:  {desc: frontend/reader prod(4000), cmd: cd frontend/reader && npm run start -- --hostname 0.0.0.0 --port 4000}
-  reader:deploy:
-    desc: frontend/reader デプロイ
+  down:
+    desc: systemd停止
+    cmd: systemctl --user disable --now vlog.service
+
+  restart:
+    desc: systemd再起動
+    cmd: systemctl --user restart vlog
+
+  status:
+    desc: 全体状態確認（service + log）
+    cmds:
+      - echo "■ systemd 状態"
+      - systemctl --user status vlog --no-pager --lines=10 || true
+      - echo ""
+      - echo "■ ログ解析"
+      - python3 view_logs.py
+
+  logs:
+    desc: ログ追尾（リアルタイム）
+    cmd: journalctl --user -u vlog -f
+
+  # ────────────────────────────────────────
+  # 録音・処理
+  # ────────────────────────────────────────
+  record:
+    desc: 手動録音開始
+    cmd: uv run python -m src.cli record
+
+  process:
+    desc: 録音→要約（単一ファイル）
+    deps: [require_file]
+    cmds: ["uv run python -m src.cli process --file {{.FILE}}"]
+
+  process:all:
+    desc: 録音→要約（全ファイル一括）
+    cmds:
+      - for f in recordings/*.wav recordings/*.flac; do [ -f "$f" ] && task process FILE="$f"; done || true
+
+  # ────────────────────────────────────────
+  # データ同期
+  # ────────────────────────────────────────
+  sync:
+    desc: Supabase同期
+    cmd: uv run python src/sync_supabase.py
+
+  sync:full:
+    desc: 全件強制同期
+    cmds:
+      - touch summaries/*.txt
+      - task sync
+
+  # ────────────────────────────────────────
+  # Web UI
+  # ────────────────────────────────────────
+  web:dev:
+    desc: 開発サーバー
+    cmd: cd frontend/reader && npm run dev -- --hostname 0.0.0.0 --port 3000
+
+  web:build:
+    desc: ビルド
+    cmd: cd frontend/reader && npm run build
+
+  web:start:
+    desc: 本番起動（ポート4000）
+    cmd: cd frontend/reader && npm run start -- --hostname 0.0.0.0 --port 4000
+
+  web:deploy:
+    desc: Vercelデプロイ
     cmds:
       - cd frontend/reader && npx vercel link --project kaflog --yes
       - cd frontend/reader && npx vercel --prod --yes
-  reader:env:
-    desc: ./.env → frontend/reader/.env.local に抽出
+
+  web:env:
+    desc: 環境変数抽出
     cmds:
       - test -f .env || (echo ".env がありません" && exit 1)
       - |
@@ -47,38 +147,11 @@ tasks:
         NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         EOF
 
-  record:    {desc: 手動録音開始, cmd: uv run python -m src.cli record}
-
-  process:
-    desc: 録音→要約 (単一ファイル)
-    deps: [require_file]
-    cmds: ["uv run python -m src.cli process --file {{.FILE}}"]
-
-  process:all:
-    desc: 録音→要約 (全ファイル一括)
-    cmds:
-      - for f in recordings/*.wav recordings/*.flac; do [ -f "$f" ] && task process FILE="$f"; done || true
-
-  transcribe:
-    desc: 音声→テキスト
-    deps: [require_file]
-    cmds: ["uv run python -m src.cli transcribe --file {{.FILE}}"]
-
-  summarize:
-    desc: テキスト要約
-    deps: [require_file]
-    cmds: ["uv run python -m src.cli summarize --file {{.FILE}}"]
-
-  sync: {desc: summaries を Supabase 同期, cmd: uv run python src/sync_supabase.py}
-
-  sync:force:
-    desc: 全件強制同期 (touch & sync)
-    cmds:
-      - touch summaries/*.txt
-      - task sync
-
+  # ────────────────────────────────────────
+  # メンテナンス
+  # ────────────────────────────────────────
   lint:
-    desc: Ruff check+format
+    desc: コード品質チェック
     cmds: ["uv run ruff check src && uv run ruff format src"]
 
   clean:
@@ -86,9 +159,33 @@ tasks:
     cmds: ["rm -rf __pycache__ .ruff_cache && find . -type d -name __pycache__ -exec rm -rf {} + || true"]
 
   commit:
-    desc: Git add+commit
+    desc: Git commit
     cmds: ["git add . && git commit -am '{{.MESSAGE}}'"]
 
+  # ────────────────────────────────────────
+  # デバッグ用
+  # ────────────────────────────────────────
+  service:status:
+    desc: systemd状態のみ
+    cmd: systemctl --user status vlog
+
+  log:status:
+    desc: ログ解析のみ
+    cmd: python3 view_logs.py
+
+  transcribe:
+    desc: 文字起こしのみ
+    deps: [require_file]
+    cmds: ["uv run python -m src.cli transcribe --file {{.FILE}}"]
+
+  summarize:
+    desc: 要約のみ
+    deps: [require_file]
+    cmds: ["uv run python -m src.cli summarize --file {{.FILE}}"]
+
+  # ────────────────────────────────────────
+  # 内部ヘルパー
+  # ────────────────────────────────────────
   require_file:
     internal: true
     preconditions:
