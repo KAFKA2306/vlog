@@ -49,6 +49,7 @@ task summarize FILE=transcript.txt  要約のみ
 - CMD: `run.cmd`
 - ダブルクリック: `run.cmd`
 - WSL bash から Windows 版を起動: `WINPWD=$(wslpath -w "$PWD"); powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\run.ps1"`
+- bootstrap 実行例（管理者 PowerShell）: `powershell -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\\Ubuntu-22.04\\home\\kafka\\projects\\vlog\\bootstrap.ps1"`
 
 ## 設定
 

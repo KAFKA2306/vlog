@@ -30,6 +30,8 @@ tasks:
             CMD:           run.cmd
             ダブルクリック: run.cmd
             WSL bash→Win:  WINPWD=$(wslpath -w "$PWD"); powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\run.ps1"
+          ■ bootstrap（管理者PowerShell）
+            powershell -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\\Ubuntu-22.04\\home\\kafka\\projects\\vlog\\bootstrap.ps1"
 
           ■ データ同期
             task sync                     Supabase同期

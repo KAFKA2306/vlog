@@ -32,6 +32,12 @@ WSL上のbashからWindows版を起動する場合（1行で貼る）:
 WINPWD=$(wslpath -w "$PWD"); powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\run.ps1"
 ```
 
+bootstrap（自動起動セットアップ）を実行する場合（管理者 PowerShell で1行で貼る）:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\\Ubuntu-22.04\\home\\kafka\\projects\\vlog\\bootstrap.ps1"
+```
+
 ## 使い方
 
 ### 自動監視モード
