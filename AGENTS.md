@@ -43,6 +43,13 @@ task transcribe FILE=audio.wav      文字起こしのみ
 task summarize FILE=transcript.txt  要約のみ
 ```
 
+## 起動コマンド（確実な経路）
+
+- PowerShell: `.\run.ps1`
+- CMD: `run.cmd`
+- ダブルクリック: `run.cmd`
+- WSL bash から Windows 版を起動: `WINPWD=$(wslpath -w "$PWD"); powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\run.ps1"`
+
 ## 設定
 
 - `.env`: GOOGLE_API_KEY

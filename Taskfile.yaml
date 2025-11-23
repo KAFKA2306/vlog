@@ -25,6 +25,12 @@ tasks:
             task process FILE=録音.wav    1ファイル処理
             task process:all              全録音を一括処理
 
+          ■ Windows 起動（確実な経路）
+            PowerShell:    .\\run.ps1
+            CMD:           run.cmd
+            ダブルクリック: run.cmd
+            WSL bash→Win:  WINPWD=$(wslpath -w "$PWD"); powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\run.ps1"
+
           ■ データ同期
             task sync                     Supabase同期
             task sync:full                全件強制同期
@@ -101,6 +107,11 @@ tasks:
     desc: 録音→要約（全ファイル一括）
     cmds:
       - for f in recordings/*.wav recordings/*.flac; do [ -f "$f" ] && task process FILE="$f"; done || true
+
+  transcribe:all:
+    desc: 文字起こしのみ（全ファイル）
+    cmds:
+      - for f in recordings/*.wav recordings/*.flac; do [ -f "$f" ] && task transcribe FILE="$f"; done || true
 
   # ────────────────────────────────────────
   # データ同期

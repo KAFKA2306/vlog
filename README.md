@@ -10,6 +10,28 @@ cp .env.example .env
 # .envにGOOGLE_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEYを設定
 ```
 
+### Windowsでの実行
+
+PowerShell（推奨）:
+
+```powershell
+.\run.ps1
+```
+
+コマンドプロンプト:
+
+```cmd
+run.cmd
+```
+
+> UNCパス（例: `\\wsl$\\...` やネットワーク共有）では `cmd.exe` がカレントを保持できません。`run.cmd` は内部で `pushd` してから PowerShell (`run.ps1`) を呼ぶため多くの環境でそのまま動きますが、失敗する場合は PowerShell で `.\run.ps1` を実行するか、UNC をネットワークドライブに割り当ててから `run.cmd` を実行してください。
+
+WSL上のbashからWindows版を起動する場合（1行で貼る）:
+
+```bash
+WINPWD=$(wslpath -w "$PWD"); powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$WINPWD\\run.ps1"
+```
+
 ## 使い方
 
 ### 自動監視モード
