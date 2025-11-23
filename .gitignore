@@ -27,3 +27,4 @@ frontend/reader/.vercel/
 frontend/reader/cloudflared
 frontend/reader/package-lock.json
 frontend/reader/.env.local
+*txt
