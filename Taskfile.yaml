@@ -139,7 +139,8 @@ tasks:
     desc: Windows 自動起動セットアップ（管理者PowerShellで実行）
     cmd: |
       WINPS=$(command -v powershell.exe || echo /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe)
-      "$WINPS" -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\\Ubuntu-22.04\\home\\kafka\\projects\\vlog\\bootstrap.ps1"
+      WINROOT=$(wslpath -w "$PWD")
+      "$WINPS" -NoProfile -ExecutionPolicy Bypass -File "$WINROOT\\bootstrap.ps1"
 
   bootstrap:test:
     desc: WSL→Windows でスケジュール登録なしの動作確認
