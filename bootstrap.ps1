@@ -14,8 +14,15 @@ Set-Location -LiteralPath $envRoot
 $env:UV_PROJECT_ENVIRONMENT = ".venv-win"
 $env:UV_LINK_MODE = "copy"
 
-if (Test-Path .env.example -and -not (Test-Path .env)) { Copy-Item .env.example .env }
-if (-not (Test-Path .env)) { New-Item -ItemType File -Path .env | Out-Null }
+if (Test-Path ".env.example") {
+  if (-not (Test-Path ".env")) {
+    Copy-Item ".env.example" ".env"
+  }
+}
+
+if (-not (Test-Path ".env")) {
+  New-Item -ItemType File -Path ".env" | Out-Null
+}
 
 $recordingPath = [IO.Path]::GetFullPath((Join-Path $root "recordings"))
 $transcriptPath = [IO.Path]::GetFullPath((Join-Path $root "transcripts"))
