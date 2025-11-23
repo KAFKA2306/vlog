@@ -1,191 +1,141 @@
-# VRChat Auto-Diary Architecture
+# VRChat Auto-Diary システム構成図
 
-## システム概要
+このシステムがどのように動いているかを図で説明します。
 
-VRChatプレイ中の音声を自動録音し、AIで文字起こし・要約して日記化するシステム。
+---
 
-## アーキテクチャ図
+## ① 全体の流れ（データフロー図）
 
-```mermaid
-graph TB
-    subgraph Windows["Windows (Task Scheduler)"]
-        TS[Task Scheduler] --> VBS[run_silent.vbs]
-        VBS --> BAT[run.bat]
-        BAT --> APP[Application]
-    end
-    
-    subgraph Core["Core Loop"]
-        APP --> MON[ProcessMonitor]
-        MON -->|check_interval| VRC{VRChat実行中?}
-        VRC -->|Yes & Not Recording| REC[RecorderService]
-        VRC -->|No & Recording| STOP[Stop Recording]
-    end
-    
-    subgraph Processing["Backend Processing"]
-        STOP --> PROC[ProcessorService]
-        PROC --> TR[Transcriber<br/>Whisper]
-        TR --> PRE[Preprocessor<br/>フィラー除去]
-        PRE --> SUM[Summarizer<br/>Gemini API]
-        SUM --> FILE[summaries/*.txt]
-        FILE --> SYNC[sync_supabase]
-    end
-    
-    subgraph Cloud["Supabase"]
-        SYNC --> DB[(daily_entries)]
-    end
-    
-    subgraph Frontend["Next.js Frontend"]
-        DB -.読取.-> WEB[Vercel<br/>kaflog.vercel.app]
-    end
-    
-    style TS fill:#4CAF50
-    style SYNC fill:#FF9800
-    style WEB fill:#2196F3
-```
-
-## シーケンス図
-
-### VRChat起動時
-
-```mermaid
-sequenceDiagram
-    participant TS as Task Scheduler
-    participant App as Application
-    participant Mon as ProcessMonitor
-    participant Rec as RecorderService
-    participant VRC as VRChat.exe
-
-    TS->>App: 起動 (run.bat)
-    loop check_interval秒ごと
-        App->>Mon: is_running()
-        Mon->>VRC: プロセスチェック
-        VRC-->>Mon: 実行中
-        Mon-->>App: True
-        App->>Rec: start_session()
-        Rec-->>App: 録音開始
-    end
-```
-
-### VRChat終了時
-
-```mermaid
-sequenceDiagram
-    participant App as Application
-    participant Mon as ProcessMonitor
-    participant Rec as RecorderService
-    participant Proc as ProcessorService
-    participant Trans as Transcriber
-    participant Sum as Summarizer
-    participant Sync as sync_supabase
-    participant DB as Supabase
-
-    App->>Mon: is_running()
-    Mon-->>App: False
-    App->>Rec: stop_session()
-    Rec-->>App: RecordingSession
-    
-    par バックグラウンド処理
-        App->>Proc: process_session()
-        Proc->>Trans: transcribe_and_save()
-        Trans-->>Proc: transcript.txt
-        Proc->>Sum: summarize()
-        Sum-->>Proc: summary
-        Proc->>Proc: summaries/YYYYMMDD_summary.txt保存
-        Proc->>Sync: sync_supabase()
-        Sync->>DB: upsert(daily_entries)
-        DB-->>Sync: OK
-    end
-```
-
-## 状態遷移図
-
-```mermaid
-stateDiagram-v2
-    [*] --> Monitoring: Task Scheduler起動
-    
-    Monitoring --> Recording: VRChat起動検出
-    Recording --> Monitoring: VRChat実行中
-    Recording --> Processing: VRChat終了検出
-    
-    Processing --> Transcribing: 録音停止
-    Transcribing --> Preprocessing: 文字起こし完了
-    Preprocessing --> Summarizing: 前処理完了
-    Summarizing --> Syncing: 要約完了
-    Syncing --> Monitoring: Supabase同期完了
-    
-    Monitoring --> Monitoring: チェック継続
-```
-
-## コンポーネント構成
-
-```mermaid
-graph TB
-    subgraph Presentation["Presentation Layer"]
-        CLI[cli.py]
-        VIEW[view_logs.py]
-    end
-    
-    subgraph Application["Application Layer"]
-        APP[app.py<br/>Application]
-        REC_SVC[RecorderService]
-        PROC_SVC[ProcessorService]
-    end
-    
-    subgraph Domain["Domain Layer"]
-        ENT[entities.py<br/>RecordingSession]
-    end
-    
-    subgraph Infrastructure["Infrastructure Layer"]
-        MON[ProcessMonitor]
-        RECR[AudioRecorder]
-        TRANS[Transcriber]
-        PREP[Preprocessor]
-        SUM[Summarizer]
-        SYNC[sync_supabase]
-    end
-    
-    CLI --> PROC_SVC
-    APP --> REC_SVC
-    APP --> PROC_SVC
-    APP --> MON
-    REC_SVC --> RECR
-    REC_SVC --> ENT
-    PROC_SVC --> TRANS
-    PROC_SVC --> PREP
-    PROC_SVC --> SUM
-    PROC_SVC --> SYNC
-    PROC_SVC --> ENT
-    
-    style APP fill:#4CAF50
-    style PROC_SVC fill:#FF9800
-    style SYNC fill:#2196F3
-```
-
-## データフロー
+**この図は何？**: あなたがVRChatで遊んだ音声が、最終的にWebサイトで読める日記になるまでの流れを表しています。
 
 ```mermaid
 flowchart LR
-    VRC[VRChat起動] --> REC[録音<br/>recordings/*.wav]
-    REC --> TRANS[文字起こし<br/>transcripts/*.txt]
-    TRANS --> CLEAN[前処理<br/>cleaned_*.txt]
-    CLEAN --> SUM[要約<br/>summaries/YYYYMMDD_summary.txt]
-    SUM --> DB[(Supabase<br/>daily_entries)]
-    DB --> WEB[Next.js<br/>Vercel]
+    A[🎮 VRChat起動] --> B[🎤 録音<br/>recordings/*.wav]
+    B --> C[📝 音声→テキスト<br/>transcripts/*.txt]
+    C --> D[🤖 AI要約<br/>summaries/*.txt]
+    D --> E[☁️ クラウド保存<br/>Supabase]
+    E --> F[🌐 Webで閲覧<br/>kaflog.vercel.app]
     
-    style REC fill:#F44336
-    style SUM fill:#4CAF50
-    style DB fill:#2196F3
+    style A fill:#9C27B0
+    style B fill:#F44336
+    style C fill:#FF9800
+    style D fill:#4CAF50
+    style E fill:#2196F3
+    style F fill:#00BCD4
 ```
 
-## 自動化範囲
+**実際の体験で言うと**:
 
-| コンポーネント | 自動化 | トリガー |
-|---|---|---|
-| VRChat監視 | ✅ | Task Scheduler起動時 |
-| 録音開始/停止 | ✅ | VRChat起動/終了検出 |
-| 文字起こし | ✅ | 録音終了時 |
-| 前処理 | ✅ | 文字起こし完了時 |
-| 要約生成 | ✅ | 前処理完了時 |
-| Supabase同期 | ✅ | 要約完了時 |
-| Next.js開発 | ❌ | `task reader:dev` |
-| Vercelデプロイ | ❌ | `task reader:deploy` |
+1. VRChatを起動すると、自動で録音開始
+2. VRChatを終了すると、録音停止
+3. 裏で自動的に音声がテキストに変換される
+4. AIが日記形式に要約してくれる
+5. クラウド（Supabase）に保存される
+6. Webサイトで読める
+
+---
+
+## ② VRChat起動・終了の監視（状態遷移図）
+
+**この図は何？**: システムが「VRChatが起動したか？」「終了したか？」を常に監視して、状態を切り替えている様子です。
+
+```mermaid
+stateDiagram-v2
+    [*] --> 監視中: Windowsにログオン
+    
+    監視中 --> 録音中: VRChat起動を検出
+    録音中 --> 処理中: VRChat終了を検出
+    処理中 --> 監視中: 日記作成完了
+    
+    note right of 監視中
+        数秒ごとに
+        VRChatが動いているか
+        チェックしている
+    end note
+    
+    note right of 録音中
+        マイクの音を
+        wavファイルに保存中
+    end note
+    
+    note right of 処理中
+        音声→テキスト→要約→保存
+        を自動実行中
+    end note
+```
+
+**実際の体験で言うと**:
+
+- **監視中**: 何もしていない。VRChatの起動を待っている
+- **録音中**: VRChatでプレイ中。裏で録音している
+- **処理中**: VRChatを終了した後、裏で日記を作っている（数分かかる）
+
+---
+
+## ③ VRChat終了後の自動処理（シーケンス図）
+
+**この図は何？**: VRChatを終了した後、裏で何が起きているかを時系列で表しています。
+
+```mermaid
+sequenceDiagram
+    participant 👤 as あなた
+    participant 🎮 as VRChat
+    participant 🤖 as システム
+    participant ☁️ as クラウド
+
+    👤->>🎮: VRChatを起動
+    🎮->>🤖: 起動を検出
+    🤖->>🤖: 🎤 録音開始
+    
+    Note over 👤,🎮: VRChatでプレイ中...
+    
+    👤->>🎮: VRChatを終了
+    🎮->>🤖: 終了を検出
+    🤖->>🤖: 🎤 録音停止
+    
+    Note over 🤖: ここから裏で自動処理
+    
+    🤖->>🤖: 📝 音声をテキスト化 (数分)
+    🤖->>🤖: 🧹 不要な言葉を削除
+    🤖->>🤖: 🤖 AIで日記に要約
+    🤖->>☁️: ☁️ クラウドに保存
+    ☁️-->>🤖: 完了
+    
+    Note over 🤖: 完了！Webで読める状態に
+```
+
+**実際の体験で言うと**:
+
+1. あなたがVRChatを終了
+2. システムが録音を止める
+3. その後は自動で処理（5〜10分くらい）
+4. 完了したら、Webサイトで日記が読める状態に
+
+---
+
+## 自動/手動の区別
+
+| やること | 自動？ | いつ動く？ |
+|---|:---:|---|
+| 📌 VRChatの監視 | ✅ 完全自動 | Windowsログオン時から常に |
+| 🎤 録音の開始/停止 | ✅ 完全自動 | VRChat起動/終了を検出したら |
+| 📝 音声→テキスト | ✅ 完全自動 | 録音が終わったら |
+| 🤖 テキスト→日記 | ✅ 完全自動 | テキスト化が終わったら |
+| ☁️ クラウド保存 | ✅ 完全自動 | 日記作成が終わったら |
+| 🌐 Webサイト更新 | ❌ 手動 | 開発者が`task reader:deploy`を実行 |
+
+**つまり**: VRChatで遊ぶだけで、日記が勝手にできあがる！
+
+---
+
+## ファイルの置き場所
+
+```bash
+vlog/
+├── recordings/       🎤 録音ファイル (wav形式)
+├── transcripts/      📝 音声から変換したテキスト
+├── summaries/        ✨ AIが作った日記
+└── vlog.log          📋 システムの動作記録
+```
+
+**トラブル確認方法**: WSLで`task log:status`を実行すると、今何をしているかがわかります。
