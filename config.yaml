@@ -4,12 +4,19 @@ process:
 paths:
   recording_dir: "data/recordings"
   transcript_dir: "data/transcripts"
+  summary_dir: "data/summaries"
+  archive_dir: "data/archives"
 audio:
   sample_rate: 16000
   channels: 1
   block_size: 1024
   silence_threshold: 0.02
   max_duration_minutes: 30
+processing:
+  min_file_size_bytes: 102400
+  min_duration_seconds: 10
+  skip_if_processed: true
+  archive_after_process: true
 whisper:
   model_size: "large-v3-turbo"
   device: "cuda"
@@ -18,7 +25,7 @@ whisper:
   vad_filter: true
   language: "ja"
   vad_min_silence_duration_ms: 100
-  vad_speech_pad_ms: 30
+  vad_speech_pad_ms: 360
   chunk_length: 25
   temperature: 0.0
   repetition_penalty: 1.08

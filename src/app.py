@@ -3,13 +3,9 @@ import threading
 import time
 
 from src.infrastructure.audio_recorder import AudioRecorder
-from src.infrastructure.preprocessor import TranscriptPreprocessor
 from src.infrastructure.process_monitor import ProcessMonitor
 from src.infrastructure.settings import settings
-from src.infrastructure.summarizer import Summarizer
-from src.infrastructure.transcriber import Transcriber
-from src.services.processor_service import ProcessorService
-from src.services.recorder_service import RecorderService
+from src.use_cases.process_recording import ProcessRecordingUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -17,34 +13,23 @@ logger = logging.getLogger(__name__)
 class Application:
     def __init__(self):
         self._monitor = ProcessMonitor()
-        self._recorder_service = RecorderService(AudioRecorder())
-        self._processor_service = ProcessorService(
-            Transcriber(),
-            Summarizer(),
-            TranscriptPreprocessor(),
-        )
-        logger.info("Application initialized")
+        self._recorder = AudioRecorder()
+        self._use_case = ProcessRecordingUseCase()
+        self._active_session = None
 
     def run(self):
-        logger.info("Application started")
         while True:
             self._tick()
             time.sleep(settings.check_interval)
 
     def _tick(self):
         running = self._monitor.is_running()
-        active_session = self._recorder_service.active_session
-        if running and not active_session:
-            logger.info("VRChat process detected. Starting recording session.")
-            self._recorder_service.start_session()
-            return
-        if not running and active_session:
-            logger.info("VRChat process ended. Stopping recording session.")
-            session = self._recorder_service.stop_session()
+        if running and not self._active_session:
+            self._active_session = self._recorder.start()
+        if not running and self._active_session:
+            session = self._recorder.stop()
+            self._active_session = None
             if session:
-                logger.info("Starting background processing for session.")
                 threading.Thread(
-                    target=self._processor_service.process_session,
-                    args=(session,),
-                    daemon=True,
+                    target=self._use_case.execute_session, args=(session,), daemon=True
                 ).start()

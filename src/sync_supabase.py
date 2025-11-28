@@ -24,6 +24,11 @@ def main() -> None:
     }
     rows = []
     for path in sorted(Path("data/summaries").glob("*.txt")):
+        if not path.stem.endswith("_summary"):
+            continue
+        if "_" in path.stem.replace("_summary", ""):
+            continue
+
         posix = path.as_posix()
         mtime = datetime.fromtimestamp(path.stat().st_mtime, tz)
         if (

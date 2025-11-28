@@ -30,6 +30,8 @@ if errorlevel 1 (
 if not exist "data" mkdir "data"
 if not exist "data\recordings" mkdir "data\recordings"
 if not exist "data\transcripts" mkdir "data\transcripts"
+if not exist "data\summaries" mkdir "data\summaries"
+if not exist "data\archives" mkdir "data\archives"
 if not exist "logs" mkdir "logs"
 
 schtasks /Create /TN "VlogAutoDiary" /TR "\"%~dp0run.bat\"" /SC ONLOGON /RL HIGHEST /F /DELAY 0000:30 /RU "%USERNAME%"

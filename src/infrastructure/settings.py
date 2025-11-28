@@ -13,6 +13,8 @@ class Settings:
     check_interval: int
     recording_dir: str
     transcript_dir: str
+    summary_dir: str
+    archive_dir: str
     sample_rate: int
     channels: int
     block_size: int
@@ -33,6 +35,10 @@ class Settings:
     gemini_api_key: str | None
     silence_threshold: float
     max_duration_minutes: int
+    min_file_size_bytes: int
+    min_duration_seconds: int
+    skip_if_processed: bool
+    archive_after_process: bool
 
 
 def _load_yaml_config() -> dict:
@@ -125,7 +131,15 @@ def _load_settings() -> Settings:
         ),
         transcript_dir=_env_str(
             "VLOG_TRANSCRIPT_DIR",
-            _get_nested(config, "paths", "transcript_dir", default="transcripts"),
+            _get_nested(config, "paths", "transcript_dir", default="data/transcripts"),
+        ),
+        summary_dir=_env_str(
+            "VLOG_SUMMARY_DIR",
+            _get_nested(config, "paths", "summary_dir", default="data/summaries"),
+        ),
+        archive_dir=_env_str(
+            "VLOG_ARCHIVE_DIR",
+            _get_nested(config, "paths", "archive_dir", default="data/archives"),
         ),
         sample_rate=_env_int(
             "VLOG_SAMPLE_RATE",
@@ -198,6 +212,22 @@ def _load_settings() -> Settings:
         max_duration_minutes=_env_int(
             "VLOG_MAX_DURATION_MINUTES",
             _get_nested(config, "audio", "max_duration_minutes", default=30),
+        ),
+        min_file_size_bytes=_env_int(
+            "VLOG_MIN_FILE_SIZE_BYTES",
+            _get_nested(config, "processing", "min_file_size_bytes", default=102400),
+        ),
+        min_duration_seconds=_env_int(
+            "VLOG_MIN_DURATION_SECONDS",
+            _get_nested(config, "processing", "min_duration_seconds", default=10),
+        ),
+        skip_if_processed=_env_bool(
+            "VLOG_SKIP_IF_PROCESSED",
+            _get_nested(config, "processing", "skip_if_processed", default=True),
+        ),
+        archive_after_process=_env_bool(
+            "VLOG_ARCHIVE_AFTER_PROCESS",
+            _get_nested(config, "processing", "archive_after_process", default=True),
         ),
     )
 

@@ -19,17 +19,7 @@ def setup_logging():
     logging.getLogger("faster_whisper").setLevel(logging.WARNING)
 
 
-def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-    logging.critical(
-        "Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback)
-    )
-
-
 if __name__ == "__main__":
     setup_logging()
-    sys.excepthook = handle_exception
     app = Application()
     app.run()
