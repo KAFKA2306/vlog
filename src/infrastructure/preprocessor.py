@@ -28,7 +28,6 @@ class TranscriptPreprocessor:
         r"はいはいはい",
         r"はいはいはいはい",
         r"おー",
-        r"…",
         r"ああ",
         r"んふん",
         r"そっか",
@@ -41,9 +40,15 @@ class TranscriptPreprocessor:
     ]
 
     def process(self, txt: str) -> str:
+        txt = self._normalize_text(txt)
         txt = self._remove_fillers(txt)
         txt = self._dedupe_words(txt)
         txt = self._merge_lines(txt)
+        return txt
+
+    def _normalize_text(self, txt: str) -> str:
+        txt = txt.replace("…", " ")
+        txt = re.sub(r"\.{2,}", " ", txt)
         return txt
 
     def _remove_fillers(self, txt: str) -> str:
