@@ -1,5 +1,6 @@
 import argparse
 
+from src.infrastructure.file_repository import FileRepository
 from src.infrastructure.preprocessor import TranscriptPreprocessor
 from src.infrastructure.summarizer import Summarizer
 from src.infrastructure.supabase_repository import SupabaseRepository
@@ -13,6 +14,7 @@ def cmd_process(args):
         preprocessor=TranscriptPreprocessor(),
         summarizer=Summarizer(),
         storage=SupabaseRepository(),
+        file_repository=FileRepository(),
     )
     use_case.execute(args.file)
 

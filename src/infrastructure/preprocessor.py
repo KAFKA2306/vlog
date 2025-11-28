@@ -28,6 +28,16 @@ class TranscriptPreprocessor:
         r"はいはいはい",
         r"はいはいはいはい",
         r"おー",
+        r"…",
+        r"ああ",
+        r"んふん",
+        r"そっか",
+        r"そっかぁ",
+        r"そうか",
+        r"そうなんだ",
+        r"えへへ",
+        r"あの",
+        r"ん",
     ]
 
     def process(self, txt: str) -> str:
@@ -39,7 +49,7 @@ class TranscriptPreprocessor:
     def _remove_fillers(self, txt: str) -> str:
         fillers = sorted(self.FILLERS, key=len, reverse=True)
         pattern_str = "|".join(fillers)
-        pattern = f"(^|[\\s、。?!])({pattern_str})(?=[\\s、。?!]|$)"
+        pattern = f"(^|[\\s、。?!])((?:{pattern_str})+)(?=[\\s、。?!]|$)"
 
         def repl(match: re.Match[str]) -> str:
             leading = match.group(1)

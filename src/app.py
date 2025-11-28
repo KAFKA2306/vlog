@@ -3,6 +3,7 @@ import threading
 import time
 
 from src.infrastructure.audio_recorder import AudioRecorder
+from src.infrastructure.file_repository import FileRepository
 from src.infrastructure.preprocessor import TranscriptPreprocessor
 from src.infrastructure.process_monitor import ProcessMonitor
 from src.infrastructure.settings import settings
@@ -23,6 +24,7 @@ class Application:
             preprocessor=TranscriptPreprocessor(),
             summarizer=Summarizer(),
             storage=SupabaseRepository(),
+            file_repository=FileRepository(),
         )
         self._active_session = None
 
