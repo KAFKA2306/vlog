@@ -1,67 +1,143 @@
 # VRChat Auto-Diary - 開発ガイド
 
-変更後は、必ず `task *`で動作確認する。
+変更後は、必ず `task lint` でコード品質をチェックし、`task dev` または `task process FILE=...` で動作確認する。
 
 ## プロジェクト構造
 
 ```
 src/
-├── main.py              メインエントリーポイント
-├── app.py               自動監視ループ
-├── cli.py               CLIコマンド
-├── domain/              RecordingSession
-├── infrastructure/      録音、文字起こし、要約、前処理
-└── services/            ProcessorService
+├── main.py                     メインエントリーポイント（ロギング設定）
+├── app.py                      自動監視ループ（VRChat検出、録音管理）
+├── cli.py                      CLIコマンド実装
+├── domain/
+│   ├── entities.py             RecordingSessionエンティティ
+│   └── interfaces.py           インターフェース定義
+├── infrastructure/
+│   ├── audio_recorder.py       録音機能
+│   ├── transcriber.py          文字起こし（Faster Whisper）
+│   ├── preprocessor.py         トランスクリプト前処理
+│   ├── summarizer.py           要約（Gemini）
+│   ├── supabase_repository.py  Supabase DB操作
+│   ├── file_repository.py      ファイル操作
+│   ├── process_monitor.py      プロセス監視
+│   └── settings.py             設定管理
+└── use_cases/
+    └── process_recording.py    録音処理ユースケース
 ```
 
-## コマンド
+## アーキテクチャ原則
+
+- **Clean Architecture**: Domain → Use Cases → Infrastructure の依存方向
+- **Dependency Inversion**: インターフェースを通じた依存
+- **Minimal Code**: コメント、docstring、エラーハンドリング不要
+- **Configuration Separation**: ハードコード禁止、config.yamlで管理
+
+## コマンド一覧
+
+### セットアップ・開発
 
 ```bash
-task setup     依存同期
-task dev       開発実行
-task lint      コード整形
-task clean     キャッシュ削除
-
-task up        systemdサービス起動
-task down      systemdサービス停止
-task restart   systemdサービス再起動
-task status    全体状態確認（systemd + ログ解析）
-task logs      ログ追尾
-
-task record                         手動録音
-task process FILE=audio.wav         一括処理
-task process:all                    全録音を一括処理
-
-task sync                           Supabase同期
-task sync:full                      全件強制同期
-
-task web:dev                        フロントエンド開発
-task web:deploy                     Vercelデプロイ
-
-# デバッグ用
-task service:status                 systemd状態のみ
-task log:status                     ログ解析のみ
-task transcribe FILE=audio.wav      文字起こしのみ
-task summarize FILE=transcript.txt  要約のみ
+task setup     # 依存同期（uv sync）
+task dev       # 開発実行（自動監視モード）
+task lint      # コード整形・品質チェック（ruff）
+task clean     # キャッシュ削除
 ```
 
-## 起動コマンド
+### サービス管理（systemd）
 
-- Windows: `windows\run.bat` をダブルクリック、またはコマンドプロンプトで実行
+```bash
+task up        # systemdサービス起動
+task down      # systemdサービス停止
+task restart   # systemdサービス再起動
+task status    # 全体状態確認（systemd + ログ解析）
+task logs      # ログ追尾（リアルタイム）
+```
+
+### 録音・処理
+
+```bash
+task process FILE=audio.wav         # 1ファイル処理（全工程）
+task process:all                    # 全録音を一括処理
+task process:today                  # 今日の録音を一括処理（要約再生成）
+```
+
+### データ同期
+
+```bash
+task sync                           # Supabase同期（差分のみ）
+task sync:full                      # 全件強制同期
+```
+
+### フロントエンド
+
+```bash
+task web:dev                        # 開発サーバー起動
+task web:build                      # 本番ビルド
+task web:deploy                     # Vercelデプロイ
+task web:env                        # 環境変数抽出
+```
+
+### デバッグ用
+
+```bash
+task service:status                 # systemd状態のみ
+task log:status                     # ログ解析のみ
+task transcribe FILE=audio.wav      # 文字起こしのみ
+task transcribe:all                 # 全録音を文字起こしのみ
+task summarize FILE=transcript.txt  # 要約のみ
+```
+
+### Git操作
+
+```bash
+task commit MESSAGE="commit message"  # git add . && git commit
+```
+
+## 起動方法
+
+### Windows
+
+- `windows\run.bat` をダブルクリック
 - 初回セットアップ（管理者権限）: `windows\bootstrap.bat`
-- Linux/WSL: `task dev`
 
-## 設定
+### Linux/WSL
 
-- `.env`: GOOGLE_API_KEY
-- `config.yaml`: すべての設定値
+```bash
+task dev     # 開発実行
+task up      # systemdサービス起動
+```
+
+## 設定ファイル
+
+### `.env`
+
+```bash
+GOOGLE_API_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+### `config.yaml`
+
+すべてのシステムパラメータを管理：
+
+- `process`: 監視対象プロセス名、チェック間隔
+- `paths`: ディレクトリパス（recordings, transcripts, summaries, archives）
+- `audio`: サンプルレート、チャンネル数、無音閾値
+- `processing`: 最小ファイルサイズ、処理済みスキップ、アーカイブ設定
+- `whisper`: モデル、デバイス、VAD設定、言語
+- `gemini`: モデル名
 
 ## コーディング規約
 
 - Python 3.11+、型ヒント必須
-- 4スペースインデント、snake_case
-- **コメントなし、最小限のコード**
-- 設定は config.yaml か .env
+- 4スペースインデント、snake_case（関数・モジュール）、PascalCase（クラス）
+- **コメント禁止、docstring禁止**
+- **エラーハンドリング禁止**: 失敗したらクラッシュさせる
+- **リトライ禁止**: 1回だけ実行
+- 設定は `config.yaml` または `.env` に分離
 
 ## クリーン化の原則
 
@@ -72,7 +148,9 @@ task summarize FILE=transcript.txt  要約のみ
 - 無用なコメント・docstring
 - 古い実験用ファイル
 - 使われていない設定値
-- 空の import
+- 空のimport
+- try-exceptブロック
+- リトライ・タイムアウトロジック
 
 ### 保つべきもの
 
@@ -81,12 +159,59 @@ task summarize FILE=transcript.txt  要約のみ
 - 型ヒント（ドキュメント代わり）
 - README.md（各ディレクトリに最小限）
 
-### 実装の指針
+## 実装の指針
 
-- **シンプル第一**: 複雑な抽象化より直接的な実装
-- **重複を避ける**: 同じロジックは1箇所に
-- **設定を分離**: ハードコードせず config.yaml へ
-- **エラーハンドリング不要**: 失敗したらクラッシュさせる
-- **リトライ不要**: 1回だけ実行、失敗したら終了
-- 要約出力が完了したら `src.sync_supabase.main()` を呼び、`daily_entries` に upsert する（自動監視モードと CLI の summarize/process で共通）
+### データフロー
+
+1. VRChat起動検出（`ProcessMonitor`）
+2. 録音開始（`AudioRecorder`）
+3. VRChat終了検出
+4. 録音停止 → `RecordingSession` 生成
+5. `ProcessRecordingUseCase.execute_session()` を別スレッドで実行
+   - 文字起こし（`Transcriber`）
+   - 前処理（`TranscriptPreprocessor`）
+   - 要約（`Summarizer`）
+   - Supabase同期（`SupabaseRepository`）
+   - ファイル移動（`FileRepository`）
+
+### 同期ポイント
+
+- `ProcessRecordingUseCase` 内で要約完了後、自動的に `SupabaseRepository.upsert()` を呼ぶ
+- CLI `task process` も同じユースケースを使用
+- 自動監視モード（`app.py`）も同じユースケースを使用
 - 再同期やリカバリは `task sync` を手動実行
+
+### 依存の方向
+
+```
+Domain (entities, interfaces)
+    ↑
+Use Cases (process_recording)
+    ↑
+Infrastructure (audio_recorder, transcriber, summarizer, repositories)
+    ↑
+Entry Points (main.py, app.py, cli.py)
+```
+
+### テスト戦略
+
+- 本番データで動作確認（`task process FILE=...`）
+- 失敗したらログで確認（`logs/vlog.log`）
+- ユニットテストなし（シンプル第一）
+
+## トラブルシューティング
+
+### ログ確認
+
+```bash
+task status       # systemd状態 + ログ解析
+task logs         # リアルタイムログ
+cat logs/vlog.log # ログファイル直接閲覧
+```
+
+### よくある問題
+
+1. **VRChatが検出されない**: `config.yaml` の `process.names` を確認
+2. **文字起こしが遅い**: `config.yaml` の `whisper.model_size` を `medium` に変更
+3. **要約が失敗**: `.env` の `GOOGLE_API_KEY` を確認
+4. **Supabase同期失敗**: `.env` の認証情報とテーブル定義を確認

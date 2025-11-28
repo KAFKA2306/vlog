@@ -10,18 +10,22 @@
 
 ```mermaid
 flowchart LR
-    A[🎮 VRChat起動] --> B[🎤 録音<br/>data/recordings/*.flac]
-    B --> C[📝 音声→テキスト<br/>data/transcripts/*.txt]
-    C --> D[🤖 AI要約<br/>data/summaries/*.txt]
-    D --> E[☁️ クラウド保存<br/>Supabase]
-    E --> F[🌐 Webで閲覧<br/>kaflog.vercel.app]
+    A["🎮 VRChat起動"] --> B["🎤 録音<br/>data/recordings/*.flac"]
+    B --> C["📝 音声→テキスト<br/>data/transcripts/*.txt"]
+    C --> D["🧹 前処理<br/>フィラー除去・重複削除"]
+    D --> E["🤖 AI要約<br/>data/summaries/*.txt"]
+    E --> F["☁️ クラウド保存<br/>Supabase"]
+    F --> G["🌐 Webで閲覧<br/>kaflog.vercel.app"]
+    B --> H["📦 アーカイブ<br/>data/archives/"]
     
     style A fill:#9C27B0
     style B fill:#F44336
     style C fill:#FF9800
-    style D fill:#4CAF50
-    style E fill:#2196F3
-    style F fill:#00BCD4
+    style D fill:#FFC107
+    style E fill:#4CAF50
+    style F fill:#2196F3
+    style G fill:#00BCD4
+    style H fill:#9E9E9E
 ```
 
 **実際の体験で言うと**:
@@ -29,9 +33,11 @@ flowchart LR
 1. VRChatを起動すると、自動で録音開始
 2. VRChatを終了すると、録音停止
 3. 裏で自動的に音声がテキストに変換される
-4. AIが日記形式に要約してくれる
-5. クラウド（Supabase）に保存される
-6. Webサイトで読める
+4. 不要な言葉（あー、えー など）を削除
+5. AIが日記形式に要約してくれる
+6. クラウド（Supabase）に保存される
+7. Webサイトで読める
+8. 処理済み録音はアーカイブに移動
 
 ---
 
@@ -48,18 +54,18 @@ stateDiagram-v2
     処理中 --> 監視中: 日記作成完了
     
     note right of 監視中
-        数秒ごとに
+        300秒ごとに
         VRChatが動いているか
         チェックしている
     end note
     
     note right of 録音中
         マイクの音を
-        wavファイルに保存中
+        FLACファイルに保存中
     end note
     
     note right of 処理中
-        音声→テキスト→要約→保存
+        文字起こし→前処理→要約→保存
         を自動実行中
     end note
 ```
@@ -68,7 +74,7 @@ stateDiagram-v2
 
 - **監視中**: 何もしていない。VRChatの起動を待っている
 - **録音中**: VRChatでプレイ中。裏で録音している
-- **処理中**: VRChatを終了した後、裏で日記を作っている（数分かかる）
+- **処理中**: VRChatを終了した後、裏で日記を作っている（5〜10分かかる）
 
 ---
 
@@ -100,6 +106,7 @@ sequenceDiagram
     🤖->>🤖: 🤖 AIで日記に要約
     🤖->>☁️: ☁️ クラウドに保存
     ☁️-->>🤖: 完了
+    🤖->>🤖: 📦 録音をアーカイブに移動
     
     Note over 🤖: 完了！Webで読める状態に
 ```
@@ -110,6 +117,7 @@ sequenceDiagram
 2. システムが録音を止める
 3. その後は自動で処理（5〜10分くらい）
 4. 完了したら、Webサイトで日記が読める状態に
+5. 録音ファイルは自動的にアーカイブに移動
 
 ---
 
@@ -120,8 +128,10 @@ sequenceDiagram
 | 📌 VRChatの監視 | ✅ 完全自動 | Windowsログオン時から常に |
 | 🎤 録音の開始/停止 | ✅ 完全自動 | VRChat起動/終了を検出したら |
 | 📝 音声→テキスト | ✅ 完全自動 | 録音が終わったら |
-| 🤖 テキスト→日記 | ✅ 完全自動 | テキスト化が終わったら |
+| 🧹 テキスト前処理 | ✅ 完全自動 | 文字起こしが終わったら |
+| 🤖 テキスト→日記 | ✅ 完全自動 | 前処理が終わったら |
 | ☁️ クラウド保存 | ✅ 完全自動 | 日記作成が終わったら |
+| 📦 録音アーカイブ | ✅ 完全自動 | すべて完了したら |
 | 🌐 Webサイト更新 | ❌ 手動 | 開発者が`task web:deploy`を実行 |
 
 **つまり**: VRChatで遊ぶだけで、日記が勝手にできあがる！
@@ -133,11 +143,25 @@ sequenceDiagram
 ```bash
 vlog/
 data/
-  ├── recordings/     🎤 録音ファイル (flac形式)
+  ├── recordings/     🎤 録音ファイル (FLAC形式)
   ├── transcripts/    📝 音声から変換したテキスト
-  └── summaries/      ✨ AIが作った日記
+  ├── summaries/      ✨ AIが作った日記
+  └── archives/       📦 処理済み録音の保管場所
 logs/
   └── vlog.log        📋 システムの動作記録
 ```
 
 **トラブル確認方法**: WSLで`task status`を実行すると、今何をしているかがわかります。
+
+---
+
+## 技術スタック
+
+- **録音**: sounddevice + soundfile (FLAC形式、16kHz)
+- **文字起こし**: Faster Whisper (large-v3-turbo, CUDA)
+- **前処理**: カスタムロジック（フィラー除去、重複削除）
+- **要約**: Google Gemini Flash
+- **DB**: Supabase (PostgreSQL)
+- **フロントエンド**: Next.js + Vercel
+- **タスクランナー**: Task (Taskfile.yaml)
+
