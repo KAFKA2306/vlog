@@ -1,6 +1,8 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
+import yaml
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,29 +28,30 @@ class Settings:
 
 
 def _load_settings() -> Settings:
+    if not Path("config.yaml").exists():
+        raise FileNotFoundError(
+            "config.yaml not found. It is required for configuration."
+        )
+
+    with open("config.yaml") as f:
+        config = yaml.safe_load(f)
+
     return Settings(
-        check_interval=int(os.getenv("VLOG_CHECK_INTERVAL", "30")),
-        recording_dir=os.getenv("VLOG_RECORDING_DIR", "recordings"),
-        transcript_dir=os.getenv("VLOG_TRANSCRIPT_DIR", "data/transcripts"),
-        summary_dir=os.getenv("VLOG_SUMMARY_DIR", "data/summaries"),
-        archive_dir=os.getenv("VLOG_ARCHIVE_DIR", "data/archives"),
-        sample_rate=int(os.getenv("VLOG_SAMPLE_RATE", "16000")),
-        channels=int(os.getenv("VLOG_CHANNELS", "1")),
-        block_size=int(os.getenv("VLOG_BLOCK_SIZE", "1024")),
-        whisper_model_size=os.getenv("VLOG_WHISPER_MODEL_SIZE", "base"),
-        whisper_device=os.getenv("VLOG_WHISPER_DEVICE", "cpu"),
-        whisper_compute_type=os.getenv("VLOG_WHISPER_COMPUTE_TYPE", "int8"),
-        gemini_model=os.getenv("VLOG_GEMINI_MODEL", "gemini-2.0-flash-exp"),
+        check_interval=config["process"]["check_interval"],
+        recording_dir=config["paths"]["recording_dir"],
+        transcript_dir=config["paths"]["transcript_dir"],
+        summary_dir=config["paths"]["summary_dir"],
+        archive_dir=config["paths"]["archive_dir"],
+        sample_rate=config["audio"]["sample_rate"],
+        channels=config["audio"]["channels"],
+        block_size=config["audio"]["block_size"],
+        whisper_model_size=config["whisper"]["model_size"],
+        whisper_device=config["whisper"]["device"],
+        whisper_compute_type=config["whisper"]["compute_type"],
+        gemini_model=config["gemini"]["model"],
         gemini_api_key=os.getenv("VLOG_GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY")),
-        archive_after_process=str(
-            os.getenv("VLOG_ARCHIVE_AFTER_PROCESS", "true")
-        ).lower()
-        == "true",
-        process_names=tuple(
-            os.getenv("VLOG_PROCESS_NAMES", "VRChat.exe,VRChat,VRChatClient.exe").split(
-                ","
-            )
-        ),
+        archive_after_process=config["processing"]["archive_after_process"],
+        process_names=tuple(config["process"]["names"].split(",")),
     )
 
 
