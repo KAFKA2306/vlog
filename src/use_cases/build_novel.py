@@ -14,6 +14,10 @@ class BuildNovelUseCase:
 
         date_str = target_date or datetime.now().strftime("%Y%m%d")
         summary_path = self._select_summary_file(date_str)
+        if not summary_path:
+            print(f"Summary file not found for date: {date_str}")
+            return None
+
         today_summary = summary_path.read_text(encoding="utf-8")
 
         novel_path = self._get_novel_path(date_str)
@@ -30,6 +34,8 @@ class BuildNovelUseCase:
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
+        if not candidates:
+            return None
         return candidates[0]
 
     def _get_novel_path(self, date_str: str) -> Path:

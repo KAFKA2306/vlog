@@ -38,6 +38,4 @@ novel:
   title: "VRChat Long Diary 2025"
   out_dir: "data/novels"
   model: "gemini-2.5-flash"
-  max_output_tokens: 8192
-  include_history_mode: "recent_chapters"
-  recent_chapters_limit: 3
+  max_output_tokens: 4096
