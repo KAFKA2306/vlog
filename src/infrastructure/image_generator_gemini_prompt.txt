@@ -7,6 +7,9 @@ Then, extract specific elements from the text, focusing on:
 - Characters, if present, describing their appearance, posture, and expression.
 - Specific lighting conditions or colors mentioned in the text.
 
+Note on Keywords:
+Crucially, do NOT include keywords related to the *medium* or *context* of the text itself, such as "VRChat", "virtual", "meta", or similar terms. The goal is to visualize the narrative, not the platform it describes.
+
 Novel Text:
 {chapter_text}
 
