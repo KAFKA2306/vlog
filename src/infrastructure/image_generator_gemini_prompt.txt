@@ -1,7 +1,7 @@
-Please read the following novel text and generate a prompt to create an image that captures its atmosphere.
-The desired visual style is a soft, natural, and nostalgic Japanese aesthetic, similar to film photography.
-Instead of focusing on minute details, please focus on the overall mood, lighting, and the feeling of the air.
-Please describe the scene using English keywords that evoke this natural and emotional atmosphere.
+Please capture the delicate essence of the novel text for an image generation prompt.
+Aim for a visual style that is fragile, transparent, and ethereal—like a fading memory or a gentle morning light.
+Please extract keywords that represent subtle emotions, soft colors, and the interplay of light and shadow.
+Avoid strong or harsh descriptions. Focus on beauty, silence, and ephemeral moments.
 
 Novel Text:
 {chapter_text}
