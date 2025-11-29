@@ -2,7 +2,7 @@ Generate a high-impact, photorealistic SDXL prompt.
 
 Critical Priorities:
 1. **Visuals**: Luxurious scenery, volumetric lighting, cinematic atmosphere, raw photo texture.
-2. **Subject**: If a female character is integral to the scene, depict her (gravure/idol/jav aesthetic) as a natural part of the environment, not as the main subject. Prioritize the overall scene.
+2. **Subject**: If female characters are integral to the scene, depict them (gravure/idol/jav aesthetic) as a natural part of the environment, not as the main subjects. Prioritize the overall scene, allowing for varying numbers of characters as appropriate.
 3. **Style**: Natural, unpolished realism. Avoid "AI smooth" look.
 
 Output: < 50 words. Comma-separated keywords. No quality tags.
