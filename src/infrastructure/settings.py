@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     image_model: str = _config.get("image", {}).get(
         "model", "cagliostrolab/animagine-xl-3.1"
     )
+    image_device: str = _config.get("image", {}).get("device", "cuda")
     image_height: int = _config.get("image", {}).get("height", 1024)
     image_width: int = _config.get("image", {}).get("width", 1024)
     image_num_inference_steps: int = _config.get("image", {}).get(

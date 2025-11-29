@@ -41,6 +41,7 @@ def cmd_sync(args):
 
 def cmd_image_generate(args):
     from pathlib import Path
+
     from src.infrastructure.image_generator import ImageGenerator
 
     novel_path = Path(args.novel_file)
