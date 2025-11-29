@@ -28,8 +28,14 @@ def cmd_novel(args):
 
     if novel_path:
         print(f"章を追加: {novel_path}")
+        SupabaseRepository().sync()
     else:
         print("Novel Builder is disabled")
+
+
+def cmd_sync(args):
+    SupabaseRepository().sync()
+    print("Synced with Supabase")
 
 
 def main():
@@ -46,12 +52,16 @@ def main():
     p_novel.add_argument("--date", help="Target date (YYYYMMDD)")
     p_novel.add_argument("--out", help="Output filename (unused)")
 
+    subparsers.add_parser("sync", help="Sync data to Supabase")
+
     args = parser.parse_args()
 
     if args.command == "process":
         cmd_process(args)
     elif args.command == "novel":
         cmd_novel(args)
+    elif args.command == "sync":
+        cmd_sync(args)
     else:
         parser.print_help()
 
