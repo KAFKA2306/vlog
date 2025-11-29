@@ -34,6 +34,8 @@ src/
 
 ## コマンド一覧
 
+read taskfile at first.use task and uv to run something.
+
 ### セットアップ・開発
 
 ```bash
@@ -151,6 +153,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 - 空のimport
 - try-exceptブロック
 - リトライ・タイムアウトロジック
+- Rootへのファイル作成禁止。
 
 ### 保つべきもの
 

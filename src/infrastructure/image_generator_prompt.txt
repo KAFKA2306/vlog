@@ -1,0 +1,5 @@
+(photorealistic:1.4), (hyperrealistic:1.2), best quality, ultra-detailed,
+portrait of a beautiful woman, detailed skin texture, natural makeup,
+cinematic lighting, soft studio light, 85mm lens, f/1.8, depth of field, bokeh,
+sharp focus, intricate details, 8k resolution, professional photography,
+{text}

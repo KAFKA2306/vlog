@@ -32,7 +32,7 @@ whisper:
   repetition_penalty: 1.08
   word_timestamps: true
 gemini:
-  model: "gemini-flash-latest"
+  model: "gemini-2.5-flash"
 
 novel:
   enabled: true

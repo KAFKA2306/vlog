@@ -223,7 +223,7 @@ tasks:
   photo:
     desc: 小説から画像を生成
     cmds:
-      - uv run python generate_photo.py {{.novel}}
+      - uv run python -m src.cli image-generate --novel-file {{.novel}} --output-file data/photos/$(basename {{.novel}} .md).png
     preconditions:
       - sh: test -n "{{.novel}}"
         msg: novel=data/novels/YYYYMMDD.mdを指定してください

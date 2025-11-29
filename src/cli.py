@@ -39,6 +39,25 @@ def cmd_sync(args):
     print("Synced with Supabase")
 
 
+def cmd_image_generate(args):
+    from pathlib import Path
+    from src.infrastructure.image_generator import ImageGenerator
+
+    novel_path = Path(args.novel_file)
+    if not novel_path.exists():
+        print(f"Error: Novel file not found at {novel_path}")
+        return
+
+    novel_content = novel_path.read_text(encoding="utf-8")
+
+    output_path = Path(args.output_file) if args.output_file else novel_path.parent / (novel_path.stem + ".png")
+
+    print(f"Generating image for {novel_path} to {output_path}...")
+    image_generator = ImageGenerator()
+    image_generator.generate_from_novel(novel_content, output_path)
+    print(f"Image generated successfully to {output_path}")
+
+
 def main():
     from dotenv import load_dotenv
 
@@ -55,6 +74,14 @@ def main():
 
     subparsers.add_parser("sync", help="Sync data to Supabase")
 
+    p_image_generate = subparsers.add_parser(
+        "image-generate", help="Generate an image from a novel file"
+    )
+    p_image_generate.add_argument("--novel-file", required=True, help="Path to the novel markdown file")
+    p_image_generate.add_argument(
+        "--output-file", help="Path to the output image file (optional)"
+    )
+
     args = parser.parse_args()
 
     if args.command == "process":
@@ -63,6 +90,8 @@ def main():
         cmd_novel(args)
     elif args.command == "sync":
         cmd_sync(args)
+    elif args.command == "image-generate":
+        cmd_image_generate(args)
     else:
         parser.print_help()
 
