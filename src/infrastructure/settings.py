@@ -66,9 +66,7 @@ class Settings(BaseSettings):
     )
 
     # Novel
-    novel_out_dir: Path = Path(
-        _config.get("novel", {}).get("out_dir", "data/novels")
-    )
+    novel_out_dir: Path = Path(_config.get("novel", {}).get("out_dir", "data/novels"))
 
     # Image Generation
     image_model: str = _config.get("image", {}).get(

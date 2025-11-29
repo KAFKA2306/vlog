@@ -51,7 +51,11 @@ def cmd_image_generate(args):
 
     novel_content = novel_path.read_text(encoding="utf-8")
 
-    output_path = Path(args.output_file) if args.output_file else novel_path.parent / (novel_path.stem + ".png")
+    output_path = (
+        Path(args.output_file)
+        if args.output_file
+        else novel_path.parent / (novel_path.stem + ".png")
+    )
 
     print(f"Generating image for {novel_path} to {output_path}...")
     image_generator = ImageGenerator()
@@ -78,7 +82,9 @@ def main():
     p_image_generate = subparsers.add_parser(
         "image-generate", help="Generate an image from a novel file"
     )
-    p_image_generate.add_argument("--novel-file", required=True, help="Path to the novel markdown file")
+    p_image_generate.add_argument(
+        "--novel-file", required=True, help="Path to the novel markdown file"
+    )
     p_image_generate.add_argument(
         "--output-file", help="Path to the output image file (optional)"
     )
