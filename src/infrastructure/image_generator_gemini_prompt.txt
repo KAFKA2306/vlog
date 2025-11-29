@@ -1,4 +1,4 @@
-Analyze the following novel chapter text and generate a highly visual, evocative English prompt optimized for Stable Diffusion XL (Anime/Illustration Style).
+Analyze the following novel chapter text and generate a highly visual, evocative English prompt optimized for Stable Diffusion XL (Photorealistic/Cinematic Style).
 
 Instructions:
 1. Emphasize breathtaking, luxurious scenery, emotive atmosphere, and dramatic cinematic lighting (volumetric lighting, bloom).
