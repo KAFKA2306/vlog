@@ -11,10 +11,10 @@ class ImageGenerator:
         self._pipe = None
 
     def generate_from_novel(self, chapter_text: str, output_path: Path) -> None:
-        prompt = self._extract_prompt(chapter_text)
-        self.generate(prompt, output_path)
+        prompt, negative_prompt = self._extract_prompt(chapter_text)
+        self.generate(prompt, negative_prompt, output_path)
 
-    def _extract_prompt(self, chapter_text: str) -> str:
+    def _extract_prompt(self, chapter_text: str) -> tuple[str, str]:
         lines = [line.strip() for line in chapter_text.split("\n") if line.strip()]
 
         # Extract first few meaningful paragraphs (skip headings)
@@ -22,22 +22,28 @@ class ImageGenerator:
             line for line in lines if len(line) > 20 and not line.startswith("#")
         ][:3]
 
-        if not paragraphs:
-            return "VRChat scene, anime style, detailed background, cinematic lighting"
+        if paragraphs:
+            text = " ".join(paragraphs)[:500]
+        else:
+            text = "peaceful atmosphere"
 
-        # Combine paragraphs for richer context
-        combined = " ".join(paragraphs)[:500]
+        base_path = Path(__file__).parent
+        prompt_path = base_path / "image_generator_prompt.txt"
+        negative_prompt_path = base_path / "image_generator_negative_prompt.txt"
 
-        # Create prompt emphasizing visual atmosphere and VRChat aesthetic
-        prompt = (
-            f"Scene from a VRChat virtual world story: {combined}. "
-            "Anime-style illustration, vibrant colors, detailed environment, "
-            "cinematic composition, soft lighting, 8k resolution"
-        )
+        if prompt_path.exists():
+            template = prompt_path.read_text(encoding="utf-8").strip()
+        else:
+            template = settings.image_generator_default_prompt
 
-        return prompt
+        if negative_prompt_path.exists():
+            negative_prompt = negative_prompt_path.read_text(encoding="utf-8").strip()
+        else:
+            negative_prompt = settings.image_generator_default_negative_prompt
 
-    def generate(self, prompt: str, output_path: Path) -> None:
+        return template.format(text=text), negative_prompt
+
+    def generate(self, prompt: str, negative_prompt: str, output_path: Path) -> None:
         if not self._pipe:
             self._pipe = ZImagePipeline.from_pretrained(
                 settings.image_model,
@@ -48,6 +54,7 @@ class ImageGenerator:
 
         image = self._pipe(
             prompt=prompt,
+            negative_prompt=negative_prompt,
             height=settings.image_height,
             width=settings.image_width,
             num_inference_steps=settings.image_num_inference_steps,

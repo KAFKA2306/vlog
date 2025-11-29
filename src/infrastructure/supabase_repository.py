@@ -71,7 +71,7 @@ class SupabaseRepository:
                 {
                     "file_path": path.as_posix(),
                     "date": date_obj.isoformat(),
-                    "title": f"Novel {date_str}",  # Or use a more descriptive title if available
+                    "title": f"Novel {date_str}",
                     "content": path.read_text(encoding="utf-8"),
                     "tags": ["novel"],
                     "is_public": True,
@@ -79,6 +79,4 @@ class SupabaseRepository:
             )
 
         if rows:
-            self.client.table("novels").upsert(
-                rows, on_conflict="file_path"
-            ).execute()
+            self.client.table("novels").upsert(rows, on_conflict="file_path").execute()

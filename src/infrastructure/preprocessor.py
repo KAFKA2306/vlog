@@ -55,7 +55,7 @@ class TranscriptPreprocessor:
         return txt
 
     def _remove_repetition(self, txt: str) -> str:
-        # Remove excessive character/short-phrase repetition (e.g. "あああああ" -> "あ", "ふんふんふん..." -> "ふん")
+        # Remove excessive character/short-phrase repetition (e.g. "あああ" -> "あ")
         # Matches 1-4 character sequences repeated 5 or more times
         return re.sub(r"(.{1,4}?)\1{4,}", r"\1", txt)
 
@@ -69,10 +69,10 @@ class TranscriptPreprocessor:
             return (leading if leading != "^" else "") + " "
 
         # Optimize: Use a loop to handle nested/overlapping fillers.
-        # Removed the (+) quantifier to avoid catastrophic backtracking on long sequences.
+        # Removed the (+) quantifier to avoid catastrophic backtracking.
         # Increased loop limit to handle normal nesting depths.
-        
-        for _ in range(20): 
+
+        for _ in range(20):
             prev_txt = txt
             txt = re.sub(pattern, repl, txt)
             if txt == prev_txt:
