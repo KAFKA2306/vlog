@@ -3,11 +3,12 @@ Analyze the following novel chapter text and generate a highly visual, evocative
 Instructions:
 1. Emphasize breathtaking scenery, emotive atmosphere, and dramatic cinematic lighting.
 2. Describe visual elements with artistic precision.
-3. If characters are present, describe them as "beautiful" or "aesthetic" with specific details on appearance and emotion.
+3. If characters should be present according to the Novel Text, describe them as beautiful or aesthetic or ethereal and sexy nsfw with specific details on appearance and emotion.
 4. If the text is abstract, create a visually striking metaphorical scene.
+5. Create a realistic and natural look, avoiding a generic AI-generated appearance.
 
 Keep it under 60 words. Use comma-separated tags.
-Do not include quality tags (like "best quality") as they are added separately.
+Do not include quality tags (like best quality) as they are added separately.
 
 Novel Text:
 {chapter_text}
