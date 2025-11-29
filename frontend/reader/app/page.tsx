@@ -10,11 +10,11 @@ type Entry = {
   content: string
   tags: string[] | null
   source: 'summary' | 'novel'
+  image_url?: string | null
 }
 
-const Tags = ({ tags, source }: { tags: string[], source: 'summary' | 'novel' }) => (
+const Tags = ({ tags }: { tags: string[] }) => (
   <div className="tags">
-    {source === 'novel' && <span className="tag-novel">#小説</span>}
     {tags.map(t => <span key={t}>#{t}</span>)}
   </div>
 )
@@ -47,7 +47,7 @@ export default function Page() {
           .limit(60),
         supabase
           .from('novels')
-          .select('id,date,title,content,tags')
+          .select('id,date,title,content,tags,image_url')
           .eq('is_public', true)
           .order('date', { ascending: false })
           .limit(60)
@@ -89,28 +89,19 @@ export default function Page() {
     <main className="page">
       <div className="wrap">
         <header className="hero">
-          <div>
-            <p className="eyebrow">VRChat Auto Diary</p>
-            <h1>KAFKA Log & Novels</h1>
-            <p className="muted">毎日の VR 空間をすぐ読めるミニマルビュー。</p>
-          </div>
-          <div className="halo" />
+          <h1>VRChat Auto Diary</h1>
+          <p>Immersive memories from the virtual world.</p>
         </header>
 
         <div className="controls">
           <div className="search-bar">
             <input
               type="text"
-              placeholder="🔍 Search..."
+              placeholder="Search memories..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="search-input"
             />
-            {search && (
-              <button className="ghost clear-btn" onClick={() => setSearch('')}>
-                Clear
-              </button>
-            )}
           </div>
 
           <div className="filter-tabs">
@@ -137,11 +128,8 @@ export default function Page() {
 
         {loading && (
           <div className="list">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="entry skeleton">
-                <div className="skeleton-line" />
-                <div className="skeleton-line short" />
-              </div>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="entry" style={{ height: '320px', opacity: 0.5 }}></div>
             ))}
           </div>
         )}
@@ -149,29 +137,37 @@ export default function Page() {
         {error && (
           <div className="empty-state">
             <p>❌ {error}</p>
-            <button className="ghost" onClick={fetchEntries}>再試行</button>
+            <button className="ghost" onClick={fetchEntries}>Retry</button>
           </div>
         )}
 
         {!loading && !error && filteredEntries.length === 0 && (
           <div className="empty-state">
-            <p>{search ? `🔍 "${search}" に一致するエントリーがありません` : '📝 まだエントリーがありません'}</p>
+            <p>No entries found.</p>
           </div>
         )}
 
         {!loading && !error && filteredEntries.length > 0 && (
           <div className="list">
             {filteredEntries.map(e => (
-              <button key={e.id} className={`entry ${e.source}`} onClick={() => setSelected(e)}>
-                <div className="meta">
-                  <span>{new Date(e.date).toLocaleDateString()}</span>
-                  <span className="dot" />
-                  <span className={`badge ${e.source}`}>{e.source === 'novel' ? 'NOVEL' : 'DIARY'}</span>
+              <div key={e.id} className={`entry ${e.source}`} onClick={() => setSelected(e)}>
+                {e.image_url && (
+                  <div 
+                    className="entry-bg" 
+                    style={{ backgroundImage: `url(${e.image_url})` }} 
+                  />
+                )}
+                <div className="entry-overlay" />
+                <div className="entry-content">
+                  <div className="meta">
+                    <span>{new Date(e.date).toLocaleDateString()}</span>
+                    <span className={`badge ${e.source}`}>{e.source === 'novel' ? 'NOVEL' : 'DIARY'}</span>
+                  </div>
+                  <h3>{e.title}</h3>
+                  <p className="preview">{e.content}</p>
+                  {e.tags?.length ? <Tags tags={e.tags} /> : null}
                 </div>
-                <h3>{e.title}</h3>
-                <p className="preview">{e.content}</p>
-                {e.tags?.length ? <Tags tags={e.tags} source={e.source} /> : null}
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -183,17 +179,20 @@ export default function Page() {
             <header className="sheet-head">
               <div>
                 <div className="meta">
-                  <span className="muted">{new Date(selected.date).toLocaleDateString()}</span>
+                  <span>{new Date(selected.date).toLocaleDateString()}</span>
                   <span className={`badge ${selected.source}`}>{selected.source === 'novel' ? 'NOVEL' : 'DIARY'}</span>
                 </div>
                 <h2>{selected.title}</h2>
               </div>
-              <button className="ghost" onClick={() => setSelected(undefined)}>閉じる</button>
+              <button className="ghost" onClick={() => setSelected(undefined)}>Close</button>
             </header>
-            <div className="content-scroll">
-              <p className="content">{selected.content}</p>
+            <div className="sheet-content-scroll">
+              {selected.image_url && (
+                <img src={selected.image_url} alt={selected.title} className="sheet-image" />
+              )}
+              <p style={{ whiteSpace: 'pre-wrap' }}>{selected.content}</p>
+              {selected.tags?.length ? <Tags tags={selected.tags} /> : null}
             </div>
-            {selected.tags?.length ? <Tags tags={selected.tags} source={selected.source} /> : null}
           </article>
         </section>
       )}

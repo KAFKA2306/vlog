@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     photo_prompt_dir: Path = Path(
         _config.get("paths", {}).get("photo_prompt_dir", "data/photos_prompts")
     )
+    photo_dir: Path = Path(_config.get("paths", {}).get("photo_dir", "data/photos"))
 
     # Novel
     novel_out_dir: Path = Path(_config.get("novel", {}).get("out_dir", "data/novels"))
