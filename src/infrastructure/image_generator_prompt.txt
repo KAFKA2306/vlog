@@ -1,2 +1,2 @@
-(masterpiece, best quality:1.4), (photorealistic:1.2), (raw photo, natural skin texture), (cinematic lighting, 8k),
+(best quality, masterpiece:1.2), (Japanese aesthetic:1.2), (soft natural lighting), (high resolution photo:1.2), (detailed skin texture), (clean composition), (fujifilm color),
 {text}

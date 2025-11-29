@@ -1,6 +1,2 @@
-(low quality:1.4), (worst quality:1.4), (monochrome:1.1), (lowres:1.1), (bad anatomy:1.2),
-(bad hands:1.2), (bad face:1.1), (text), (error), (missing fingers), (extra digit),
-(fewer digits), (cropped), (jpeg artifacts), (signature), (watermark), (username), (blurry),
-(artist name), (abyssal), (unclear details), (bad proportions), (deformed), (disfigured),
-(mutated), (extra limbs), (missing limbs), (floating limbs), (disconnected limbs),
-(extra arms), (extra legs), (fused fingers), (too many fingers), (long neck)
+(worst quality, low quality:1.4), (grayscale), (western face), (strong contrast), (dark shadows), (3d render), (sketch), (painting), (anime), (cartoon), (american style), (gritty),
+(extra arms), (extra legs), (fused fingers), (too many fingers), (long neck), (1boy), (male), (man), (men), (guy), (guys), (beard), (masculine)

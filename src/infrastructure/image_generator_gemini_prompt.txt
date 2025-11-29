@@ -1,11 +1,12 @@
-Generate a high-impact, photorealistic SDXL prompt.
+Generate a concise English prompt for Stable Diffusion XL (Japanese Photobook Style).
 
-Critical Priorities:
-1. **Visuals**: Luxurious scenery, volumetric lighting, cinematic atmosphere, raw photo texture.
-2. **Subject**: If female character(s) appear, depict their (gravure/idol/jav aesthetic) appearance and count to naturally fit the scene. Scene priority.
-3. **Style**: Natural, unpolished realism. Avoid "AI smooth" look.
-
-Output: < 100 words. Comma-separated keywords. No quality tags.
+Priorities:
+1. **Atmosphere**: Soft, clear, natural light. Japanese aesthetic. Clean and emotional composition.
+2. **Subject**: If female character(s) appear, describe them as beautiful Japanese women (idol/gravure style) with natural expressions. Count depends on text.
+3. **Scenery**: Realistic and detailed, but with a soft, airy feel.
+4. **Banned**: Male characters, western features, gritty cinematic darkness.
 
 Context:
 {chapter_text}
+
+Output: Comma-separated keywords. < 50 words.
