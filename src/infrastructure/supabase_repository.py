@@ -3,9 +3,9 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from supabase import create_client
 
 from src.infrastructure.settings import settings
+from supabase import create_client
 
 
 class SupabaseRepository:

@@ -1,10 +1,13 @@
 import argparse
 
 from src.infrastructure.file_repository import FileRepository
+from src.infrastructure.image_generator import ImageGenerator
+from src.infrastructure.novelizer import Novelizer
 from src.infrastructure.preprocessor import TranscriptPreprocessor
 from src.infrastructure.summarizer import Summarizer
 from src.infrastructure.supabase_repository import SupabaseRepository
 from src.infrastructure.transcriber import Transcriber
+from src.use_cases.build_novel import BuildNovelUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
 
@@ -15,15 +18,13 @@ def cmd_process(args):
         summarizer=Summarizer(),
         storage=SupabaseRepository(),
         file_repository=FileRepository(),
+        novelizer=Novelizer(),
+        image_generator=ImageGenerator(),
     )
     use_case.execute(args.file)
 
 
 def cmd_novel(args):
-    from src.infrastructure.image_generator import ImageGenerator
-    from src.infrastructure.novelizer import Novelizer
-    from src.use_cases.build_novel import BuildNovelUseCase
-
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator())
     novel_path = use_case.execute(args.date)
 
@@ -31,7 +32,7 @@ def cmd_novel(args):
         print(f"章を追加: {novel_path}")
         SupabaseRepository().sync()
     else:
-        print("Novel Builder is disabled")
+        print("要約ファイルが見つかりません")
 
 
 def cmd_sync(args):

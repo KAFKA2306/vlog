@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Protocol
 
 from src.domain.entities import RecordingSession
@@ -24,3 +25,11 @@ class FileRepositoryProtocol(Protocol):
     def exists(self, path: str) -> bool: ...
     def save_text(self, path: str, content: str) -> None: ...
     def archive(self, path: str) -> None: ...
+
+
+class NovelizerProtocol(Protocol):
+    def generate_chapter(self, today_summary: str, novel_so_far: str = "") -> str: ...
+
+
+class ImageGeneratorProtocol(Protocol):
+    def generate_from_novel(self, chapter_text: str, output_path: Path) -> None: ...
