@@ -31,6 +31,7 @@ class Application:
         self._active_session = None
 
     def run(self):
+        logger.info("Application started")
         while True:
             self._tick()
             time.sleep(settings.check_interval)
@@ -38,8 +39,10 @@ class Application:
     def _tick(self):
         running = self._monitor.is_running()
         if running and not self._active_session:
+            logger.info("VRChat process detected. Starting recording session.")
             self._active_session = self._recorder.start()
         if not running and self._active_session:
+            logger.info("VRChat process ended. Stopping recording session.")
             file_paths = self._recorder.stop()
             self._active_session = None
             if file_paths:

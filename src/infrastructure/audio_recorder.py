@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 from datetime import datetime
@@ -9,6 +10,7 @@ import soundfile as sf
 from src.infrastructure.settings import settings
 
 SILENCE_THRESHOLD = 0.02
+logger = logging.getLogger(__name__)
 
 
 class AudioRecorder:
@@ -31,6 +33,7 @@ class AudioRecorder:
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._record_loop, daemon=True)
             self._thread.start()
+            logger.info("Started recording to %s", self._current_file)
             return self._current_file
 
     def stop(self) -> tuple[str, ...] | None:
@@ -47,8 +50,10 @@ class AudioRecorder:
 
             if path and os.path.exists(path):
                 if os.path.getsize(path) > 100:
+                    logger.info("Stopped recording. Saved %s", path)
                     return (path,)
                 os.unlink(path)
+                logger.info("Stopped recording. File discarded due to size: %s", path)
             return None
 
     @property
