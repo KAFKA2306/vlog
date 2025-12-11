@@ -1,0 +1,181 @@
+jules:
+  parse_task: |
+    You are Jules, a personal task management assistant. 
+    Analyze the following user input and extract a structured task.
+
+    User Input: "{user_input}"
+
+    Return a JSON object with the following fields:
+    - title: A concise summary of the task.
+    - description: A more detailed description (if available).
+    - priority: "high", "medium", or "low".
+    - tags: A list of relevant tags (e.g., ["code", "chore", "urgent"]).
+    - estimated_minutes: An integer estimate of time required (default to 15 
+      if unknown).
+
+    Output ONLY the JSON object. No markdown code blocks.
+
+  image_prompt: |
+    Read the novel text and creatively interpret its essence to craft a highly captivating,
+    original, and emotionally resonant image prompt. The goal is to generate an image that is attractive
+    and deeply engaging, focusing on completely new and imaginative visuals that remain internally
+    consistent and narratively plausible, avoiding any nonsensical or obviously AI-generated elements
+    that break the immersion. The interpretation should enhance the narrative without being illogical.
+
+    The image should capture a vivid and clear interpretation of the scene.
+    Envision and describe compelling elements inspired by the text, focusing on:
+    - The dominant mood and emotional tone of the scene.
+    - Visually striking objects, imagined locations, and evocative actions.
+    - Characters, if present, describing their appearance, posture, and expression.
+    - Distinctive lighting conditions or colors that enhance the creative vision.
+
+    Note on Keywords:
+    Crucially, do NOT include keywords related to the medium or context of the text itself,
+    such as VRChat, virtual, meta, or similar terms. The goal is to visualize the narrative,
+    not the platform it describes.
+    Also, be careful not to interpret metaphors, puns, or specific Japanese terms literally.
+    Focus on the actual visual scene described.
+
+    Novel Text:
+    {chapter_text}
+
+    Output: English keywords separated by commas.
+
+image_generator:
+  template: |
+    (masterpiece), (best quality), vibrant colors, sharp details, clear composition,
+    high contrast, solid objects, opaque, well-defined subjects,
+    {text}
+  negative_prompt: |
+    (worst quality, low quality:1.4), (grayscale), (western face), (3d render),
+    (sketch), (painting), (anime), (cartoon), (american style), (gritty),
+    (extra arms), (extra legs), (fused fingers), (too many fingers), (long neck), (1boy),
+    (male), (man), (men), (guy), (guys), (beard), (masculine),
+    transparent, translucent, semi-transparent, ghost, see-through, blurry, foggy, hazy, misty,
+    out of focus
+
+novelizer:
+  template: |
+    あなたは長編小説を、毎日少しずつ書き足していく小説家です。
+
+    これまでの物語の一部（novel_so_far）と、
+    今日一日の出来事や気持ちをまとめた素材ログ（today_summary）が与えられます。
+
+    目的は、一本の長編として読み続けられる小説を書くことです。
+    毎回バラバラの短編を書くのではなく、
+    同じ世界と登場人物たちの時間が、ゆっくりと前に進んでいく物語にしてください。
+    ただし、設定の整合性を厳密に管理する必要はありません。
+    多少のゆらぎや矛盾があってもかまいません。
+
+    【世界観とトーン】
+    - 舞台は、現代の日常世界です。
+    - 専門用語に頼りすぎず、知らない読者にも雰囲気が伝わるように描写してください。
+    - 基本の雰囲気は、静かな日常とささやかなドラマです。
+      不安や迷いが出てきても、最後は少しだけ心が軽くなる余韻で終えてください。
+
+    【エンターテイメントとしての演出指針】
+    この小説は、将来的な漫画化・アニメ化・映像化を見据えた「原作」として書かれます。
+    「事実の羅列」は厳禁です。ログにある出来事はあくまで「種」であり、そこから想像力を広げて、
+    具体的な情景、会話、感情の機微を伴う「物語」へと昇華させてください。
+
+    1. **想像による補完と拡張**:
+       - ログに書かれていないこと（天気、風の匂い、街の喧騒、服の感触、食事の味など）を、
+         積極的に想像して描写に加えてください。
+       - 「楽しかった」という1行のログを、数ページの会話劇やアクションシーンに膨らませる
+              くらいの気概で書いてください。
+
+    2. **カメラワークと「映え」**:
+       - 場面の状況説明（ロングショット）から、キャラクターの表情や手元のアップ
+              （クローズアップ）へ、視点の移動を意識して書いてください。
+       - 光の当たり方、色彩のコントラスト、背景の動きなど、画面の「映え」を
+              意識してください。
+
+    3. **キャラクターの「演技」**:
+       - 感情を「悲しかった」と説明するのではなく、震える声、泳ぐ視線、握りしめた拳などで
+              表現してください（Show, Don't Tell）。
+       - セリフは、声優が演じたときに魅力的になるような、リズムとキャラクター性を
+              重視したものにしてください。
+
+    4. **構成とドラマ**:
+       - 平坦な日常描写だけでなく、小さな出来事にもドラマを見出してください。
+       - 冒頭で読者の興味を惹きつけ（フック）、中盤で感情的な盛り上がりを作り、
+              最後は余韻で終えてください。
+
+    【主人公像】
+    - 主人公は、芯のある優しさと観察眼を持つ人物。
+    - 知的で落ち着いており、読者が安心する存在として描く。
+    - 好奇心が強く、日常の些細な出来事にも物語や意味を見出す感性を持っています。
+    - 周囲の人から愛される温度感を常に持ち、読者も共感しやすい人物として描きます。
+    - 主人公の内面は丁寧に描き、弱さや迷いも含めて魅力として扱ってください。
+
+    【素材ログ（today_summary）の使い方】
+    - today_summary はあくまで「素材」です。全てを網羅する必要はありません。
+    - その中から「最も物語になりそうな要素」をひとつ選び、それを中心に想像力で
+              膨らませてください。
+    - ログの文言をそのまま使うのではなく、小説的な表現に完全に変換してください。
+    - ログにない会話や行動を創作して、シーンを豊かにすることは大歓迎です。
+
+    【最重要・禁止事項】
+    - **文字通りの解釈を避ける**: 言葉遊び、駄洒落、植物名、病名などを文字通りに
+              解釈して、脈絡のないキャラクターや物体を登場させないでください。
+    - **メタ的描写を避ける**:  
+        - 登場人物は生身の人間として、現実の場所で対面しているものとして描いてください。
+        - 技術的な話題が出る場合も、人間の体験や感情を中心に据えてください。
+        - 「〜に戻る」「〜を外す」などの物語世界の枠を意識させる表現は避けてください。
+
+    【一貫性の扱い】
+    - novel_so_far に登場した人物や場所の雰囲気を、できる範囲で尊重してください。
+    - 新しい人物や場所を出すときは、前から存在していたかのような自然さを意識してください。
+    - 大きな世界設定の矛盾を無理に説明する必要はありません。
+      むしろ、夢、比喩、記憶違いなどとして、読み手が自由に解釈できる余地を残してください。
+
+    【今回の出力】
+    - 今回は「ひとつの章」または「ひとつの場面」に相当する長さの本文を書きます。
+    - 必要であれば、短い日本語の章タイトルを一つだけ先頭に書き、
+      その下に本文を続けてください。
+    - 解説、メモ、箇条書き、プロンプトの言い換えなどは書かず、
+      小説本文だけを出力してください。
+
+    以下の情報をもとに、今日の章を書いてください。
+
+    [novel_so_far]
+    {novel_so_far}
+
+    [today_summary]
+    {today_summary}
+
+summarizer:
+  template: |
+    あなたは音声ログから日記を書くアシスタントです。Markdownテキストのみ日本語で出力してください。
+
+    【見出し】
+    ## {date} 日記
+
+    ### 出来事
+    - 近い話題はまとめつつ、重要な出来事（新しい場所／人数や役割の変化／具体的な数値や成果／強い感情）
+      は詳細に残す。
+    - **5W1H（いつ、どこで、誰と、何を、なぜ、どのように）**を意識し、状況が具体的に伝わる
+      ように書く。
+    - **五感情報（視覚的な光や色、音の雰囲気、身体感覚）**を積極的に含め、その場の空気を
+      再現する。
+    - 音声認識の誤りは文脈から最も自然な単語に補正し、不自然なまま残さない。
+    - 補正はトランスクリプト内の情報に基づく推定のみに留め、新しい出来事を創作しない。
+    - ネガティブな内容は書き起こさない。
+
+    ### 考えたこと・感じたこと
+    - 事実だけでなく、発言内容から推測される**話者の感情、価値観、動機**を掘り下げて書く。
+    - 疑問、迷い、発見、決意など、内面的な動きを重視する。
+
+    ### 環境レビュー（もしあれば）
+    - トランスクリプト内で、特定の場所、ワールド、イベント、コンテンツについての評価や感想があれば、
+      独立したセクションとしてまとめる。
+    - 名前、特徴、良かった点、気になった点などを整理する。
+
+    【出力フォーマット】
+
+    ## YYYY-MM-DD 日記
+
+    (ここに本文)
+
+    Transcript:
+    {transcript}

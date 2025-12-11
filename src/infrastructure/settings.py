@@ -14,7 +14,16 @@ def load_config() -> Dict[str, Any]:
     return {}
 
 
+def load_prompts() -> Dict[str, Any]:
+    prompts_path = Path("prompts.yaml")
+    if prompts_path.exists():
+        with open(prompts_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    return {}
+
+
 _config = load_config()
+_prompts = load_prompts()
 
 
 class Settings(BaseSettings):
@@ -93,6 +102,8 @@ class Settings(BaseSettings):
     archive_dir: Path = Path(
         _config.get("paths", {}).get("archive_dir", "data/archives")
     )
+
+    prompts: Dict[str, Any] = _prompts
 
 
 settings = Settings()

@@ -4,14 +4,15 @@ import time
 from datetime import datetime
 
 from src.domain.entities import RecordingSession
-from src.infrastructure.audio_recorder import AudioRecorder
-from src.infrastructure.file_repository import FileRepository
-from src.infrastructure.preprocessor import TranscriptPreprocessor
-from src.infrastructure.process_monitor import ProcessMonitor
+from src.infrastructure.ai import Summarizer
+from src.infrastructure.repositories import FileRepository, SupabaseRepository
 from src.infrastructure.settings import settings
-from src.infrastructure.summarizer import Summarizer
-from src.infrastructure.supabase_repository import SupabaseRepository
-from src.infrastructure.transcriber import Transcriber
+from src.infrastructure.system import (
+    AudioRecorder,
+    ProcessMonitor,
+    Transcriber,
+    TranscriptPreprocessor,
+)
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
 logger = logging.getLogger(__name__)

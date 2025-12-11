@@ -1,12 +1,16 @@
 import argparse
 
-from src.infrastructure.file_repository import FileRepository
-from src.infrastructure.image_generator import ImageGenerator
-from src.infrastructure.novelizer import Novelizer
-from src.infrastructure.preprocessor import TranscriptPreprocessor
-from src.infrastructure.summarizer import Summarizer
-from src.infrastructure.supabase_repository import SupabaseRepository
-from src.infrastructure.transcriber import Transcriber
+from src.infrastructure.ai import (
+    ImageGenerator,
+    JulesClient,
+    Novelizer,
+    Summarizer,
+)
+from src.infrastructure.repositories import (
+    FileRepository,
+    SupabaseRepository,
+)
+from src.infrastructure.system import Transcriber, TranscriptPreprocessor
 from src.use_cases.build_novel import BuildNovelUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
@@ -43,8 +47,6 @@ def cmd_sync(args):
 def cmd_image_generate(args):
     from pathlib import Path
 
-    from src.infrastructure.image_generator import ImageGenerator
-
     novel_path = Path(args.novel_file)
     if not novel_path.exists():
         print(f"Error: Novel file not found at {novel_path}")
@@ -67,8 +69,7 @@ def cmd_image_generate(args):
 
 
 def cmd_jules(args):
-    from src.infrastructure.jules import JulesClient
-    from src.infrastructure.task_repository import TaskRepository
+    from src.infrastructure.repositories import TaskRepository
 
     repo = TaskRepository()
 

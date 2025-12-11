@@ -1,11 +1,82 @@
+import json
 import os
+import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
 from src.infrastructure.settings import settings
 from supabase import create_client
+
+
+class FileRepository:
+    def exists(self, path: str) -> bool:
+        return Path(path).exists()
+
+    def save_text(self, path: str, content: str) -> None:
+        Path(path).write_text(content, encoding="utf-8")
+
+    def archive(self, path: str) -> None:
+        if not settings.archive_after_process:
+            return
+
+        archive_dir = Path(settings.archive_dir)
+        archive_dir.mkdir(exist_ok=True)
+        src = Path(path)
+        dst = archive_dir / src.name
+        src.rename(dst)
+
+
+class TaskRepository:
+    def __init__(self, file_path: str = "data/tasks.json"):
+        self.file_path = Path(file_path)
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.file_path.exists():
+            self.file_path.write_text("[]", encoding="utf-8")
+
+    def _load(self) -> List[Dict[str, Any]]:
+        return json.loads(self.file_path.read_text(encoding="utf-8"))
+
+    def _save(self, tasks: List[Dict[str, Any]]):
+        self.file_path.write_text(
+            json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    def add(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
+        tasks = self._load()
+        new_task = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now().isoformat(),
+            "status": "pending",
+            **task_data,
+        }
+        tasks.append(new_task)
+        self._save(tasks)
+        return new_task
+
+    def list_pending(self) -> List[Dict[str, Any]]:
+        tasks = self._load()
+        return [t for t in tasks if t.get("status") != "completed"]
+
+    def complete(self, task_id_prefix: str) -> Dict[str, Any] | None:
+        tasks = self._load()
+        found = False
+        target_task = None
+
+        for task in tasks:
+            if task["id"].startswith(task_id_prefix):
+                task["status"] = "completed"
+                task["completed_at"] = datetime.now().isoformat()
+                target_task = task
+                found = True
+                break
+
+        if found:
+            self._save(tasks)
+            return target_task
+        return None
 
 
 class SupabaseRepository:

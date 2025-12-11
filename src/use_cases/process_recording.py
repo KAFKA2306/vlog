@@ -125,10 +125,7 @@ class ProcessRecordingUseCase:
                 novel_path.write_text(chapter, encoding="utf-8")
 
         if not photo_path.exists():
-            # If we just generated the novel, read it back. If it existed, read it.
             chapter = novel_path.read_text(encoding="utf-8")
-            # We might want just the last chapter, but for now using the whole text or just the new part is tricky
-            # without parsing. Using the whole text for prompt generation is safer for context.
 
             photo_path.parent.mkdir(parents=True, exist_ok=True)
             self._image_generator.generate_from_novel(chapter, photo_path)
