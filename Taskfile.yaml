@@ -75,11 +75,16 @@ tasks:
 
   up:
     desc: systemd起動
-    cmd: systemctl --user enable --now "$(pwd)/vlog.service"
+    cmds:
+      - systemctl --user enable --now "$(pwd)/vlog.service"
+      - systemctl --user link "$(pwd)/vlog-daily.service" || true
+      - systemctl --user enable --now "$(pwd)/vlog-daily.timer"
 
   down:
     desc: systemd停止
-    cmd: systemctl --user disable --now vlog.service
+    cmds:
+      - systemctl --user disable --now vlog.service
+      - systemctl --user disable --now vlog-daily.timer
 
   restart:
     desc: systemd再起動
@@ -123,6 +128,22 @@ tasks:
         for f in data/recordings/${TODAY}*.wav data/recordings/${TODAY}*.flac; do
           [ -f "$f" ] && task process FILE="$f"
         done || true
+
+  process:yesterday:
+    desc: 昨日の録音を一括処理
+    cmds:
+      - |
+        YESTERDAY=$(date -d "yesterday" +%Y%m%d)
+        rm -f data/summaries/${YESTERDAY}_summary.txt
+        for f in data/recordings/${YESTERDAY}*.wav data/recordings/${YESTERDAY}*.flac; do
+          [ -f "$f" ] && task process FILE="$f"
+        done || true
+
+  process:daily:
+    desc: 日次処理（昨日＋今日）
+    cmds:
+      - task process:yesterday
+      - task process:today
 
   transcribe:all:
     desc: 文字起こしのみ（全ファイル）

@@ -1,0 +1,8 @@
+[Unit]
+Description=VRChat Vlog Daily Processing
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/kafka/projects/vlog
+ExecStart=/snap/bin/task process:daily
+Environment="PATH=/snap/bin:/home/kafka/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
