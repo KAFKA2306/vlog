@@ -56,7 +56,14 @@ export default function Page() {
       if (summariesResult.error) throw summariesResult.error
       if (novelsResult.error) throw novelsResult.error
 
-      const summaries = (summariesResult.data || []).map(e => ({ ...e, source: 'summary' } as Entry))
+      const summaries = (summariesResult.data || []).map(e => {
+        const dateStr = e.date.substring(0, 10).replace(/-/g, '')
+        return {
+          ...e,
+          source: 'summary',
+          image_url: `/infographics/${dateStr}_summary.png`
+        } as Entry
+      })
       const novels = (novelsResult.data || []).map(e => ({ ...e, source: 'novel' } as Entry))
 
       const allEntries = [...summaries, ...novels].sort((a, b) =>
@@ -152,9 +159,9 @@ export default function Page() {
             {filteredEntries.map(e => (
               <div key={e.id} className={`entry ${e.source}`} onClick={() => setSelected(e)}>
                 {e.image_url && (
-                  <div 
-                    className="entry-bg" 
-                    style={{ backgroundImage: `url(${e.image_url})` }} 
+                  <div
+                    className="entry-bg"
+                    style={{ backgroundImage: `url(${e.image_url})` }}
                   />
                 )}
                 <div className="entry-overlay" />
