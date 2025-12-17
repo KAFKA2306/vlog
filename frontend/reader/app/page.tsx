@@ -41,7 +41,7 @@ export default function Page() {
       const [summariesResult, novelsResult] = await Promise.all([
         supabase
           .from('daily_entries')
-          .select('id,date,title,content,tags')
+          .select('id,date,title,content,tags,image_url')
           .eq('is_public', true)
           .order('date', { ascending: false })
           .limit(60),
@@ -57,11 +57,9 @@ export default function Page() {
       if (novelsResult.error) throw novelsResult.error
 
       const summaries = (summariesResult.data || []).map(e => {
-        const dateStr = e.date.substring(0, 10).replace(/-/g, '')
         return {
           ...e,
           source: 'summary',
-          image_url: `/infographics/${dateStr}_summary.png`
         } as Entry
       })
       const novels = (novelsResult.data || []).map(e => ({ ...e, source: 'novel' } as Entry))

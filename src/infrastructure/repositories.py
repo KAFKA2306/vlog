@@ -187,3 +187,6 @@ class SupabaseRepository:
             self.client.table("novels").update({"image_url": image_url}).eq(
                 "date", date_obj.isoformat()
             ).execute()
+            self.client.table("daily_entries").update({"image_url": image_url}).eq(
+                "date", date_obj.isoformat()
+            ).execute()
