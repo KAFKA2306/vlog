@@ -1,16 +1,15 @@
 import logging
 import sys
-from datetime import datetime
 from pathlib import Path
 
 # Add project root to sys.path to ensure imports work
 project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_root))
 
-from src.infrastructure.ai import ImageGenerator, Novelizer
-from src.infrastructure.repositories import SupabaseRepository
-from src.infrastructure.settings import settings
-from src.use_cases.build_novel import BuildNovelUseCase
+from src.infrastructure.ai import ImageGenerator, Novelizer  # noqa: E402
+from src.infrastructure.repositories import SupabaseRepository  # noqa: E402
+from src.infrastructure.settings import settings  # noqa: E402
+from src.use_cases.build_novel import BuildNovelUseCase  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -48,14 +47,9 @@ def main():
 
         date_str = parts[0]
 
-        # Check if we should ignore this file if it has extra parts but ends with _summary?
-        # The glob matches *_summary.txt anyway.
-        # But we want specifically YYYYMMDD_summary.txt
-        # If the file is like 20251120_205733_summary.txt, it's a specific session summary,
-        # not necessarily the daily summary unless we decide so.
-        # Let's check repositories.py logic:
-        # if not path.stem.endswith("_summary") or "_" in path.stem.replace("_summary", ""): continue
-        # So repositories only syncs files like YYYYMMDD_summary.txt exactly.
+        # Check specific daily summary format (YYYYMMDD_summary.txt).
+        # Ignore session summaries like 20251120_205733_summary.txt.
+        # Repositories sync only allows exact YYYYMMDD_summary.txt.
 
         normalized_stem = summary_file.stem.replace("_summary", "")
         if "_" in normalized_stem:

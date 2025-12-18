@@ -1,25 +1,31 @@
+import platform
 from pathlib import Path
 from typing import Any, Dict, Set
 
 import yaml
-import platform
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _get_project_root() -> Path:
+    return Path(__file__).resolve().parent.parent.parent
+
+
 def load_config() -> Dict[str, Any]:
-    config_path = Path("data/config.yaml")
+    config_path = _get_project_root() / "data/config.yaml"
     if config_path.exists():
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
+    print(f"Warning: Config not found at {config_path}")
     return {}
 
 
 def load_prompts() -> Dict[str, Any]:
-    prompts_path = Path("data/prompts.yaml")
+    prompts_path = _get_project_root() / "data/prompts.yaml"
     if prompts_path.exists():
         with open(prompts_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
+    print(f"Warning: Prompts not found at {prompts_path}")
     return {}
 
 
@@ -33,14 +39,20 @@ class Settings(BaseSettings):
     )
 
     gemini_api_key: str = Field(alias="GOOGLE_API_KEY")
-    gemini_model: str = _config.get("gemini", {}).get("model", "gemini-2.5-flash")
-    novel_model: str = _config.get("novel", {}).get("model", "gemini-2.5-flash")
+    gemini_model: str = _config.get("gemini", {}).get(
+        "model", "models/gemini-3-flash-preview"
+    )
+    novel_model: str = _config.get("novel", {}).get(
+        "model", "models/gemini-3-flash-preview"
+    )
     novel_max_output_tokens: int = _config.get("novel", {}).get(
         "max_output_tokens", 8192
     )
 
     jules_api_key: str = Field(default="", alias="GOOGLE_JULES_API_KEY")
-    jules_model: str = _config.get("jules", {}).get("model", "gemini-2.5-flash")
+    jules_model: str = _config.get("jules", {}).get(
+        "model", "models/gemini-3-flash-preview"
+    )
 
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
     supabase_service_role_key: str = Field(
@@ -151,7 +163,7 @@ class Settings(BaseSettings):
         # Check for Windows-style absolute paths (Drive letter or backslashes)
         s_path = str(v)
         if s_path.startswith("Z:") or "\\" in s_path:
-            # Map fields to their default backup values (same as in default_factory above)
+            # Map fields to their default backup values (matches default_factory)
             defaults = {
                 "recording_dir": "data/recordings",
                 "transcript_dir": "data/transcripts",
@@ -163,7 +175,9 @@ class Settings(BaseSettings):
             }
             field_name = info.field_name
             # Try to get from config first, else hardcoded default
-            default_val = _config.get("paths", {}).get(field_name, defaults.get(field_name))
+            default_val = _config.get("paths", {}).get(
+                field_name, defaults.get(field_name)
+            )
             if default_val:
                 return Path(default_val)
         return v

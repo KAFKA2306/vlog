@@ -33,13 +33,13 @@ whisper:
   repetition_penalty: 1.08
   word_timestamps: true
 gemini:
-  model: "gemini-2.5-flash"
+  model: "models/gemini-3-flash-preview"
 
 novel:
   enabled: true
   title: "VRChat Long Diary 2025"
   out_dir: "data/novels"
-  model: "gemini-2.5-flash"
+  model: "models/gemini-3-flash-preview"
   max_output_tokens: 4096
 
 image:
