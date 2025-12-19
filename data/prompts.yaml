@@ -35,6 +35,7 @@ jules:
     not the platform it describes.
     Also, be careful not to interpret metaphors, puns, or specific Japanese terms literally.
     Focus on the actual visual scene described.
+    Do NOT include common clichés such as "coffee", "steam", or "cup" unless they are central to the plot.
 
     Novel Text:
     {chapter_text}
@@ -51,6 +52,7 @@ image_generator:
     (sketch), (painting), (anime), (cartoon), (american style), (gritty),
     (extra arms), (extra legs), (fused fingers), (too many fingers), (long neck), (1boy),
     (male), (man), (men), (guy), (guys), (beard), (masculine),
+    coffee, steam, cup, hot drink, smoke,
     transparent, translucent, semi-transparent, ghost, see-through, blurry, foggy, hazy, misty,
     out of focus
 
@@ -79,10 +81,8 @@ novelizer:
     具体的な情景、会話、感情の機微を伴う「物語」へと昇華させてください。
 
     1. **想像による補完と拡張**:
-       - ログに書かれていないこと（天気、風の匂い、街の喧騒、服の感触、食事の味など）を、
+       - ログに書かれていないこと（天気、風の匂い、街の喧騒、服の感触、その場にある具体的な材質感など）を、
          積極的に想像して描写に加えてください。
-       - 「楽しかった」という1行のログを、数ページの会話劇やアクションシーンに膨らませる
-              くらいの気概で書いてください。
 
     2. **カメラワークと「映え」**:
        - 場面の状況説明（ロングショット）から、キャラクターの表情や手元のアップ
@@ -122,6 +122,9 @@ novelizer:
         - 登場人物は生身の人間として、現実の場所で対面しているものとして描いてください。
         - 技術的な話題が出る場合も、人間の体験や感情を中心に据えてください。
         - 「〜に戻る」「〜を外す」などの物語世界の枠を意識させる表現は避けてください。
+    - **陳腐な表現の回避**:
+        - 安易な雰囲気作りに頼らず、その瞬間の特異なディテール（具体的な音、光の角度、物の配置）で
+              情景を描写してください。
 
     【一貫性の扱い】
     - novel_so_far に登場した人物や場所の雰囲気を、できる範囲で尊重してください。
@@ -165,10 +168,6 @@ summarizer:
     ### 考えたこと・感じたこと
     - 事実だけでなく、発言内容から推測される**話者の感情、価値観、動機**を掘り下げて書く。
     - 疑問、迷い、発見、決意など、内面的な動きを重視する。
-    - **話者の思考特性 (ENTJ/Te-Ni) を反映する**:
-      - **システム化と効率化 (Te)**: 「どうすればもっと良くなるか」「構造はどうなっているか」という解決・改善志向の視点を強調する。
-      - **未来志向 (Ni)**: 現状の分析に留まらず、それが将来どう繋がるか、業界や社会のトレンドをどう見るかという洞察を含める。
-      - **構造的理解**: 感傷的になりすぎず、現象を論理的・構造的に捉える知的な筆致を心がける。
 
     ## feelings of other persons i met
     - imagine feelings of other persons i met
@@ -176,8 +175,6 @@ summarizer:
 
     ### 今日の心理機能 (Jungian Cognitive Functions)
     - 今日の言動や思考プロセスにおいて、どの**心理機能 (Te, Ti, Fe, Fi, Se, Si, Ne, Ni)** が強く働いていたかを分析する。
-    - 特に **Te (外向的思考) / Ni (内向的直観)** の発揮状況や、逆に **Fi (内向的感情)** や **Se (外向的感覚)** がどう現れたか（劣等機能としての現れ方など）を指摘する。
-
 
 
     ### 環境レビュー
@@ -187,7 +184,7 @@ summarizer:
 
     【出力フォーマット】
 
-    ## YYYY-MM-DD 日記
+    ## YYYY-MM-DD
 
     (ここに本文)
 
