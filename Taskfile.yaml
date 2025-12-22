@@ -149,6 +149,10 @@ tasks:
       - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task novel:build date=$YESTERDAY || true
       - TODAY=$(date +%Y%m%d); task novel:build date=$TODAY || true
 
+  process:pending:
+    desc: 未処理データを検出して一括処理
+    cmd: uv run python -m src.cli pending
+
   transcribe:all:
     desc: 文字起こしのみ（全ファイル）
     cmds:

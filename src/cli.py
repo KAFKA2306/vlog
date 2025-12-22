@@ -172,6 +172,80 @@ def cmd_summarize(args):
         print("Error: Either --file or --date must be specified")
 
 
+def cmd_pending(args):
+    import re
+    from pathlib import Path
+
+    transcript_dir = Path("data/transcripts")
+    summary_dir = Path("data/summaries")
+    novel_dir = Path("data/novels")
+
+    dates = set()
+    for f in transcript_dir.glob("*.txt"):
+        match = re.search(r"(\d{8})", f.stem)
+        if match:
+            dates.add(match.group(1))
+
+    dates = sorted(dates)
+    print(f"Found {len(dates)} unique dates with transcripts")
+
+    pending_summary = []
+    pending_novel = []
+
+    for date_str in dates:
+        summary_path = summary_dir / f"{date_str}_summary.txt"
+        novel_path = novel_dir / f"{date_str}.md"
+
+        if not summary_path.exists():
+            pending_summary.append(date_str)
+        if not novel_path.exists():
+            pending_novel.append(date_str)
+
+    print(f"Missing summaries: {len(pending_summary)}")
+    print(f"Missing novels: {len(pending_novel)}")
+
+    file_repo = FileRepository()
+    summarizer = Summarizer()
+
+    for date_str in pending_summary:
+        print(f"Generating summary for {date_str}...")
+        files = sorted(list(transcript_dir.glob(f"cleaned_{date_str}_*.txt")))
+        if not files:
+            files = sorted(list(transcript_dir.glob(f"{date_str}_*.txt")))
+
+        if not files:
+            print("  No transcripts found, skipping")
+            continue
+
+        combined_text = ""
+        for f in files:
+            text = file_repo.read(str(f))
+            combined_text += f"\n\n--- {f.name} ---\n{text}"
+
+        summary = summarizer.summarize(combined_text, date_str=date_str)
+        file_repo.save_summary(summary, date_str)
+        print(f"  Created {date_str}_summary.txt")
+
+    use_case = BuildNovelUseCase(Novelizer(), ImageGenerator())
+    for date_str in pending_novel:
+        summary_path = summary_dir / f"{date_str}_summary.txt"
+        if not summary_path.exists():
+            print(f"Skipping novel for {date_str} (no summary)")
+            continue
+
+        print(f"Generating novel for {date_str}...")
+        novel_path = use_case.execute(date_str)
+        if novel_path:
+            print(f"  Created {novel_path.name}")
+
+    if pending_summary or pending_novel:
+        print("Syncing to Supabase...")
+        SupabaseRepository().sync()
+        print("Done!")
+    else:
+        print("All data is up to date!")
+
+
 def main():
     from dotenv import load_dotenv
 
@@ -207,6 +281,10 @@ def main():
         "--date", help="Target date (YYYYMMDD) to merge and summarize"
     )
 
+    subparsers.add_parser(
+        "pending", help="Process all pending (missing) summaries and novels"
+    )
+
     p_jules = subparsers.add_parser("jules", help="Manage mini-tasks with Jules AI")
     p_jules.add_argument(
         "action", choices=["add", "list", "done"], help="Action to perform"
@@ -232,6 +310,8 @@ def main():
         cmd_transcribe(args)
     elif args.command == "summarize":
         cmd_summarize(args)
+    elif args.command == "pending":
+        cmd_pending(args)
     else:
         parser.print_help()
 
