@@ -148,6 +148,7 @@ tasks:
       - TODAY=$(date +%Y%m%d); uv run python -m src.cli summarize --date $TODAY || true
       - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task novel:build date=$YESTERDAY || true
       - TODAY=$(date +%Y%m%d); task novel:build date=$TODAY || true
+      - task process:pending
 
   process:pending:
     desc: 未処理データを検出して一括処理
