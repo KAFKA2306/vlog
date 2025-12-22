@@ -122,34 +122,54 @@ def cmd_transcribe(args):
 
 
 def cmd_summarize(args):
+    import re
     from pathlib import Path
 
     file_repo = FileRepository()
     summarizer = Summarizer()
 
-    # Check if transcript exists for the audio file, or if input is a transcript
-    input_path = Path(args.file)
-    if input_path.suffix in [".txt", ".md"]:
-        transcript_text = file_repo.read(args.file)
-        transcript_path = input_path
-    else:
-        # Assume audio file input, look for corresponding transcript
-        # logic from ProcessRecordingUseCase or similar?
-        # Simpler: just require transcript path for summarize command?
-        # Taskfile passes FILE=audio.wav.
-        # So we need to derive transcript path from audio path.
-        # Transcriber.transcribe_and_save saves to data/transcripts/{stem}.txt
-        transcript_path = Path("data/transcripts") / f"{input_path.stem}.txt"
-        if not transcript_path.exists():
-            print(f"Transcript not found: {transcript_path}")
-            return
-        transcript_text = file_repo.read(str(transcript_path))
+    if getattr(args, "date", None):
+        date_str = args.date
+        transcript_dir = Path("data/transcripts")
+        files = sorted(list(transcript_dir.glob(f"cleaned_{date_str}_*.txt")))
+        if not files:
+            files = sorted(list(transcript_dir.glob(f"{date_str}_*.txt")))
 
-    summary = summarizer.summarize(
-        transcript_text, date_str=input_path.stem.split("_")[0]
-    )
-    file_repo.save_summary(summary, input_path.stem.split("_")[0])
-    print(f"Summarized: {args.file}")
+        if not files:
+            print(f"No transcripts found for date: {date_str}")
+            return
+
+        print(f"Summarizing {len(files)} transcripts for {date_str}...")
+        combined_text = ""
+        for f in files:
+            text = file_repo.read(str(f))
+            combined_text += f"\n\n--- {f.name} ---\n{text}"
+
+        summary = summarizer.summarize(combined_text, date_str=date_str)
+        file_repo.save_summary(summary, date_str)
+        print(f"Summarized date {date_str} to data/summaries/{date_str}_summary.txt")
+
+    elif args.file:
+        input_path = Path(args.file)
+        if input_path.suffix in [".txt", ".md"]:
+            transcript_text = file_repo.read(args.file)
+            transcript_path = input_path
+        else:
+            transcript_path = Path("data/transcripts") / f"{input_path.stem}.txt"
+            if not transcript_path.exists():
+                print(f"Transcript not found: {transcript_path}")
+                return
+            transcript_text = file_repo.read(str(transcript_path))
+
+        stem = input_path.stem
+        match = re.search(r"(\d{8})", stem)
+        date_str = match.group(1) if match else stem.split("_")[0]
+
+        summary = summarizer.summarize(transcript_text, date_str=date_str)
+        file_repo.save_summary(summary, date_str)
+        print(f"Summarized: {args.file}")
+    else:
+        print("Error: Either --file or --date must be specified")
 
 
 def main():
@@ -182,7 +202,10 @@ def main():
     p_transcribe.add_argument("--file", required=True, help="Path to audio file")
 
     p_summarize = subparsers.add_parser("summarize", help="Summarize transcript")
-    p_summarize.add_argument("--file", required=True, help="Path to audio/text file")
+    p_summarize.add_argument("--file", help="Path to audio/text file")
+    p_summarize.add_argument(
+        "--date", help="Target date (YYYYMMDD) to merge and summarize"
+    )
 
     p_jules = subparsers.add_parser("jules", help="Manage mini-tasks with Jules AI")
     p_jules.add_argument(
