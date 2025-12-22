@@ -179,7 +179,49 @@ def cmd_pending(args):
     transcript_dir = Path("data/transcripts")
     summary_dir = Path("data/summaries")
     novel_dir = Path("data/novels")
+    recording_dir = Path("data/recordings")
 
+    # 1. Check for untranscribed recordings
+    pending_transcription = []
+    # Recursively find audio files? Or just flat? Taskfile uses flat glob.
+    # Also ignore subdirs if any (like YYYYMMDD folders if we used those, but we seem to use flat)
+    for f in recording_dir.glob("*"):
+        if f.suffix.lower() not in [".wav", ".flac", ".mp3"]:
+            continue
+
+        # Check if transcript exists
+        transcript_path = transcript_dir / f"{f.stem}.txt"
+        if not transcript_path.exists():
+            pending_transcription.append(f)
+
+    print(f"Missing transcripts: {len(pending_transcription)}")
+
+    file_repo = FileRepository()
+
+    if pending_transcription:
+        transcriber = Transcriber()
+        preprocessor = TranscriptPreprocessor()
+
+        for audio_path in pending_transcription:
+            print(f"Transcribing {audio_path.name}...")
+            try:
+                transcript, saved_path = transcriber.transcribe_and_save(
+                    str(audio_path)
+                )
+
+                # Clean
+                cleaned = preprocessor.process(transcript)
+                cleaned_path = str(
+                    Path(saved_path).with_name(f"cleaned_{Path(saved_path).name}")
+                )
+                file_repo.save_text(cleaned_path, cleaned)
+                print(f"  Created {Path(saved_path).name} and cleaned version")
+            except Exception as e:
+                print(f"  Failed to transcribe {audio_path.name}: {e}")
+
+        transcriber.unload()
+
+    # 2. Collect unique dates from transcripts
     dates = set()
     for f in transcript_dir.glob("*.txt"):
         match = re.search(r"(\d{8})", f.stem)
@@ -204,7 +246,6 @@ def cmd_pending(args):
     print(f"Missing summaries: {len(pending_summary)}")
     print(f"Missing novels: {len(pending_novel)}")
 
-    file_repo = FileRepository()
     summarizer = Summarizer()
 
     for date_str in pending_summary:
@@ -238,7 +279,7 @@ def cmd_pending(args):
         if novel_path:
             print(f"  Created {novel_path.name}")
 
-    if pending_summary or pending_novel:
+    if pending_transcription or pending_summary or pending_novel:
         print("Syncing to Supabase...")
         SupabaseRepository().sync()
         print("Done!")
