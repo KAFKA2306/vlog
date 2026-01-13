@@ -163,7 +163,7 @@ logs/
 - **録音**: sounddevice + soundfile (FLAC形式、16kHz) → `system.py`
 - **文字起こし**: Faster Whisper (large-v3-turbo, CUDA) → `system.py`
 - **前処理**: カスタムロジック（フィラー除去、重複削除） → `system.py`
-- **要約・小説生成**: Google Gemini Flash → `ai.py`
+- **要約・小説生成**: Google Gemini 3 Flash → `ai.py`
 - **画像生成**: Diffusers (Z-Image-Turbo) → `ai.py`
 - **DB**: Supabase (PostgreSQL) → `repositories.py`
 - **フロントエンド**: Next.js + Vercel
