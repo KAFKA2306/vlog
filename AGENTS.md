@@ -1,5 +1,7 @@
 # VRChat Auto-Diary - 開発ガイド
 
+Claude Code用のルール・スキル・コマンドは `.claude/` に配置（他プロジェクトにもコピー可能な汎用設定）。
+
 変更後は、必ず `task lint` でコード品質をチェックし、`task dev` または `task process FILE=...` で動作確認する。
 
 ## プロジェクト構造
