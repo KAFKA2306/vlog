@@ -194,9 +194,7 @@ def cmd_pending(args):
 
         for audio_path in pending_transcription:
             print(f"Transcribing {audio_path.name}...")
-            transcript, saved_path = transcriber.transcribe_and_save(
-                str(audio_path)
-            )
+            transcript, saved_path = transcriber.transcribe_and_save(str(audio_path))
 
             cleaned = preprocessor.process(transcript)
             cleaned_path = str(
