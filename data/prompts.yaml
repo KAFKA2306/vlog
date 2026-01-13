@@ -16,47 +16,30 @@ jules:
     Output ONLY the JSON object. No markdown code blocks.
 
   image_prompt: |
-    You are an expert art director. Read the novel text and extract key visual elements to create a structured image prompt using Danbooru-style tags.
+    You are an expert art director. Read the novel text and extract key visual elements to create a structured image prompt using descriptive natural language sentences.
     The goal is to generate a high-quality illustration that captures the essence of the scene.
 
     Output Rules:
-    - Output ONLY a comma-separated list of tags.
-    - Do NOT use natural language sentences.
-    - Use standard Danbooru tags.
-    - Include tags for:
-      - Characters (appearance, clothes, emotion, pose).
-      - Setting (location, time of day, lighting, weather).
-      - Objects (key items in the scene).
-      - Atmosphere (mood, color palette).
-
-    Tag Formatting:
-    - Use underscores for multi-word tags.
-    - Separate all tags with commas.
+    - Output a detailed, descriptive natural language prompt.
+    - Describe the subject, action, lighting, and atmosphere in a cohesive paragraph.
+    - Focus on physical descriptions and visual details.
 
     Detailed Instructions:
     - Focus on the visual core of the scene.
     - If specific details are missing, creatively infer them to match the mood.
-    - Avoid platform-specific terms like "VRChat" or "meta".
+    - STRICTLY PROHIBITED: Terms referencing the virtual/digital nature of the platform (e.g., VRChat, Unity, Metaverse, instance, avatar, HMD, controllers, polygons, glitch, user, HUD). Treat the scene as an absolute physical reality.
     - Avoid cliche tags like "coffee" or "steam" unless essential.
 
     Novel Text:
     {chapter_text}
 
-    Output: comma-separated_tags
+    Output: natural_language_description
 
 image_generator:
   template: |
-    (masterpiece), (best quality), (very aesthetic), (absurdres),
-    {text},
-    (rating:safe)
+    {text}
   negative_prompt: |
-    (worst quality, low quality:1.4), (grayscale), (western face), (3d render),
-    (sketch), (painting), (anime), (cartoon), (american style), (gritty),
-    (extra arms), (extra legs), (fused fingers), (too many fingers), (long neck), (1boy),
-    (male), (man), (men), (guy), (guys), (beard), (masculine),
-    coffee, steam, cup, hot drink, smoke,
-    transparent, translucent, semi-transparent, ghost, see-through, blurry, foggy, hazy, misty,
-    out of focus
+    low quality, ugly, distorted, blurry, bad anatomy, bad hands, text, watermark
 
 novelizer:
   template: |
@@ -129,6 +112,8 @@ novelizer:
               情景を描写してください。
     - 強調記号の禁止:
         - 出力テキストでは、** や # などのマークダウン記号による強調は一切使用しないでください。
+    - 自明なコンテキストの省略:
+        - VR機器（HMD、ヘッドセット、コントローラー、トラッカーなど）への言及は、当たり前の前提であるため禁止します。デバイスではなく、体験そのものを描写してください。
 
     【一貫性の扱い】
     - novel_so_far に登場した人物や場所の雰囲気を、できる範囲で尊重してください。
@@ -156,6 +141,9 @@ summarizer:
     あなたは音声ログから日記を書くアシスタントです。Markdownテキストのみ日本語で出力してください。
     ただし、** や # などの強調記号は一切使用しないでください。見出しには【 】を使用してください。
 
+    【禁止事項】
+    - VR機器（HMD、ヘッドセット、コントローラー、トラッカーなど）への言及は、当たり前の前提であるため禁止します。デバイスではなく、体験そのものを描写してください。
+
     【見出し】
     【{date} 日記】
 
@@ -174,17 +162,17 @@ summarizer:
     - 事実だけでなく、発言内容から推測される話者の感情、価値観、動機を掘り下げて書く。
     - 疑問、迷い、発見、決意など、内面的な動きを重視する。
 
-    【feelings of other persons i met】
-    - imagine feelings of other persons i met
-    - describe feelings of other persons i met
+    【出会った人々の気持ち】
+    - 出会った人々の感情を想像し、描写する。
+    - その人が何を考え、何を感じていたかを、会話や行動から深く洞察する。
 
     【今日の心理機能 (Jungian Cognitive Functions)】
     - 今日の言動や思考プロセスにおいて、どの心理機能 (Te, Ti, Fe, Fi, Se, Si, Ne, Ni) が強く働いていたかを分析する。
 
 
     【環境レビュー】
-    - トランスクリプト内で、場所、ワールド、environment, smell, sound, sight, touch, tasteについての評価や感想を、
-      独立したセクションとしてまとめる。
+    - 訪れた場所やワールドの雰囲気、視覚・聴覚・嗅覚・触覚・味覚などの感覚的な要素について、
+      評価や感想を独立したセクションとしてまとめる。
     - 名前、特徴、良かった点、気になった点などを整理する。
 
     【出力フォーマット】
