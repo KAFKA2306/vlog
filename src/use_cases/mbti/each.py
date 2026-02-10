@@ -45,15 +45,12 @@ def analyze_mbti():
         print(f"Processing {summary_file.name}...")
         text = summary_file.read_text(encoding="utf-8")
 
-        try:
-            prompt = prompt_template.format(text=text)
-            response = model.generate_content(prompt)
-            result = response.text.strip()
+        prompt = prompt_template.format(text=text)
+        response = model.generate_content(prompt)
+        result = response.text.strip()
 
-            output_file.write_text(result, encoding="utf-8")
-            print(f"Saved analysis to {output_file}")
-        except Exception as e:
-            print(f"Error processing {summary_file.name}: {e}")
+        output_file.write_text(result, encoding="utf-8")
+        print(f"Saved analysis to {output_file}")
 
 
 if __name__ == "__main__":

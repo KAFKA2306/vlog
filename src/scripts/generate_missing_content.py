@@ -80,33 +80,22 @@ def main():
         if not novel_exists:
             logger.info(f"Generating Novel and Image for {date_str}...")
             # BuildNovelUseCase generates both Novel AND Image
-            try:
-                build_novel_use_case.execute(date=date_str)
-                logger.info(f"Successfully generated content for {date_str}")
-            except Exception as e:
-                logger.error(f"Failed to generate content for {date_str}: {e}")
-                logger.error(traceback.format_exc())
+            build_novel_use_case.execute(date=date_str)
+            logger.info(f"Successfully generated content for {date_str}")
 
         elif not photo_exists:
             logger.info(
                 f"Novel exists but Image missing for {date_str}. Generating Image..."
             )
-            try:
-                # We can use ImageGenerator directly if we have the novel text
-                novel_text = novel_path.read_text(encoding="utf-8")
-                # Use the whole text as context for the prompt generator.
-                image_generator.generate_from_novel(novel_text, photo_path)
-                logger.info(f"Successfully generated image for {date_str}")
-            except Exception as e:
-                logger.error(f"Failed to generate image for {date_str}: {e}")
-                logger.error(traceback.format_exc())
+            # We can use ImageGenerator directly if we have the novel text
+            novel_text = novel_path.read_text(encoding="utf-8")
+            # Use the whole text as context for the prompt generator.
+            image_generator.generate_from_novel(novel_text, photo_path)
+            logger.info(f"Successfully generated image for {date_str}")
 
     logger.info("Syncing to Supabase...")
-    try:
-        supabase_repo.sync()
-        logger.info("Sync complete.")
-    except Exception as e:
-        logger.error(f"Sync failed: {e}")
+    supabase_repo.sync()
+    logger.info("Sync complete.")
 
     logger.info("Done.")
 

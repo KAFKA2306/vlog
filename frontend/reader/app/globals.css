@@ -1,17 +1,42 @@
 :root {
-  --bg: #030508;
-  --card: rgba(20, 25, 35, 0.4);
-  --card-hover: rgba(30, 35, 45, 0.6);
-  --border: rgba(255, 255, 255, 0.08);
-  --text: #e8ecf7;
-  --muted: #94a3b8;
-  --accent: #00f0ff; /* Cyan Neon */
-  --accent-glow: rgba(0, 240, 255, 0.5);
-  --secondary: #7000ff; /* Purple Neon */
-  --secondary-glow: rgba(112, 0, 255, 0.5);
-  --novel: #ff0055; /* Pink Neon */
-  --novel-glow: rgba(255, 0, 85, 0.5);
-  --font-main: "Outfit", "Inter", system-ui, sans-serif;
+  /* --- Our Design System Core Tokens (HSL Mappings) --- */
+  /* Digital Blue (#005CB9) -> 210, 100%, 36% */
+  --color-primary: 210, 100%, 36%;
+  /* Serendie Teal (#00A3AF) -> 184, 100%, 34% */
+  --color-accent: 184, 100%, 34%;
+  
+  --font-family-base: "Noto Sans JP", sans-serif;
+
+  /* --- Project Mappings --- */
+  
+  --color-bg: 240, 33%, 2%;             /* Deep Dark background #05050A approx */
+  --color-surface: 240, 20%, 5%;        /* Surface shadow */
+  
+  --color-text-main: 0, 0%, 100%;
+  --color-text-muted: 240, 10%, 75%;
+
+  /* Computed Variables */
+  --bg: hsl(var(--color-bg));
+  --card: hsla(240, 20%, 15%, 0.4);
+  --card-hover: hsla(240, 20%, 20%, 0.6);
+  --border: hsla(0, 0%, 100%, 0.08);
+  
+  --text: hsl(var(--color-text-main));
+  --muted: hsl(var(--color-text-muted));
+  
+  --accent: hsl(var(--color-accent)); 
+  --accent-glow: hsla(var(--color-accent), 0.4);
+  
+  /* Novel / Secondary / Category tokens */
+  --novel: hsl(var(--color-primary));
+  --novel-glow: hsla(var(--color-primary), 0.4);
+
+  --font-main: var(--font-family-base);
+  
+  /* Effects */
+  --glass-blur: blur(16px);
+  --radius-md: 8px;
+  --radius-lg: 16px;
 }
 
 * {
@@ -74,7 +99,7 @@ h3 {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 16px;
-  filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.3));
+  filter: drop-shadow(0 0 20px var(--accent-glow));
 }
 
 .hero p {
@@ -108,9 +133,9 @@ h3 {
 .search-input {
   width: 100%;
   padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.2);
+  background: hsla(var(--color-background), 0.4);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
   font-size: 1rem;
   transition: all 0.3s ease;
@@ -119,7 +144,7 @@ h3 {
 .search-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .filter-tabs {
@@ -162,7 +187,7 @@ h3 {
 .entry {
   position: relative;
   background: var(--card);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -174,18 +199,18 @@ h3 {
 
 .entry:hover {
   transform: translateY(-8px);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border-color: hsla(220, 10%, 90%, 0.2);
+  box-shadow: 0 20px 40px hsla(0, 0%, 0%, 0.4);
 }
 
 /* Novel Card Specifics */
 .entry.novel {
-  border-color: rgba(255, 0, 85, 0.2);
+  border-color: var(--novel-glow);
 }
 
 .entry.novel:hover {
   border-color: var(--novel);
-  box-shadow: 0 20px 40px rgba(255, 0, 85, 0.15);
+  box-shadow: 0 20px 40px var(--novel-glow);
 }
 
 .entry-bg {
@@ -246,9 +271,9 @@ h3 {
 }
 
 .badge.novel {
-  background: rgba(255, 0, 85, 0.2);
-  color: #ff4d88;
-  border: 1px solid rgba(255, 0, 85, 0.3);
+  background: var(--novel-glow);
+  color: #fff;
+  border: 1px solid var(--novel);
 }
 
 .badge.summary {
@@ -296,8 +321,8 @@ h3 {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
+  background: hsla(0, 0%, 0%, 0.85);
+  backdrop-filter: var(--glass-blur);
   z-index: 100;
   display: flex;
   align-items: center;

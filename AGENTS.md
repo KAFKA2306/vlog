@@ -1,5 +1,15 @@
 # VRChat Auto-Diary - 開発ガイド
 
+## Global Rules
+本プロジェクトは、以下のグローバルなClaude Codeルール（"Silent Operator" フレームワーク）に準拠します。
+- [Style Rules](file:///home/kafka/.claude/rules/style.md) - コーディング規約・命名規則
+- [System Protocols](file:///home/kafka/.claude/rules/protocols.md) - 終了・委譲・スキル使用プロトコル
+- [MCP Context](file:///home/kafka/.claude/rules/mcp-context.md) - 文脈取得・MCP優先順位
+> [!NOTE]
+> `architecture.md` および `communication.md` は現在グローバルルールに含まれていません。
+
+<line_gap>
+
 Claude Code用のルール・スキル・コマンドは `.claude/` に配置（他プロジェクトにもコピー可能な汎用設定）。
 
 変更後は、必ず `task lint` でコード品質をチェックし、`task dev` または `task process FILE=...` で動作確認する。
@@ -229,3 +239,34 @@ cat logs/vlog.log # ログファイル直接閲覧
 2. **文字起こしが遅い**: `config.yaml` の `whisper.model_size` を `medium` に変更
 3. **要約が失敗**: `.env` の `GOOGLE_API_KEY` を確認
 4. **Supabase同期失敗**: `.env` の認証情報とテーブル定義を確認
+
+## MCP (Model Context Protocol)
+
+Model Context Protocol (MCP) を使用して、外部ツールやデータソースと安全に連携します。
+
+### 利用可能なMCPサーバー
+
+1.  **supabase-mcp-server**
+    *   **Context**: データベース操作、マイグレーション管理、ログ確認。
+    *   **Usage**:
+        *   生のSQLを実行するのではなく、可能な限りMCPツール（`run_query`など）を使用してください。
+        *   DDL変更（テーブル作成など）は `apply_migration` を使用し、履歴を残します。
+        *   データの整合性チェックやアドバイザーツールとしても活用できます。
+
+2.  **netlify**
+    *   **Context**: サイトのデプロイ状況確認、環境変数管理。
+    *   **Usage**:
+        *   `get-deploy` で最新のデプロイステータスを確認。
+        *   `manage-env-vars` で本番環境変数を安全に更新。
+
+3.  **WebFetch** (MCP Market)
+    *   **Context**: ウェブからの情報収集、最新情報の取得。
+    *   **Usage**:
+        *   `web_search`: Google検索を実行し、結果の要約を取得します。
+        *   `read_url`: 指定したURLのコンテンツをテキストとして取得します。
+        *   最新のライブラリ情報やニュースが必要な場合に使用してください。
+
+
+
+
+
