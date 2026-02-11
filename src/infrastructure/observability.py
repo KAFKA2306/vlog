@@ -3,13 +3,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
-
-
 class TraceLogger:
     def __init__(self):
         self._log_path = Path("data/traces.jsonl")
         self._log_path.parent.mkdir(parents=True, exist_ok=True)
-
     def log(
         self,
         component: str,
@@ -29,7 +26,5 @@ class TraceLogger:
             "output_chars": len(output_text),
             "metadata": metadata or {},
         }
-        
-        # Append to JSONL file
         with open(self._log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")

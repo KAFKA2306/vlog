@@ -2,7 +2,6 @@ import logging
 import threading
 import time
 from datetime import datetime
-
 from src.domain.entities import RecordingSession
 from src.infrastructure.ai import Summarizer
 from src.infrastructure.repositories import FileRepository, SupabaseRepository
@@ -14,10 +13,7 @@ from src.infrastructure.system import (
     TranscriptPreprocessor,
 )
 from src.use_cases.process_recording import ProcessRecordingUseCase
-
 logger = logging.getLogger(__name__)
-
-
 class Application:
     def __init__(self):
         self._monitor = ProcessMonitor()
@@ -30,13 +26,11 @@ class Application:
             file_repository=FileRepository(),
         )
         self._active_session = None
-
     def run(self):
         logger.info("Application started")
         while True:
             self._tick()
             time.sleep(settings.check_interval)
-
     def _tick(self):
         running = self._monitor.is_running()
         if running and not self._active_session:

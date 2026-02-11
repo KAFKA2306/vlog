@@ -1,10 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-
 from src.app import Application
-
-
 def setup_logging():
     Path("data/logs").mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
@@ -17,8 +14,6 @@ def setup_logging():
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("faster_whisper").setLevel(logging.WARNING)
-
-
 if __name__ == "__main__":
     setup_logging()
     app = Application()
