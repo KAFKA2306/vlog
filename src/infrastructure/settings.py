@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     whisper_compute_type: str = _config.get("whisper", {}).get(
         "compute_type", "float16"
     )
+    huggingface_token: str | None = Field(default=None, alias="HUGGINGFACE_TOKEN")
     transcript_dir: Path = Field(
         default_factory=lambda: Path(
             _config.get("paths", {}).get("transcript_dir", "data/transcripts")

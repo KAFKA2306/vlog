@@ -102,6 +102,14 @@ tasks:
     desc: ログ追尾（リアルタイム）
     cmd: journalctl --user -u vlog -f
 
+  dashboard:
+    desc: 管理ダッシュボード (TUI)
+    cmd: uv run python -m src.cli dashboard
+
+  repair:
+    desc: パイプライン修復エージェント
+    cmd: uv run python -m src.cli repair
+
   # ────────────────────────────────────────
   # 録音・処理
   # ────────────────────────────────────────
@@ -265,6 +273,10 @@ tasks:
     desc: 全小説から画像を一括生成
     cmds:
       - for f in data/novels/*.md; do [ -f "$f" ] && task photo novel="$f"; done || true
+  
+  photos:fill:
+    desc: 写真が欠落している日付を自動検出し、生成タスクを登録
+    cmd: uv run python -m src.main fill-photos
 
   # ────────────────────────────────────────
   # 内部ヘルパー

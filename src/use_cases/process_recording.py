@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.domain.entities import RecordingSession
 from src.domain.interfaces import (
+    DiarizerProtocol,
     FileRepositoryProtocol,
     ImageGeneratorProtocol,
     NovelizerProtocol,
@@ -22,10 +23,12 @@ class ProcessRecordingUseCase:
         summarizer: SummarizerProtocol,
         storage: StorageProtocol,
         file_repository: FileRepositoryProtocol,
+        diarizer: DiarizerProtocol | None = None,
         novelizer: NovelizerProtocol | None = None,
         image_generator: ImageGeneratorProtocol | None = None,
     ):
         self._transcriber = transcriber
+        self._diarizer = diarizer
         self._preprocessor = preprocessor
         self._summarizer = summarizer
         self._storage = storage
@@ -44,13 +47,16 @@ class ProcessRecordingUseCase:
         return True
 
     def execute_session(self, session: RecordingSession) -> None:
-        transcripts = [
-            self._transcriber.transcribe_and_save(path) for path in session.file_paths
-        ]
+        merged_transcript = ""
+        for path in session.file_paths:
+            transcript = self._process_with_diarization(path)
+            merged_transcript += transcript + "\n"
+
         self._transcriber.unload()
-        merged = " ".join(text for text, _ in transcripts)
-        cleaned = self._preprocessor.process(merged)
-        self._save_summary(cleaned, session)
+        # Clean up slightly but keep speaker labels
+        # cleaned = self._preprocessor.process(merged_transcript)
+        # TODO: Update preprocessor to handle speaker labels or skip for now
+        self._save_summary(merged_transcript, session)
         self._storage.sync()
         for audio_path in session.file_paths:
             self._files.archive(audio_path)
@@ -64,15 +70,61 @@ class ProcessRecordingUseCase:
             end_time=datetime.now(),
         )
 
+    def _process_with_diarization(self, audio_path: str) -> str:
+        # Transcribe with timestamps
+        segments = self._transcriber.transcribe_segments(audio_path)
+
+        # Diarize if available
+        speaker_segments = []
+        if self._diarizer:
+            speaker_segments = self._diarizer.diarize(audio_path)
+
+        # Merge
+        if not speaker_segments:
+            text = " ".join(s.text.strip() for s in segments).strip()
+            self._save_transcript(audio_path, text)
+            return text
+
+        merged_text = ""
+        current_speaker = "Unknown"
+
+        # Simple merging strategy: Assign speaker to segment based on overlap
+        for segment in segments:
+            # Find matching speaker
+            best_speaker = current_speaker
+            max_overlap = 0
+
+            for start, end, speaker in speaker_segments:
+                # Calculate overlap
+                seg_start, seg_end = segment.start, segment.end
+                overlap_start = max(start, seg_start)
+                overlap_end = min(end, seg_end)
+                overlap = max(0, overlap_end - overlap_start)
+
+                if overlap > max_overlap:
+                    max_overlap = overlap
+                    best_speaker = speaker
+
+            # Format output
+            if best_speaker != current_speaker:
+                merged_text += f"\n[{best_speaker}] "
+                current_speaker = best_speaker
+
+            merged_text += segment.text.strip() + " "
+
+        final_text = merged_text.strip()
+        self._save_transcript(audio_path, final_text)
+        return final_text
+
+    def _save_transcript(self, audio_path: str, text: str) -> None:
+        base = Path(audio_path).stem
+        out_path = settings.transcript_dir / f"{base}.txt"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+
     def _process_transcript(self, audio_path: str) -> str:
-        transcript, transcript_path = self._transcriber.transcribe_and_save(audio_path)
-        self._transcriber.unload()
-        cleaned = self._preprocessor.process(transcript)
-        cleaned_path = str(
-            Path(transcript_path).with_name(f"cleaned_{Path(transcript_path).name}")
-        )
-        self._files.save_text(cleaned_path, cleaned)
-        return cleaned
+        # Backward compatibility for single file execution
+        return self._process_with_diarization(audio_path)
 
     def _save_summary(self, transcript: str, session: RecordingSession) -> None:
         summary_path = (

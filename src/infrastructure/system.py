@@ -143,13 +143,18 @@ class Transcriber:
         return self._model
 
     def transcribe(self, audio_path: str) -> str:
+        segments = self.transcribe_segments(audio_path)
+        return " ".join(segment.text.strip() for segment in segments).strip()
+
+    def transcribe_segments(self, audio_path: str):
         segments, _ = self.model.transcribe(
             audio_path,
             beam_size=5,
             vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=100, speech_pad_ms=30),
+            word_timestamps=True,
         )
-        return " ".join(segment.text.strip() for segment in segments).strip()
+        return list(segments)
 
     def transcribe_and_save(self, audio_path: str) -> tuple[str, str]:
         base = Path(audio_path).stem
@@ -166,6 +171,49 @@ class Transcriber:
 
     def unload(self) -> None:
         self._model = None
+
+
+class Diarizer:
+    def __init__(self):
+        self._pipeline = None
+
+    @property
+    def pipeline(self):
+        import torch
+        from pyannote.audio import Pipeline
+
+        if self._pipeline is None:
+            if not settings.huggingface_token:
+                logger.warning("HUGGINGFACE_TOKEN not set. Diarization disabled.")
+                return None
+
+            try:
+                self._pipeline = Pipeline.from_pretrained(
+                    "pyannote/speaker-diarization-3.1",
+                    use_auth_token=settings.huggingface_token,
+                )
+                if torch.cuda.is_available():
+                    self._pipeline.to(torch.device("cuda"))
+            except Exception as e:
+                logger.error(f"Failed to initialize Diarization pipeline: {e}")
+                return None
+        return self._pipeline
+
+    def diarize(self, audio_path: str) -> list[tuple[float, float, str]]:
+        """Returns a list of (start, end, speaker_label) tuples."""
+        pipeline = self.pipeline
+        if not pipeline:
+            return []
+
+        try:
+            diarization = pipeline(audio_path)
+            results = []
+            for turn, _, speaker in diarization.itertracks(yield_label=True):
+                results.append((turn.start, turn.end, speaker))
+            return results
+        except Exception as e:
+            logger.error(f"Diarization failed: {e}")
+            return []
 
 
 class ProcessMonitor:

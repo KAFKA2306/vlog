@@ -273,6 +273,8 @@ def main():
     )
     p_curator.add_argument("action", choices=["eval"], help="Action to perform")
     p_curator.add_argument("--date", help="Target date (YYYYMMDD)")
+    subparsers.add_parser("dashboard", help="Show management dashboard")
+    subparsers.add_parser("repair", help="Auto-repair pipeline inconsistencies")
     args = parser.parse_args()
     if args.command == "jules":
         if args.action == "done":
@@ -294,6 +296,10 @@ def main():
         cmd_summarize(args)
     elif args.command == "pending":
         cmd_pending(args)
+    elif args.command == "dashboard":
+        cmd_dashboard(args)
+    elif args.command == "repair":
+        cmd_repair(args)
     else:
         parser.print_help()
 
@@ -304,6 +310,20 @@ def cmd_curator(args):
     if args.action == "eval":
         use_case = EvaluateDailyContentUseCase()
         use_case.execute(args.date)
+
+
+def cmd_dashboard(args):
+    from src.infrastructure.dashboard import Dashboard
+
+    dashboard = Dashboard()
+    dashboard.render()
+
+
+def cmd_repair(args):
+    from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
+
+    agent = PipelineRepairAgent()
+    agent.run()
 
 
 if __name__ == "__main__":

@@ -42,6 +42,7 @@ Key tasks:
 ## Agentic Management
 
 See [.agent/workflows/agentic-management.md](file:///home/kafka/projects/vlog/.agent/workflows/agentic-management.md) for maintenance procedures.
+See [.agent/workflows/agentic-optimization.md](file:///home/kafka/projects/vlog/.agent/workflows/agentic-optimization.md) for content quality improvement procedures.
 Agents should perform a weekly health check and audit processed recordings.
 
 ## MCP Servers

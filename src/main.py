@@ -21,5 +21,12 @@ def setup_logging():
 
 if __name__ == "__main__":
     setup_logging()
-    app = Application()
-    app.run()
+    if len(sys.argv) > 1 and sys.argv[1] == "fill-photos":
+        from src.use_cases.fill_gaps import PhotoGapFillerUseCase
+
+        print("Scanning for missing photos...")
+        use_case = PhotoGapFillerUseCase()
+        use_case.execute()
+    else:
+        app = Application()
+        app.run()
