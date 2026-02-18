@@ -2,31 +2,39 @@ import logging
 import sys
 from pathlib import Path
 
-from src.app import Application
-
 
 def setup_logging():
-    Path("data/logs").mkdir(parents=True, exist_ok=True)
+    log_path = Path("data/logs/vlog.log")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler("data/logs/vlog.log", encoding="utf-8"),
+            logging.FileHandler(log_path, encoding="utf-8"),
         ],
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("faster_whisper").setLevel(logging.WARNING)
+    print(f"Logging configured. Logs available at: {log_path.absolute()}")
 
 
 if __name__ == "__main__":
     setup_logging()
-    if len(sys.argv) > 1 and sys.argv[1] == "fill-photos":
-        from src.use_cases.fill_gaps import PhotoGapFillerUseCase
+    logger = logging.getLogger(__name__)
 
-        print("Scanning for missing photos...")
-        use_case = PhotoGapFillerUseCase()
-        use_case.execute()
-    else:
-        app = Application()
-        app.run()
+    try:
+        from src.app import Application
+
+        if len(sys.argv) > 1 and sys.argv[1] == "fill-photos":
+            from src.use_cases.fill_gaps import PhotoGapFillerUseCase
+
+            print("Scanning for missing photos...")
+            use_case = PhotoGapFillerUseCase()
+            use_case.execute()
+        else:
+            app = Application()
+            app.run()
+    except Exception:
+        logger.exception("Fatal error during application startup")
+        sys.exit(1)

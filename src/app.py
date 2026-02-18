@@ -76,6 +76,11 @@ class Application:
 
         for task in runnable:
             task_id = task["id"]
+            if "type" not in task:
+                logger.error(f"Task {task_id} missing 'type' field. Marking as failed.")
+                tasks.update_status(task_id, "failed", error="Missing 'type' field")
+                continue
+
             logger.info(f"Processing task {task_id} ({task['type']})")
             tasks.update_status(task_id, "processing")
 

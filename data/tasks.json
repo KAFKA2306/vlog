@@ -11,7 +11,7 @@
   {
     "id": "f355868a-c870-4914-b0ab-f17a045cb0b4",
     "created_at": "2026-01-14T22:10:13.285349",
-    "status": "pending",
+    "status": "failed",
     "title": "Investigate and correct retweet data for @schroneko and @wing_ap",
     "description": "Review the retweet counts for @schroneko (34) and @wing_ap (34 reported as fake). Verify the data integrity and apply necessary corrections.",
     "priority": "medium",
@@ -20,12 +20,15 @@
       "social-media",
       "analytics"
     ],
-    "estimated_minutes": 30
+    "estimated_minutes": 30,
+    "updated_at": "2026-02-18T23:41:30.475335",
+    "error": "Missing 'type' field",
+    "retry_count": 2
   },
   {
     "id": "8c8893a6-cc26-472a-96b1-9ce0b10fd69d",
     "created_at": "2026-01-14T22:12:16.526606",
-    "status": "pending",
+    "status": "failed",
     "title": "Investigate fake retweet count for @schroneko",
     "description": "The retweet count for @schroneko has been reported as false or fake. Verification and update required.",
     "priority": "medium",
@@ -35,6 +38,9 @@
       "twitter",
       "investigation"
     ],
-    "estimated_minutes": 20
+    "estimated_minutes": 20,
+    "updated_at": "2026-02-18T23:41:30.491852",
+    "error": "Missing 'type' field",
+    "retry_count": 2
   }
 ]

@@ -176,15 +176,24 @@ class Transcriber:
 class Diarizer:
     def __init__(self):
         self._pipeline = None
+        self._disabled = False
 
     @property
     def pipeline(self):
-        import torch
-        from pyannote.audio import Pipeline
+        if self._disabled:
+            return None
 
         if self._pipeline is None:
             if not settings.huggingface_token:
                 logger.warning("HUGGINGFACE_TOKEN not set. Diarization disabled.")
+                return None
+
+            try:
+                import torch
+                from pyannote.audio import Pipeline
+            except ImportError as exc:
+                self._disabled = True
+                logger.warning("Diarization disabled; missing dependency: %s", exc)
                 return None
 
             try:
