@@ -17,7 +17,7 @@ class EvaluateDailyContentUseCase:
         self._files = file_repository or FileRepository()
         self._storage = storage or SupabaseRepository()
 
-    def execute(self, date_str: str = None) -> Dict[str, Any] | None:
+    def execute(self, date_str: str | None = None) -> Dict[str, Any] | None:
         target_date = date_str or datetime.now().strftime("%Y%m%d")
         summary_path = settings.summary_dir / f"{target_date}_summary.txt"
         novel_path = settings.novel_out_dir / f"{target_date}.md"

@@ -5,10 +5,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+import logging
+import time
+
 from dotenv import load_dotenv
 
 from src.infrastructure.settings import settings
 from supabase import create_client
+
+logger = logging.getLogger(__name__)
 
 
 class FileRepository:
@@ -53,7 +58,21 @@ class TaskRepository:
             self.file_path.write_text("[]", encoding="utf-8")
 
     def _load(self) -> List[Dict[str, Any]]:
-        return json.loads(self.file_path.read_text(encoding="utf-8"))
+        for i in range(5):
+            try:
+                content = self.file_path.read_text(encoding="utf-8")
+                if not content:
+                    return []
+                return json.loads(content)
+            except json.JSONDecodeError:
+                time.sleep(0.1)
+                continue
+            except Exception as e:
+                logger.error(f"Error loading tasks: {e}")
+                return []
+        
+        logger.error("Failed to load tasks.json after retries. File might be corrupted.")
+        return []
 
     def _save(self, tasks: List[Dict[str, Any]]):
         self.file_path.write_text(
@@ -142,6 +161,8 @@ class SupabaseRepository:
                 }
             )
         if rows:
+            if not self.client:
+                return
             self.client.table("daily_entries").upsert(
                 rows, on_conflict="file_path"
             ).execute()
@@ -167,6 +188,8 @@ class SupabaseRepository:
                 }
             )
         if rows:
+            if not self.client:
+                return
             self.client.table("novels").upsert(rows, on_conflict="file_path").execute()
 
     def _sync_photos(self) -> None:
@@ -179,6 +202,8 @@ class SupabaseRepository:
             date_str = path.stem
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             storage_path = f"photos/{date_str}.png"
+            if not self.client:
+                return
             with open(path, "rb") as f:
                 self.client.storage.from_("vlog-photos").upload(
                     storage_path,
@@ -222,6 +247,8 @@ class SupabaseRepository:
                 }
             )
         if rows:
+            if not self.client:
+                return
             try:
                 self.client.table("evaluations").upsert(
                     rows, on_conflict="date, target_type"

@@ -14,7 +14,7 @@ class BuildNovelUseCase:
         self._novelizer = novelizer
         self._image_generator = image_generator
 
-    def execute(self, date: str = None) -> Path | None:
+    def execute(self, date: str | None = None) -> Path | None:
         target_date = date or datetime.now().strftime("%Y%m%d")
         summary_path = settings.summary_dir / f"{target_date}_summary.txt"
         if not summary_path.exists():

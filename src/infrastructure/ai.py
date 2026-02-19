@@ -50,7 +50,14 @@ class JulesClient:
         return json.loads(text)
 
     def chat(self, history: List[Dict[str, str]], message: str) -> str:
-        chat = self._model.start_chat(history=history)
+        # Convert simple history to Gemini ContentDict format
+        formatted_history = []
+        for h in history:
+            role = h.get("role", "user")
+            content = h.get("content", "")
+            formatted_history.append({"role": role, "parts": [content]})
+            
+        chat = self._model.start_chat(history=formatted_history)
         start_time = time.time()
         response = chat.send_message(message)
         text = response.text
@@ -183,10 +190,10 @@ class Summarizer:
     def summarize(
         self,
         transcript: str,
-        session: RecordingSession = None,
-        date_str: str = None,
-        start_time_str: str = None,
-        end_time_str: str = None,
+        session: RecordingSession | None = None,
+        date_str: str | None = None,
+        start_time_str: str | None = None,
+        end_time_str: str | None = None,
     ) -> str:
         if not self._model:
             genai.configure(api_key=settings.gemini_api_key)

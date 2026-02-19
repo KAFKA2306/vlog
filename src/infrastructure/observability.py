@@ -17,7 +17,7 @@ class TraceLogger:
         start_time: float,
         input_text: str,
         output_text: str,
-        metadata: Dict[str, Any] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> None:
         latency = time.time() - start_time
         entry = {

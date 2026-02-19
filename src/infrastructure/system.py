@@ -146,7 +146,7 @@ class Transcriber:
         segments = self.transcribe_segments(audio_path)
         return " ".join(segment.text.strip() for segment in segments).strip()
 
-    def transcribe_segments(self, audio_path: str):
+    def transcribe_segments(self, audio_path: str) -> list:
         segments, _ = self.model.transcribe(
             audio_path,
             beam_size=5,
@@ -199,9 +199,9 @@ class Diarizer:
             try:
                 self._pipeline = Pipeline.from_pretrained(
                     "pyannote/speaker-diarization-3.1",
-                    use_auth_token=settings.huggingface_token,
+                    token=settings.huggingface_token,
                 )
-                if torch.cuda.is_available():
+                if self._pipeline is not None and torch.cuda.is_available():
                     self._pipeline.to(torch.device("cuda"))
             except Exception as e:
                 logger.error(f"Failed to initialize Diarization pipeline: {e}")
@@ -309,8 +309,8 @@ class TranscriptPreprocessor:
         r"ん",
     ]
 
-    def process(self, txt: str) -> str:
-        txt = self._normalize_text(txt)
+    def process(self, text: str) -> str:
+        txt = self._normalize_text(text)
         txt = self._remove_repetition(txt)
         txt = self._remove_fillers(txt)
         txt = self._dedupe_words(txt)
@@ -327,7 +327,7 @@ class TranscriptPreprocessor:
 
     def _remove_fillers(self, txt: str) -> str:
         fillers = sorted(self.FILLERS, key=len, reverse=True)
-        pattern_str = "|".join(fillers)
+        pattern_str = "|".join(str(f) for f in fillers)
         pattern = f"(^|[\\s、。?!])({pattern_str})(?=[\\s、。?!]|$)"
 
         def repl(match: re.Match[str]) -> str:
