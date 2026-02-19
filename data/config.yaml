@@ -23,8 +23,8 @@ processing:
   archive_after_process: true
 whisper:
   model_size: "large-v3-turbo"
-  device: "cpu"
-  compute_type: "int8"
+  device: "cuda"
+  compute_type: "float16"
   beam_size: 5
   vad_filter: true
   language: "ja"

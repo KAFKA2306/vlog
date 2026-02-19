@@ -23,13 +23,11 @@ SILENCE_THRESHOLD = 0.02
 
 
 def list_audio_devices() -> str:
-    """List available audio devices."""
     devices = sd.query_devices()
     return str(devices)
 
 
 def apply_design_system():
-    """Human-Centric & Borderless Design System (Digital Agency x Serendie)"""
     plt.rcParams.update(
         {
             "axes.facecolor": "#0A0A12",
@@ -63,9 +61,9 @@ class AudioRecorder:
                 return self._current_file
 
             os.makedirs(self._base_dir, exist_ok=True)
-            self._current_file = os.path.join(
-                self._base_dir, datetime.now().strftime("%Y%m%d_%H%M%S.flac")
-            )
+            self._current_file = str(
+                Path(self._base_dir) / datetime.now().strftime("%Y%m%d_%H%M%S.flac")
+            ).replace("\\", "/")
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._record_loop, daemon=True)
             self._thread.start()
@@ -162,7 +160,6 @@ class Transcriber:
         out_path = Path(settings.transcript_dir) / f"{base}.txt"
 
         if out_path.exists():
-            print(f"Transcript already exists for {base}, skipping Whisper.")
             return out_path.read_text(encoding="utf-8").strip(), str(out_path)
 
         text = self.transcribe(audio_path)
@@ -176,53 +173,28 @@ class Transcriber:
 class Diarizer:
     def __init__(self):
         self._pipeline = None
-        self._disabled = False
 
     @property
     def pipeline(self):
-        if self._disabled:
-            return None
-
         if self._pipeline is None:
-            if not settings.huggingface_token:
-                logger.warning("HUGGINGFACE_TOKEN not set. Diarization disabled.")
-                return None
+            import torch
+            from pyannote.audio import Pipeline
 
-            try:
-                import torch
-                from pyannote.audio import Pipeline
-            except ImportError as exc:
-                self._disabled = True
-                logger.warning("Diarization disabled; missing dependency: %s", exc)
-                return None
-
-            try:
-                self._pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.1",
-                    token=settings.huggingface_token,
-                )
-                if self._pipeline is not None and torch.cuda.is_available():
-                    self._pipeline.to(torch.device("cuda"))
-            except Exception as e:
-                logger.error(f"Failed to initialize Diarization pipeline: {e}")
-                return None
+            self._pipeline = Pipeline.from_pretrained(
+                "pyannote/speaker-diarization-3.1",
+                token=settings.huggingface_token,
+            )
+            if self._pipeline is not None and torch.cuda.is_available():
+                self._pipeline.to(torch.device("cuda"))
         return self._pipeline
 
     def diarize(self, audio_path: str) -> list[tuple[float, float, str]]:
-        """Returns a list of (start, end, speaker_label) tuples."""
         pipeline = self.pipeline
-        if not pipeline:
-            return []
-
-        try:
-            diarization = pipeline(audio_path)
-            results = []
-            for turn, _, speaker in diarization.itertracks(yield_label=True):
-                results.append((turn.start, turn.end, speaker))
-            return results
-        except Exception as e:
-            logger.error(f"Diarization failed: {e}")
-            return []
+        diarization = pipeline(audio_path)
+        results = []
+        for turn, _, speaker in diarization.itertracks(yield_label=True):
+            results.append((turn.start, turn.end, speaker))
+        return results
 
 
 class ProcessMonitor:
@@ -291,7 +263,7 @@ class TranscriptPreprocessor:
         r"ふんふん",
         r"ふんふんふん",
         r"うんうん",
-        r"うんうんうん",
+        r"うんうん埋ん",
         r"はいはい",
         r"はいはいはい",
         r"はいはいはいはい",
@@ -344,13 +316,11 @@ class TranscriptPreprocessor:
         txt = re.sub(r"([、。])\1+", r"\1", txt)
         txt = re.sub(r"^[、。]+", "", txt).strip()
         txt = re.sub(r"\s+[、。]+", "", txt)
-        txt = re.sub(r"\s+", " ", txt).strip()
-        return txt
+        return re.sub(r"\s+", " ", txt).strip()
 
     def _dedupe_words(self, txt: str) -> str:
         return re.sub(r"(\S+)\s+\1\b", r"\1", txt)
 
     def _merge_lines(self, txt: str) -> str:
         txt = txt.replace("\n", " ")
-        txt = re.sub(r"\s+", " ", txt).strip()
-        return txt
+        return re.sub(r"\s+", " ", txt).strip()

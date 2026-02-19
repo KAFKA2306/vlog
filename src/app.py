@@ -3,7 +3,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from src.domain.entities import RecordingSession
 from src.infrastructure.ai import ImageGenerator, Summarizer
 from src.infrastructure.repositories import (
     FileRepository,
@@ -18,6 +17,7 @@ from src.infrastructure.system import (
     Transcriber,
     TranscriptPreprocessor,
 )
+from src.models import ActivityTask, RecordingSession
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
 logger = logging.getLogger(__name__)
@@ -41,12 +41,8 @@ class Application:
     def run(self):
         logger.info("Application started with Task-Driven Architecture")
         while True:
-            try:
-                self._tick()
-                self._work()
-            except Exception as e:
-                logger.error(f"Critical error in main loop: {e}")
-                raise  # Crash-on-fail
+            self._tick()
+            self._work()
             time.sleep(settings.check_interval)
 
     def _tick(self):
@@ -74,40 +70,38 @@ class Application:
         if not runnable:
             return
 
-        for task in runnable:
-            task_id = task["id"]
-            if "type" not in task:
-                logger.error(f"Task {task_id} missing 'type' field. Marking as failed.")
-                tasks.update_status(task_id, "failed", error="Missing 'type' field")
+        for task_data in runnable:
+            task = ActivityTask(**task_data)
+            task_id = task.id
+            if not task.type:
+                logger.error(
+                    f"Task {task_id} missing 'type' field. Marking as discarded."
+                )
+                tasks.update_status(task_id, "discarded", error="Missing 'type' field")
                 continue
 
-            logger.info(f"Processing task {task_id} ({task['type']})")
+            logger.info(f"Processing task {task_id} ({task.type})")
             tasks.update_status(task_id, "processing")
 
-            try:
-                if task["type"] == "process_session":
-                    session = RecordingSession(
-                        file_paths=tuple(task["file_paths"]),
-                        start_time=datetime.fromisoformat(task["start_time"]),
-                        end_time=datetime.now(),
-                    )
-                    self._use_case.execute_session(session)
+            if task.type == "process_session":
+                paths = [Path(p).as_posix() for p in task.file_paths]
+                start_time_iso = task.start_time or datetime.now().isoformat()
+                session = RecordingSession(
+                    file_paths=tuple(paths),
+                    start_time=datetime.fromisoformat(start_time_iso),
+                    end_time=datetime.now(),
+                )
+                self._use_case.execute_session(session)
 
-                elif task["type"] == "generate_photo":
-                    novel_path = Path(task["novel_path"])
-                    if novel_path.exists():
-                        chapter = novel_path.read_text(encoding="utf-8")
-                        output_path = Path(task["photo_path"])
-                        output_path.parent.mkdir(parents=True, exist_ok=True)
-                        self._image_generator.generate_from_novel(chapter, output_path)
-                    else:
-                        logger.warning(
-                            f"Novel not found for task {task_id}: {novel_path}"
-                        )
+            elif task.type == "generate_photo":
+                novel_path = Path(task.novel_path)
+                if novel_path.exists():
+                    chapter = novel_path.read_text(encoding="utf-8")
+                    output_path = Path(task.photo_path)
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    self._image_generator.generate_from_novel(chapter, output_path)
+                else:
+                    logger.warning(f"Novel not found for task {task_id}: {novel_path}")
 
-                tasks.complete(task_id)
-                logger.info(f"Task {task_id} completed successfully")
-            except Exception as e:
-                logger.error(f"Task {task_id} failed: {e}")
-                tasks.update_status(task_id, "failed", error=str(e))
-                raise  # Crash-on-fail to ensure clean state on restart
+            tasks.complete(task_id)
+            logger.info(f"Task {task_id} completed successfully")

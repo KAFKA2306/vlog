@@ -21,20 +21,13 @@ def setup_logging():
 
 if __name__ == "__main__":
     setup_logging()
-    logger = logging.getLogger(__name__)
 
-    try:
-        from src.app import Application
+    from src.app import Application
 
-        if len(sys.argv) > 1 and sys.argv[1] == "fill-photos":
-            from src.use_cases.fill_gaps import PhotoGapFillerUseCase
+    if len(sys.argv) > 1 and sys.argv[1] == "fill-photos":
+        from src.use_cases.fill_gaps import PhotoGapFillerUseCase
 
-            print("Scanning for missing photos...")
-            use_case = PhotoGapFillerUseCase()
-            use_case.execute()
-        else:
-            app = Application()
-            app.run()
-    except Exception:
-        logger.exception("Fatal error during application startup")
-        sys.exit(1)
+        print("Scanning for missing photos...")
+        PhotoGapFillerUseCase().execute()
+    else:
+        Application().run()

@@ -11,7 +11,7 @@
   {
     "id": "f355868a-c870-4914-b0ab-f17a045cb0b4",
     "created_at": "2026-01-14T22:10:13.285349",
-    "status": "failed",
+    "status": "discarded",
     "title": "Investigate and correct retweet data for @schroneko and @wing_ap",
     "description": "Review the retweet counts for @schroneko (34) and @wing_ap (34 reported as fake). Verify the data integrity and apply necessary corrections.",
     "priority": "medium",
@@ -21,14 +21,14 @@
       "analytics"
     ],
     "estimated_minutes": 30,
-    "updated_at": "2026-02-19T17:02:49.624779",
+    "updated_at": "2026-02-19T20:13:44.876169",
     "error": "Missing 'type' field",
-    "retry_count": 13235
+    "retry_count": 15593
   },
   {
     "id": "8c8893a6-cc26-472a-96b1-9ce0b10fd69d",
     "created_at": "2026-01-14T22:12:16.526606",
-    "status": "failed",
+    "status": "discarded",
     "title": "Investigate fake retweet count for @schroneko",
     "description": "The retweet count for @schroneko has been reported as false or fake. Verification and update required.",
     "priority": "medium",
@@ -39,9 +39,9 @@
       "investigation"
     ],
     "estimated_minutes": 20,
-    "updated_at": "2026-02-19T17:02:49.625041",
+    "updated_at": "2026-02-19T20:13:44.886080",
     "error": "Missing 'type' field",
-    "retry_count": 13234
+    "retry_count": 15592
   },
   {
     "id": "b90aedea-20ce-4ab5-8e65-333f98cd939b",
@@ -55,5 +55,18 @@
     "start_time": "2026-02-19T05:43:56.914520",
     "updated_at": "2026-02-19T05:47:40.990512",
     "completed_at": "2026-02-19T05:47:40.990520"
+  },
+  {
+    "id": "758800ca-15c4-4265-8af3-c3778fba5abc",
+    "created_at": "2026-02-20T06:33:40.885549",
+    "status": "processing",
+    "retry_count": 34,
+    "type": "process_session",
+    "file_paths": [
+      "data\\recordings\\20260219_201505.flac"
+    ],
+    "start_time": "2026-02-20T06:33:40.877104",
+    "updated_at": "2026-02-20T06:51:08.377593",
+    "error": "[Errno 2] No such file or directory: 'data\\\\recordings\\\\20260219_201505.flac'"
   }
 ]

@@ -1,14 +1,10 @@
 import json
+import logging
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
-
-import logging
-import time
-
-from dotenv import load_dotenv
 
 from src.infrastructure.settings import settings
 from supabase import create_client
@@ -58,21 +54,10 @@ class TaskRepository:
             self.file_path.write_text("[]", encoding="utf-8")
 
     def _load(self) -> List[Dict[str, Any]]:
-        for i in range(5):
-            try:
-                content = self.file_path.read_text(encoding="utf-8")
-                if not content:
-                    return []
-                return json.loads(content)
-            except json.JSONDecodeError:
-                time.sleep(0.1)
-                continue
-            except Exception as e:
-                logger.error(f"Error loading tasks: {e}")
-                return []
-        
-        logger.error("Failed to load tasks.json after retries. File might be corrupted.")
-        return []
+        content = self.file_path.read_text(encoding="utf-8")
+        if not content:
+            return []
+        return json.loads(content)
 
     def _save(self, tasks: List[Dict[str, Any]]):
         self.file_path.write_text(
@@ -125,7 +110,6 @@ class TaskRepository:
 
 class SupabaseRepository:
     def __init__(self):
-        load_dotenv()
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
         self.client = create_client(url, key) if url and key else None
@@ -249,11 +233,6 @@ class SupabaseRepository:
         if rows:
             if not self.client:
                 return
-            try:
-                self.client.table("evaluations").upsert(
-                    rows, on_conflict="date, target_type"
-                ).execute()
-            except Exception as e:
-                print(
-                    f"Warning: Failed to sync evaluations. Table might be missing. {e}"
-                )
+            self.client.table("evaluations").upsert(
+                rows, on_conflict="date, target_type"
+            ).execute()

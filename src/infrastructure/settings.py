@@ -16,7 +16,6 @@ def load_config() -> Dict[str, Any]:
     if config_path.exists():
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
-    print(f"Warning: Config not found at {config_path}")
     return {}
 
 
@@ -25,7 +24,6 @@ def load_prompts() -> Dict[str, Any]:
     if prompts_path.exists():
         with open(prompts_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
-    print(f"Warning: Prompts not found at {prompts_path}")
     return {}
 
 
@@ -118,8 +116,8 @@ class Settings(BaseSettings):
     image_guidance_scale: float = _config.get("image", {}).get("guidance_scale", 0.0)
     image_seed: int = _config.get("image", {}).get("seed", 42)
     image_prompt_filters: List[str] = _config.get("image", {}).get("prompt_filters", [])
-    image_generator_default_prompt: str = "(masterpiece, best quality:1.2), anime scenery, highly detailed, expressive lighting, aesthetic, {text}"  # noqa: E501
-    image_generator_default_negative_prompt: str = "low quality, worst quality, bad anatomy, vr, headset, holding controller, holding object, holding weapon, floating objects, weird objects"  # noqa: E501
+    image_generator_default_prompt: str = "(masterpiece, best quality:1.2), anime scenery, highly detailed, expressive lighting, aesthetic, {text}"
+    image_generator_default_negative_prompt: str = "low quality, worst quality, bad anatomy, vr, headset, holding controller, holding object, holding weapon, floating objects, weird objects"
     archive_after_process: bool = _config.get("processing", {}).get(
         "archive_after_process", True
     )

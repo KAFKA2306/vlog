@@ -1,14 +1,14 @@
 from datetime import datetime
 from pathlib import Path
 
-from src.domain.interfaces import ImageGeneratorProtocol, NovelizerProtocol
+from src.domain.interfaces import ImageGeneratorProtocol, SummarizerProtocol
 from src.infrastructure.settings import settings
 
 
 class BuildNovelUseCase:
     def __init__(
         self,
-        novelizer: NovelizerProtocol,
+        novelizer: SummarizerProtocol,
         image_generator: ImageGeneratorProtocol,
     ):
         self._novelizer = novelizer
@@ -24,7 +24,7 @@ class BuildNovelUseCase:
         novel_so_far = ""
         if novel_path.exists():
             novel_so_far = novel_path.read_text(encoding="utf-8")
-        chapter = self._novelizer.generate_chapter(today_summary, novel_so_far)
+        chapter = self._novelizer.generate_novel(today_summary, target_date)
         novel_path.parent.mkdir(parents=True, exist_ok=True)
         if novel_so_far:
             novel_path.write_text(f"{novel_so_far}\n\n{chapter}", encoding="utf-8")
