@@ -40,7 +40,11 @@ class Application:
 
     def run(self):
         logger.info("Application started with Task-Driven Architecture")
+        from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
+
+        repair_agent = PipelineRepairAgent()
         while True:
+            repair_agent.run()
             self._tick()
             self._work()
             time.sleep(settings.check_interval)
@@ -84,7 +88,8 @@ class Application:
             tasks.update_status(task_id, "processing")
 
             if task.type == "process_session":
-                paths = [Path(p).as_posix() for p in task.file_paths]
+                paths = [p.replace("\\", "/") for p in task.file_paths]
+                paths = [Path(p).as_posix() for p in paths]
                 start_time_iso = task.start_time or datetime.now().isoformat()
                 session = RecordingSession(
                     file_paths=tuple(paths),

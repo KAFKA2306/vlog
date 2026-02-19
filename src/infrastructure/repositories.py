@@ -60,6 +60,9 @@ class TaskRepository:
         return json.loads(content)
 
     def _save(self, tasks: List[Dict[str, Any]]):
+        for task in tasks:
+            if "file_paths" in task:
+                task["file_paths"] = [p.replace("\\", "/") for p in task["file_paths"]]
         self.file_path.write_text(
             json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8"
         )

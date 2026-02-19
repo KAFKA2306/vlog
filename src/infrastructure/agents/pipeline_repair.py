@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 
@@ -5,6 +6,8 @@ from src.infrastructure.ai import ImageGenerator, Summarizer
 from src.infrastructure.repositories import FileRepository, SupabaseRepository
 from src.infrastructure.system import Transcriber, TranscriptPreprocessor
 from src.use_cases.build_novel import BuildNovelUseCase
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineRepairAgent:
@@ -18,11 +21,44 @@ class PipelineRepairAgent:
         self.file_repo = FileRepository()
 
     def run(self):
+        self._repair_tasks()
         self._repair_transcripts()
         self._repair_summaries()
         self._repair_novels()
         self._repair_photos()
+        self._check_logs()
         SupabaseRepository().sync()
+
+    def _repair_tasks(self):
+        from src.infrastructure.repositories import TaskRepository
+
+        repo = TaskRepository()
+        tasks = repo._load()
+        fixed = False
+        for task in tasks:
+            status = task.get("status")
+            if status in ("discarded", "processing"):
+                error = task.get("error", "")
+                if error and ("FileNotFoundError" in error or "No such file" in error):
+                    if "file_paths" in task:
+                        task["file_paths"] = [
+                            p.replace("\\", "/") for p in task["file_paths"]
+                        ]
+                        task["status"] = "pending"
+                        task["error"] = None
+                        fixed = True
+                        logger.info(f"Repaired path for task {task['id']}")
+        if fixed:
+            repo._save(tasks)
+
+    def _check_logs(self):
+        log_path = Path("data/logs/vlog.log")
+        if not log_path.exists():
+            return
+        
+        content = log_path.read_text(encoding="utf-8")
+        if "AttributeError" in content or "ImportError" in content:
+            logger.warning("Critical errors detected in vlog.log. Maintenance required.")
 
     def _repair_transcripts(self):
         if not self.recordings_dir.exists():

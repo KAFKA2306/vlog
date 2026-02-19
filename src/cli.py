@@ -1,4 +1,5 @@
 import argparse
+import re
 from pathlib import Path
 
 from src.infrastructure.ai import ImageGenerator, Summarizer
@@ -13,6 +14,15 @@ from src.use_cases.process_recording import ProcessRecordingUseCase
 
 
 def cmd_process(args):
+    from datetime import datetime
+
+    path = Path(args.file)
+    match = re.search(r"(\d{8}_\d{6})", path.name)
+    start_time = (
+        datetime.strptime(match.group(1), "%Y%m%d_%H%M%S")
+        if match
+        else datetime.now()
+    )
     use_case = ProcessRecordingUseCase(
         transcriber=Transcriber(),
         preprocessor=TranscriptPreprocessor(),
@@ -21,7 +31,11 @@ def cmd_process(args):
         file_repository=FileRepository(),
         diarizer=None,
     )
-    use_case.execute_session(args.file)
+    from src.models import RecordingSession
+
+    use_case.execute_session(
+        RecordingSession(start_time=start_time, file_paths=(str(path),))
+    )
 
 
 def cmd_novel(args):
@@ -125,6 +139,10 @@ def cmd_pending(args):
 
 
 def main():
+    from src.main import setup_logging
+
+    setup_logging()
+
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
     p_process = subparsers.add_parser("process", help="Process audio file")
@@ -196,6 +214,4 @@ def cmd_repair(args):
 
 
 if __name__ == "__main__":
-    import re
-
     main()

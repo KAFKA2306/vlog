@@ -50,7 +50,7 @@
     "retry_count": 0,
     "type": "process_session",
     "file_paths": [
-      "data\\recordings\\20260219_052929.flac"
+      "data/recordings/20260219_052929.flac"
     ],
     "start_time": "2026-02-19T05:43:56.914520",
     "updated_at": "2026-02-19T05:47:40.990512",
@@ -59,14 +59,15 @@
   {
     "id": "758800ca-15c4-4265-8af3-c3778fba5abc",
     "created_at": "2026-02-20T06:33:40.885549",
-    "status": "processing",
+    "status": "completed",
     "retry_count": 34,
     "type": "process_session",
     "file_paths": [
-      "data\\recordings\\20260219_201505.flac"
+      "data/recordings/20260219_201505.flac"
     ],
     "start_time": "2026-02-20T06:33:40.877104",
-    "updated_at": "2026-02-20T06:51:08.377593",
-    "error": "[Errno 2] No such file or directory: 'data\\\\recordings\\\\20260219_201505.flac'"
+    "updated_at": "2026-02-20T07:56:21.513030",
+    "error": null,
+    "completed_at": "2026-02-20T07:56:21.513039"
   }
 ]

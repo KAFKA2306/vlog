@@ -13,10 +13,7 @@ from src.infrastructure.settings import settings
 
 class JulesClient:
     def __init__(self):
-        jules_key = settings.jules_api_key
-        gemini_key = settings.gemini_api_key
-        api_key = jules_key if jules_key else gemini_key
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=settings.gemini_api_key)
         self._model = genai.GenerativeModel(settings.jules_model)
 
     def generate_image_prompt(self, chapter_text: str) -> str:
