@@ -102,9 +102,9 @@ def cmd_pending(args):
 
     dates = sorted(
         {
-            re.search(r"(\d{8})", f.stem).group(1)
+            match.group(1)
             for f in transcript_dir.glob("*.txt")
-            if re.search(r"(\d{8})", f.stem)
+            if (match := re.search(r"(\d{8})", f.stem))
         }
     )
     summarizer = Summarizer()

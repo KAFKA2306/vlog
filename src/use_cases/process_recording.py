@@ -20,7 +20,7 @@ class ProcessRecordingUseCase:
         summarizer: SummarizerProtocol,
         storage,
         file_repository: FileRepositoryProtocol,
-        diarizer: DiarizerProtocol,
+        diarizer: DiarizerProtocol | None = None,
     ):
         self.transcriber = transcriber
         self.preprocessor = preprocessor

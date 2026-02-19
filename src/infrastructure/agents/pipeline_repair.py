@@ -38,9 +38,10 @@ class PipelineRepairAgent:
                     tr = Transcriber()
                     pr = TranscriptPreprocessor()
                 t, sp = tr.transcribe_and_save(str(f))
-                self.file_repo.save_text(
-                    str(Path(sp).with_name(f"cleaned_{Path(sp).name}")), pr.process(t)
-                )
+                if pr:
+                    self.file_repo.save_text(
+                        str(Path(sp).with_name(f"cleaned_{Path(sp).name}")), pr.process(t)
+                    )
         if tr:
             tr.unload()
 
@@ -48,9 +49,9 @@ class PipelineRepairAgent:
         if not self.transcripts_dir.exists():
             return
         dates = {
-            re.search(r"(\d{8})", f.stem).group(1)
+            match.group(1)
             for f in self.transcripts_dir.glob("*.txt")
-            if re.search(r"(\d{8})", f.stem)
+            if (match := re.search(r"(\d{8})", f.stem))
         }
         sm = None
         for d in sorted(dates):

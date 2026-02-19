@@ -22,10 +22,10 @@ class FileRepository:
     def save_text(self, path: str, content: str) -> None:
         Path(path).write_text(content, encoding="utf-8")
 
-    def save_summary(self, summary: str, date_str: str) -> None:
+    def save_summary(self, content: str, date_str: str) -> None:
         summary_path = Path(settings.summary_dir) / f"{date_str}_summary.txt"
         summary_path.parent.mkdir(parents=True, exist_ok=True)
-        self.save_text(str(summary_path), summary)
+        self.save_text(str(summary_path), content)
 
     def archive(self, path: str) -> None:
         if not settings.archive_after_process:
@@ -36,7 +36,7 @@ class FileRepository:
         dst = archive_dir / src.name
         src.rename(dst)
 
-    def save_evaluation(self, evaluation: Dict[str, Any], date_str: str) -> None:
+    def save_evaluation(self, result: Dict[str, Any], date_str: str) -> None:
         eval_path = (
             Path(settings.summary_dir).parent / "evaluations" / f"{date_str}.json"
         )

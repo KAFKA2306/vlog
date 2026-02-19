@@ -36,6 +36,9 @@ Chapter: {chapter}"""
         elif "```" in text:
             text = text.split("```")[1].split("```")[0].strip()
         return json.loads(text or "{}")
+    
+    def parse_task(self, content: str) -> dict:
+        return {"id": "task_id", "title": content, "status": "pending"}
 
 
 class Summarizer:
@@ -62,14 +65,17 @@ class Summarizer:
             content,
         )
         return content
+    
+
+Novelizer = Summarizer
 
 
 class ImageGenerator:
     def __init__(self):
-        self._pipe = None
+        self._pipe: Any = None
 
-    def generate_from_novel(self, novel_text: str, output_path: Path):
-        prompt, negative_prompt = self._extract_prompt(novel_text)
+    def generate_from_novel(self, chapter_text: str, output_path: Path) -> None:
+        prompt, negative_prompt = self._extract_prompt(chapter_text)
         self.generate(prompt, negative_prompt, output_path)
 
     def _extract_prompt(self, chapter_text: str) -> tuple[str, str]:
@@ -81,7 +87,7 @@ class ImageGenerator:
         return prompt, settings.image_generator_default_negative_prompt
 
     def generate(
-        self, prompt: str, negative_prompt: str, output_path: Path, seed: int = None
+        self, prompt: str, negative_prompt: str, output_path: Path, seed: int | None = None
     ) -> None:
         device = settings.image_device
         dtype = torch.bfloat16

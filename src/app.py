@@ -94,8 +94,8 @@ class Application:
                 self._use_case.execute_session(session)
 
             elif task.type == "generate_photo":
-                novel_path = Path(task.novel_path)
-                if novel_path.exists():
+                novel_path = Path(task.novel_path) if task.novel_path else None
+                if novel_path and novel_path.exists() and task.photo_path:
                     chapter = novel_path.read_text(encoding="utf-8")
                     output_path = Path(task.photo_path)
                     output_path.parent.mkdir(parents=True, exist_ok=True)
