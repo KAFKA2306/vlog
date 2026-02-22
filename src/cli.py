@@ -124,6 +124,9 @@ def cmd_repair(args):
     PipelineRepairAgent().run()
 
 def cmd_doctor(args):
+    import shutil
+    import torch
+    import os
     print("■ System Dependency Check")
     for cmd in ["ffmpeg", "sqlite3"]:
         path = shutil.which(cmd)
@@ -133,7 +136,16 @@ def cmd_doctor(args):
     cuda = torch.cuda.is_available()
     print(f"- CUDA Available: {cuda}")
     if cuda:
+        from pathlib import Path
         print(f"- Device: {torch.cuda.get_device_name(0)}")
+        print(f"- VRAM: {torch.cuda.get_device_properties(0).total_memory // (1024**2)} MiB")
+        
+        base = Path(__file__).resolve().parent.parent.parent
+        cudnn_paths = list((base / ".venv").rglob("nvidia/cudnn/lib"))
+        if cudnn_paths:
+            print(f"- cuDNN Lib Path: {cudnn_paths[0]}")
+    
+    print(f"\n- LD_LIBRARY_PATH: {os.environ.get('LD_LIBRARY_PATH', 'NOT SET')}")
 
 def cmd_setup(args):
     for d in ["data/recordings", "data/transcripts", "data/summaries", "data/novels", "data/photos", "data/logs"]:
