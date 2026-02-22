@@ -11,7 +11,7 @@ def setup_logging():
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(log_path, encoding="utf-8"),
+            logging.FileHandler(log_path, mode="w", encoding="utf-8"),
         ],
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)

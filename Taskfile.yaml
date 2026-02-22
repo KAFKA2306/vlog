@@ -55,8 +55,9 @@ tasks:
         ■ デバッグ用
           task service:status           systemd状態のみ
           task log:status               ログ解析のみ
-          task transcribe FILE=...      文字起こしのみ
           task summarize FILE=...       要約のみ
+          task doctor                   システム診断
+          task status                   状態確認
         EOF
 
   # ────────────────────────────────────────
@@ -109,6 +110,14 @@ tasks:
   repair:
     desc: パイプライン修復エージェント
     cmd: uv run python -m src.cli repair
+
+  doctor:
+    desc: システム診断 (Protocol v8.0)
+    cmd: uv run python -m src.cli doctor
+
+  status:
+    desc: 状態確認 (Protocol v8.0)
+    cmd: uv run python -m src.cli pending # Use pending as a status check for now
 
   # ────────────────────────────────────────
   # 録音・処理

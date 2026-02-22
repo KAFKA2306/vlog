@@ -1,0 +1,51 @@
+---
+description: 録音済みデータの全件一括処理および整合性確認の手順。
+---
+
+# VLog 全件一括処理ワークフロー
+
+録音済みオーディオファイル（.wav, .flac）を全件処理し、要約および小説の整合性を確保するための手順です。
+
+## 1. 準備と状態確認
+// turbo-all
+1.  **システム状態の確認**:
+    ```bash
+    task status
+    ```
+2.  **既存データの同期**: Supabaseとの同期が完了していることを確認します。
+    ```bash
+    task sync
+    ```
+
+## 2. 一括処理の実行
+// turbo-all
+1.  **全録音ファイルの処理**: 未処理のオーディオファイルをすべて文字起こし・要約します。
+    ```bash
+    task process:all
+    ```
+2.  **未処理タスクの検出と実行**: 途中で失敗した可能性のあるタスクを補完します。
+    ```bash
+    task process:pending
+    ```
+
+## 3. コンテンツの生成と検証
+// turbo-all
+1.  **不足している写真の生成**: 小説に対応する画像が欠落している場合、自動生成タスクを登録します。
+    ```bash
+    task photos:fill
+    ```
+2.  **全小説からの画像生成**: 必要に応じて全件再生成または不足分を補完します。
+    ```bash
+    task photos:all
+    ```
+
+## 4. 完了と同期
+// turbo-all
+1.  **最終同期**: 処理結果をSupabaseに反映します。
+    ```bash
+    task sync
+    ```
+2.  **コミット**: 処理完了後の状態をGitに記録します。
+    ```bash
+    task commit MESSAGE="Process: all recordings batch execution"
+    ```

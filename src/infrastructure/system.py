@@ -132,12 +132,40 @@ class Transcriber:
     def model(self) -> "WhisperModel":
         if self._model is None:
             from faster_whisper import WhisperModel
+            import torch
 
-            self._model = WhisperModel(
-                settings.whisper_model_size,
-                device=settings.whisper_device,
-                compute_type=settings.whisper_compute_type,
-            )
+            model_path = settings.whisper_model_size
+            device = settings.whisper_device
+            compute_type = settings.whisper_compute_type
+
+            if device == "cuda" and not torch.cuda.is_available():
+                logger.warning("CUDA not available. Falling back to CPU.")
+                device = "cpu"
+                compute_type = "int8"
+            
+            # Additional check for broken CUDA libs (WSL common issue)
+            try:
+                if device == "cuda":
+                    import ctranslate2
+                    # Small test if possible or just proceed. 
+                    # If it fails here, we catch it.
+                    self._model = WhisperModel(
+                        model_path,
+                        device=device,
+                        compute_type=compute_type,
+                    )
+                else:
+                    raise ValueError("Force CPU")
+            except Exception:
+                if device == "cuda":
+                    logger.warning("CUDA libraries broken or unavailable. Falling back to CPU.")
+                device = "cpu"
+                compute_type = "int8"
+                self._model = WhisperModel(
+                    model_path,
+                    device=device,
+                    compute_type=compute_type,
+                )
         return self._model
 
     def transcribe(self, audio_path: str) -> str:

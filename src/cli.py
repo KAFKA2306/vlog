@@ -1,7 +1,9 @@
 import argparse
 import re
+import shutil
+import torch
+import logging
 from pathlib import Path
-
 from src.infrastructure.ai import ImageGenerator, Summarizer
 from src.infrastructure.repositories import (
     FileRepository,
@@ -11,11 +13,12 @@ from src.infrastructure.repositories import (
 from src.infrastructure.system import Transcriber, TranscriptPreprocessor
 from src.use_cases.build_novel import BuildNovelUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
+from src.models import RecordingSession
 
+logger = logging.getLogger(__name__)
 
 def cmd_process(args):
     from datetime import datetime
-
     path = Path(args.file)
     match = re.search(r"(\d{8}_\d{6})", path.name)
     start_time = (
@@ -31,22 +34,17 @@ def cmd_process(args):
         file_repository=FileRepository(),
         diarizer=None,
     )
-    from src.models import RecordingSession
-
     use_case.execute_session(
         RecordingSession(start_time=start_time, file_paths=(str(path),))
     )
-
 
 def cmd_novel(args):
     use_case = BuildNovelUseCase(Summarizer(), ImageGenerator())
     use_case.execute(args.date)
     SupabaseRepository().sync()
 
-
 def cmd_sync(args):
     SupabaseRepository().sync()
-
 
 def cmd_image_generate(args):
     novel_path = Path(args.novel_file)
@@ -59,23 +57,8 @@ def cmd_image_generate(args):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     ImageGenerator().generate_from_novel(content, output_path)
 
-
-def cmd_jules(args):
-    repo = TaskRepository()
-    if args.action == "add":
-        from src.infrastructure.ai import JulesClient
-
-        repo.add(JulesClient().parse_task(args.content))
-    elif args.action == "list":
-        for t in repo.list_pending():
-            print(f"- [{t['id'][:8]}] {t['title']}")
-    elif args.action == "done":
-        repo.complete(args.task_id)
-
-
 def cmd_transcribe(args):
     Transcriber().transcribe_and_save(args.file)
-
 
 def cmd_summarize(args):
     file_repo = FileRepository()
@@ -93,7 +76,6 @@ def cmd_summarize(args):
         text = file_repo.read(args.file)
         date_str = Path(args.file).stem[:8]
         file_repo.save_summary(summarizer.generate_novel(text, date_str), date_str)
-
 
 def cmd_pending(args):
     transcript_dir, summary_dir, novel_dir, recording_dir = (
@@ -137,81 +119,80 @@ def cmd_pending(args):
             BuildNovelUseCase(Summarizer(), ImageGenerator()).execute(d)
     SupabaseRepository().sync()
 
+def cmd_repair(args):
+    from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
+    PipelineRepairAgent().run()
+
+def cmd_doctor(args):
+    print("■ System Dependency Check")
+    for cmd in ["ffmpeg", "sqlite3"]:
+        path = shutil.which(cmd)
+        print(f"- {cmd}: {'OK (' + path + ')' if path else 'MISSING'}")
+    
+    print("\n■ Hardware Check")
+    cuda = torch.cuda.is_available()
+    print(f"- CUDA Available: {cuda}")
+    if cuda:
+        print(f"- Device: {torch.cuda.get_device_name(0)}")
+
+def cmd_setup(args):
+    for d in ["data/recordings", "data/transcripts", "data/summaries", "data/novels", "data/photos", "data/logs"]:
+        Path(d).mkdir(parents=True, exist_ok=True)
+    print("Directories initialized.")
+
+def cmd_curator(args):
+    from src.use_cases.evaluate import EvaluateDailyContentUseCase
+    EvaluateDailyContentUseCase().execute(args.date)
+
+def cmd_dashboard(args):
+    from src.infrastructure.dashboard import Dashboard
+    Dashboard().render()
 
 def main():
     from src.main import setup_logging
-
     setup_logging()
 
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    p_process = subparsers.add_parser("process", help="Process audio file")
-    p_process.add_argument("--file", help="Path to audio file")
-    p_novel = subparsers.add_parser("novel", help="Generate novel chapter")
-    p_novel.add_argument("--date", help="Target date (YYYYMMDD)")
-    subparsers.add_parser("sync", help="Sync data to Supabase")
-    p_img = subparsers.add_parser("image-generate", help="Generate image")
+    
+    subparsers.add_parser("process").add_argument("--file")
+    subparsers.add_parser("novel").add_argument("--date")
+    subparsers.add_parser("sync")
+    p_img = subparsers.add_parser("image-generate")
     p_img.add_argument("--novel-file", required=True)
     p_img.add_argument("--output-file")
-    p_trans = subparsers.add_parser("transcribe", help="Transcribe")
-    p_trans.add_argument("--file", required=True)
-    p_sum = subparsers.add_parser("summarize", help="Summarize")
+    subparsers.add_parser("transcribe").add_argument("--file", required=True)
+    p_sum = subparsers.add_parser("summarize")
     p_sum.add_argument("--file")
     p_sum.add_argument("--date")
-    subparsers.add_parser("pending", help="Process pending")
-    p_jules = subparsers.add_parser("jules", help="Jules tasks")
-    p_jules.add_argument("action", choices=["add", "list", "done"])
-    p_jules.add_argument("content", nargs="?")
-    p_cur = subparsers.add_parser("curator", help="Curator")
+    subparsers.add_parser("pending")
+    subparsers.add_parser("repair")
+    subparsers.add_parser("doctor")
+    subparsers.add_parser("setup")
+    p_cur = subparsers.add_parser("curator")
     p_cur.add_argument("action", choices=["eval"])
     p_cur.add_argument("--date")
-    subparsers.add_parser("dashboard", help="Dashboard")
-    subparsers.add_parser("repair", help="Repair")
+    subparsers.add_parser("dashboard")
 
     args = parser.parse_args()
-    if args.command == "jules":
-        if args.action == "done":
-            args.task_id = args.content
-        cmd_jules(args)
-    elif args.command == "curator":
-        cmd_curator(args)
-    elif args.command == "process":
-        cmd_process(args)
-    elif args.command == "novel":
-        cmd_novel(args)
-    elif args.command == "sync":
-        cmd_sync(args)
-    elif args.command == "image-generate":
-        cmd_image_generate(args)
-    elif args.command == "transcribe":
-        cmd_transcribe(args)
-    elif args.command == "summarize":
-        cmd_summarize(args)
-    elif args.command == "pending":
-        cmd_pending(args)
-    elif args.command == "dashboard":
-        cmd_dashboard(args)
-    elif args.command == "repair":
-        cmd_repair(args)
-
-
-def cmd_curator(args):
-    from src.use_cases.evaluate import EvaluateDailyContentUseCase
-
-    EvaluateDailyContentUseCase().execute(args.date)
-
-
-def cmd_dashboard(args):
-    from src.infrastructure.dashboard import Dashboard
-
-    Dashboard().render()
-
-
-def cmd_repair(args):
-    from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
-
-    PipelineRepairAgent().run()
-
+    
+    cmds = {
+        "process": cmd_process,
+        "novel": cmd_novel,
+        "sync": cmd_sync,
+        "image-generate": cmd_image_generate,
+        "transcribe": cmd_transcribe,
+        "summarize": cmd_summarize,
+        "pending": cmd_pending,
+        "repair": cmd_repair,
+        "doctor": cmd_doctor,
+        "setup": cmd_setup,
+        "curator": cmd_curator,
+        "dashboard": cmd_dashboard,
+    }
+    
+    if args.command in cmds:
+        cmds[args.command](args)
 
 if __name__ == "__main__":
     main()
