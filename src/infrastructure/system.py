@@ -138,18 +138,43 @@ class Transcriber:
             device = settings.whisper_device
             compute_type = settings.whisper_compute_type
 
-            # Inject LD_LIBRARY_PATH for cuDNN (common WSL issue)
+            # Inject library path for cuDNN
             if device == "cuda":
+                import sys
+
                 base = Path(__file__).resolve().parent.parent.parent
-                venv_lib = base / ".venv"
-                cudnn_libs = list(venv_lib.rglob("nvidia/cudnn/lib"))
+                is_windows = sys.platform == "win32"
+                venv_name = ".venv-win" if is_windows else ".venv"
+                venv_lib = base / venv_name
+
+                # Search for cuDNN libraries
+                search_pattern = (
+                    "nvidia/cudnn/bin" if is_windows else "nvidia/cudnn/lib"
+                )
+                cudnn_libs = list(venv_lib.rglob(search_pattern))
+
                 if cudnn_libs:
                     lib_path = str(cudnn_libs[0])
-                    current_ld = os.environ.get("LD_LIBRARY_PATH", "")
-                    if lib_path not in current_ld:
-                        new_ld = f"{lib_path}:{current_ld}".strip(":")
-                        os.environ["LD_LIBRARY_PATH"] = new_ld
-                        logger.info("Injected LD_LIBRARY_PATH: %s", lib_path)
+                    if is_windows:
+                        # Windows: add_dll_directory is preferred for Python 3.8+
+                        if hasattr(os, "add_dll_directory"):
+                            try:
+                                os.add_dll_directory(lib_path)
+                                logger.info("Added DLL directory: %s", lib_path)
+                            except Exception:
+                                pass
+                        # Also add to PATH as fallback or for older versions/tools
+                        current_path = os.environ.get("PATH", "")
+                        if lib_path not in current_path:
+                            os.environ["PATH"] = f"{lib_path};{current_path}"
+                            logger.info("Injected PATH for CUDA: %s", lib_path)
+                    else:
+                        # Linux: LD_LIBRARY_PATH
+                        current_ld = os.environ.get("LD_LIBRARY_PATH", "")
+                        if lib_path not in current_ld:
+                            new_ld = f"{lib_path}:{current_ld}".strip(":")
+                            os.environ["LD_LIBRARY_PATH"] = new_ld
+                            logger.info("Injected LD_LIBRARY_PATH: %s", lib_path)
 
             if device == "cuda" and not torch.cuda.is_available():
                 logger.warning("CUDA not available. Falling back to CPU.")
