@@ -42,7 +42,7 @@ class FileRepository:
         )
         eval_path.parent.mkdir(parents=True, exist_ok=True)
         eval_path.write_text(
-            json.dumps(evaluation, indent=2, ensure_ascii=False), encoding="utf-8"
+            json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
 

@@ -116,8 +116,14 @@ class Settings(BaseSettings):
     image_guidance_scale: float = _config.get("image", {}).get("guidance_scale", 0.0)
     image_seed: int = _config.get("image", {}).get("seed", 42)
     image_prompt_filters: List[str] = _config.get("image", {}).get("prompt_filters", [])
-    image_generator_default_prompt: str = "(masterpiece, best quality:1.2), anime scenery, highly detailed, expressive lighting, aesthetic, {text}"
-    image_generator_default_negative_prompt: str = "low quality, worst quality, bad anatomy, vr, headset, holding controller, holding object, holding weapon, floating objects, weird objects"
+    image_generator_default_prompt: str = (
+        "(masterpiece, best quality:1.2), anime scenery, highly detailed, "
+        "expressive lighting, aesthetic, {text}"
+    )
+    image_generator_default_negative_prompt: str = (
+        "low quality, worst quality, bad anatomy, vr, headset, holding controller, "
+        "holding object, holding weapon, floating objects, weird objects"
+    )
     archive_after_process: bool = _config.get("processing", {}).get(
         "archive_after_process", True
     )

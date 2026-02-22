@@ -55,10 +55,12 @@ class PipelineRepairAgent:
         log_path = Path("data/logs/vlog.log")
         if not log_path.exists():
             return
-        
+
         content = log_path.read_text(encoding="utf-8")
         if "AttributeError" in content or "ImportError" in content:
-            logger.warning("Critical errors detected in vlog.log. Maintenance required.")
+            logger.warning(
+                "Critical errors detected in vlog.log. Maintenance required."
+            )
 
     def _repair_transcripts(self):
         if not self.recordings_dir.exists():
@@ -75,9 +77,9 @@ class PipelineRepairAgent:
                     pr = TranscriptPreprocessor()
                 t, sp = tr.transcribe_and_save(str(f))
                 if pr:
-                    self.file_repo.save_text(
-                        str(Path(sp).with_name(f"cleaned_{Path(sp).name}")), pr.process(t)
-                    )
+                    cleaned_name = f"cleaned_{Path(sp).name}"
+                    out_path = str(Path(sp).with_name(cleaned_name))
+                    self.file_repo.save_text(out_path, pr.process(t))
         if tr:
             tr.unload()
 

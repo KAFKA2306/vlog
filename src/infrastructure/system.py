@@ -147,14 +147,15 @@ class Transcriber:
                     lib_path = str(cudnn_libs[0])
                     current_ld = os.environ.get("LD_LIBRARY_PATH", "")
                     if lib_path not in current_ld:
-                        os.environ["LD_LIBRARY_PATH"] = f"{lib_path}:{current_ld}".strip(":")
+                        new_ld = f"{lib_path}:{current_ld}".strip(":")
+                        os.environ["LD_LIBRARY_PATH"] = new_ld
                         logger.info("Injected LD_LIBRARY_PATH: %s", lib_path)
 
             if device == "cuda" and not torch.cuda.is_available():
                 logger.warning("CUDA not available. Falling back to CPU.")
                 device = "cpu"
                 compute_type = "int8"
-            
+
             try:
                 if device == "cuda":
                     # Simple check if libs are loadable
@@ -167,7 +168,9 @@ class Transcriber:
                     raise ValueError("Force CPU")
             except Exception as e:
                 if device == "cuda":
-                    logger.warning(f"CUDA initialization failed: {e}. Falling back to CPU.")
+                    logger.warning(
+                        "CUDA initialization failed: %s. Falling back to CPU.", e
+                    )
                 device = "cpu"
                 compute_type = "int8"
                 self._model = WhisperModel(

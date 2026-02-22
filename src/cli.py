@@ -1,30 +1,31 @@
 import argparse
+import logging
 import re
 import shutil
-import torch
-import logging
 from pathlib import Path
+
+import torch
+
 from src.infrastructure.ai import ImageGenerator, Summarizer
 from src.infrastructure.repositories import (
     FileRepository,
     SupabaseRepository,
-    TaskRepository,
 )
 from src.infrastructure.system import Transcriber, TranscriptPreprocessor
+from src.models import RecordingSession
 from src.use_cases.build_novel import BuildNovelUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
-from src.models import RecordingSession
 
 logger = logging.getLogger(__name__)
 
+
 def cmd_process(args):
     from datetime import datetime
+
     path = Path(args.file)
     match = re.search(r"(\d{8}_\d{6})", path.name)
     start_time = (
-        datetime.strptime(match.group(1), "%Y%m%d_%H%M%S")
-        if match
-        else datetime.now()
+        datetime.strptime(match.group(1), "%Y%m%d_%H%M%S") if match else datetime.now()
     )
     use_case = ProcessRecordingUseCase(
         transcriber=Transcriber(),
@@ -38,13 +39,16 @@ def cmd_process(args):
         RecordingSession(start_time=start_time, file_paths=(str(path),))
     )
 
+
 def cmd_novel(args):
     use_case = BuildNovelUseCase(Summarizer(), ImageGenerator())
     use_case.execute(args.date)
     SupabaseRepository().sync()
 
+
 def cmd_sync(args):
     SupabaseRepository().sync()
+
 
 def cmd_image_generate(args):
     novel_path = Path(args.novel_file)
@@ -57,8 +61,10 @@ def cmd_image_generate(args):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     ImageGenerator().generate_from_novel(content, output_path)
 
+
 def cmd_transcribe(args):
     Transcriber().transcribe_and_save(args.file)
+
 
 def cmd_summarize(args):
     file_repo = FileRepository()
@@ -76,6 +82,7 @@ def cmd_summarize(args):
         text = file_repo.read(args.file)
         date_str = Path(args.file).stem[:8]
         file_repo.save_summary(summarizer.generate_novel(text, date_str), date_str)
+
 
 def cmd_pending(args):
     transcript_dir, summary_dir, novel_dir, recording_dir = (
@@ -119,54 +126,73 @@ def cmd_pending(args):
             BuildNovelUseCase(Summarizer(), ImageGenerator()).execute(d)
     SupabaseRepository().sync()
 
+
 def cmd_repair(args):
     from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
+
     PipelineRepairAgent().run()
 
+
 def cmd_doctor(args):
-    import shutil
-    import torch
     import os
+
     print("■ System Dependency Check")
     for cmd in ["ffmpeg", "sqlite3"]:
         path = shutil.which(cmd)
         print(f"- {cmd}: {'OK (' + path + ')' if path else 'MISSING'}")
-    
+
     print("\n■ Hardware Check")
     cuda = torch.cuda.is_available()
     print(f"- CUDA Available: {cuda}")
     if cuda:
         from pathlib import Path
+
         print(f"- Device: {torch.cuda.get_device_name(0)}")
-        print(f"- VRAM: {torch.cuda.get_device_properties(0).total_memory // (1024**2)} MiB")
-        
+        vram = torch.cuda.get_device_properties(0).total_memory // (1024**2)
+        print(f"- VRAM: {vram} MiB")
+
         base = Path(__file__).resolve().parent.parent.parent
         cudnn_paths = list((base / ".venv").rglob("nvidia/cudnn/lib"))
         if cudnn_paths:
             print(f"- cuDNN Lib Path: {cudnn_paths[0]}")
-    
+
     print(f"\n- LD_LIBRARY_PATH: {os.environ.get('LD_LIBRARY_PATH', 'NOT SET')}")
 
+
 def cmd_setup(args):
-    for d in ["data/recordings", "data/transcripts", "data/summaries", "data/novels", "data/photos", "data/logs"]:
+    dirs = [
+        "data/recordings",
+        "data/transcripts",
+        "data/summaries",
+        "data/novels",
+        "data/photos",
+        "data/logs",
+    ]
+    for d in dirs:
         Path(d).mkdir(parents=True, exist_ok=True)
     print("Directories initialized.")
 
+
 def cmd_curator(args):
     from src.use_cases.evaluate import EvaluateDailyContentUseCase
+
     EvaluateDailyContentUseCase().execute(args.date)
+
 
 def cmd_dashboard(args):
     from src.infrastructure.dashboard import Dashboard
+
     Dashboard().render()
+
 
 def main():
     from src.main import setup_logging
+
     setup_logging()
 
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    
+
     subparsers.add_parser("process").add_argument("--file")
     subparsers.add_parser("novel").add_argument("--date")
     subparsers.add_parser("sync")
@@ -187,7 +213,7 @@ def main():
     subparsers.add_parser("dashboard")
 
     args = parser.parse_args()
-    
+
     cmds = {
         "process": cmd_process,
         "novel": cmd_novel,
@@ -202,9 +228,10 @@ def main():
         "curator": cmd_curator,
         "dashboard": cmd_dashboard,
     }
-    
+
     if args.command in cmds:
         cmds[args.command](args)
+
 
 if __name__ == "__main__":
     main()

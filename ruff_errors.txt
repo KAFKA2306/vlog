@@ -1,0 +1,66 @@
+E501 Line too long (93 > 88)
+   --> src/cli.py:140:89
+    |
+138 |         from pathlib import Path
+139 |         print(f"- Device: {torch.cuda.get_device_name(0)}")
+140 |         print(f"- VRAM: {torch.cuda.get_device_properties(0).total_memory // (1024**2)} MiB")
+    |                                                                                         ^^^^^
+141 |         
+142 |         base = Path(__file__).resolve().parent.parent.parent
+    |
+
+E501 Line too long (114 > 88)
+   --> src/cli.py:150:89
+    |
+149 | def cmd_setup(args):
+150 |     for d in ["data/recordings", "data/transcripts", "data/summaries", "data/novels", "data/photos", "data/logs"]:
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+151 |         Path(d).mkdir(parents=True, exist_ok=True)
+152 |     print("Directories initialized.")
+    |
+
+E501 Line too long (89 > 88)
+  --> src/infrastructure/agents/pipeline_repair.py:61:89
+   |
+59 |         content = log_path.read_text(encoding="utf-8")
+60 |         if "AttributeError" in content or "ImportError" in content:
+61 |             logger.warning("Critical errors detected in vlog.log. Maintenance required.")
+   |                                                                                         ^
+62 |
+63 |     def _repair_transcripts(self):
+   |
+
+E501 Line too long (90 > 88)
+  --> src/infrastructure/agents/pipeline_repair.py:79:89
+   |
+77 |                 if pr:
+78 |                     self.file_repo.save_text(
+79 |                         str(Path(sp).with_name(f"cleaned_{Path(sp).name}")), pr.process(t)
+   |                                                                                         ^^
+80 |                     )
+81 |         if tr:
+   |
+
+E501 Line too long (91 > 88)
+  --> src/infrastructure/ai.py:21:89
+   |
+19 |     def generate_image_prompt(self, chapter_text: str) -> str:
+20 |         prompt = (
+21 |             "Extract a visual scene description for an anime illustration from this text. "
+   |                                                                                         ^^^
+22 |             f"Output only the description: {chapter_text}"
+23 |         )
+   |
+
+E501 Line too long (121 > 88)
+  --> src/use_cases/mbti/each.py:14:66
+   |
+12 |     output_dir = Path("data/mbti_analysis")
+13 |     output_dir.mkdir(exist_ok=True, parents=True)
+14 |     prompt_template = "判定・分析してください:1.○MBTIタイプ(4軸) 2.○主機能／補助機能 3.○心理機能の使い方の癖 対象:{text}"
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+15 |     files = sorted(list(summaries_dir.glob("*.txt")))
+16 |     for summary_file in files:
+   |
+
+Found 6 errors.

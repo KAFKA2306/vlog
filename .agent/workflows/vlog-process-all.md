@@ -40,12 +40,15 @@ description: 録音済みデータの全件一括処理および整合性確認�
     ```
 
 ## 4. 完了と同期
+
 // turbo-all
 1.  **最終同期**: 処理結果をSupabaseに反映します。
     ```bash
     task sync
     ```
-2.  **コミット**: 処理完了後の状態をGitに記録します。
+2.  **コミットとプッシュ**: 
+    処理完了後の状態を記録し、リモートへ反映するために次のコマンドを呼び出してください。
     ```bash
-    task commit MESSAGE="Process: all recordings batch execution"
+    /git
     ```
+

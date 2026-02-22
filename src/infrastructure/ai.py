@@ -17,8 +17,11 @@ class JulesClient:
         self._model = genai.GenerativeModel(settings.jules_model)
 
     def generate_image_prompt(self, chapter_text: str) -> str:
-        prompt = f"Extract a visual scene description for an anime illustration from this text. Output only the description: {chapter_text}"
-        response = self._model.generate_content(prompt)
+        msg = (
+            "Extract a visual scene description for an anime illustration "
+            f"from this text. Output only the description: {chapter_text}"
+        )
+        response = self._model.generate_content(msg)
         return response.text.strip()
 
     def evaluate_novel(self, chapter: str, transcript: str) -> Dict[str, Any]:
@@ -33,7 +36,7 @@ Chapter: {chapter}"""
         elif "```" in text:
             text = text.split("```")[1].split("```")[0].strip()
         return json.loads(text or "{}")
-    
+
     def parse_task(self, content: str) -> dict:
         return {"id": "task_id", "title": content, "status": "pending"}
 
@@ -62,7 +65,7 @@ class Summarizer:
             content,
         )
         return content
-    
+
 
 Novelizer = Summarizer
 
@@ -84,7 +87,11 @@ class ImageGenerator:
         return prompt, settings.image_generator_default_negative_prompt
 
     def generate(
-        self, prompt: str, negative_prompt: str, output_path: Path, seed: int | None = None
+        self,
+        prompt: str,
+        negative_prompt: str,
+        output_path: Path,
+        seed: int | None = None,
     ) -> None:
         device = settings.image_device
         dtype = torch.bfloat16
@@ -100,7 +107,11 @@ class ImageGenerator:
             )
             self._pipe.to(device)
 
-        gen = torch.Generator(device=device).manual_seed(seed) if seed is not None else None
+        gen = (
+            torch.Generator(device=device).manual_seed(seed)
+            if seed is not None
+            else None
+        )
         image = self._pipe(
             prompt=prompt,
             negative_prompt=negative_prompt,
