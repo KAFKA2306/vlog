@@ -131,24 +131,33 @@ class Transcriber:
     @property
     def model(self) -> "WhisperModel":
         if self._model is None:
-            from faster_whisper import WhisperModel
             import torch
+            from faster_whisper import WhisperModel
 
             model_path = settings.whisper_model_size
             device = settings.whisper_device
             compute_type = settings.whisper_compute_type
+
+            # Inject LD_LIBRARY_PATH for cuDNN (common WSL issue)
+            if device == "cuda":
+                base = Path(__file__).resolve().parent.parent.parent
+                venv_lib = base / ".venv"
+                cudnn_libs = list(venv_lib.rglob("nvidia/cudnn/lib"))
+                if cudnn_libs:
+                    lib_path = str(cudnn_libs[0])
+                    current_ld = os.environ.get("LD_LIBRARY_PATH", "")
+                    if lib_path not in current_ld:
+                        os.environ["LD_LIBRARY_PATH"] = f"{lib_path}:{current_ld}".strip(":")
+                        logger.info("Injected LD_LIBRARY_PATH: %s", lib_path)
 
             if device == "cuda" and not torch.cuda.is_available():
                 logger.warning("CUDA not available. Falling back to CPU.")
                 device = "cpu"
                 compute_type = "int8"
             
-            # Additional check for broken CUDA libs (WSL common issue)
             try:
                 if device == "cuda":
-                    import ctranslate2
-                    # Small test if possible or just proceed. 
-                    # If it fails here, we catch it.
+                    # Simple check if libs are loadable
                     self._model = WhisperModel(
                         model_path,
                         device=device,
@@ -156,9 +165,9 @@ class Transcriber:
                     )
                 else:
                     raise ValueError("Force CPU")
-            except Exception:
+            except Exception as e:
                 if device == "cuda":
-                    logger.warning("CUDA libraries broken or unavailable. Falling back to CPU.")
+                    logger.warning(f"CUDA initialization failed: {e}. Falling back to CPU.")
                 device = "cpu"
                 compute_type = "int8"
                 self._model = WhisperModel(
