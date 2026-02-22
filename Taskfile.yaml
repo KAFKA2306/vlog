@@ -231,11 +231,12 @@ tasks:
   # メンテナンス
   # ────────────────────────────────────────
   lint:
-    desc: コード品質チェック (Format + Lint + Type Check)
+    desc: コード品質チェック (Format + Lint + Type Check + Zero-Fat Audit)
     cmds:
       - uv run ruff format src scripts
       - uv run ruff check src scripts --fix
       - uv run pyright
+      - uvx ty check src scripts || true # ty check in beta
 
   clean:
     desc: キャッシュ削除

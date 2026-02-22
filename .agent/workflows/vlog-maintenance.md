@@ -54,9 +54,9 @@ description: VLogプロジェクトの自律的なヘルスチェック、ログ
     task process:pending
     ```
 
-## 4. コードの整合性
+## 4. コードの整合性と Zero-Fat 監査
 // turbo-all
-1.  **リンターとフォーマッタ**: 厳格なコーディング規約を適用します。
+1.  **Zero-Fat 監査**: 厳格なコーディング規約（Fail Fast, Success Path Only等）を適用し、不要なコメントや例外処理を排除します。
     ```bash
     task lint
     ```

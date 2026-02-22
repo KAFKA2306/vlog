@@ -99,6 +99,18 @@ vlog/
 
 ---
 
+## 🏛️ Philosophy & Quality: Zero-Fat
+
+本プロジェクトは、冗長性を排除し本質的なロジックのみを追求する **Zero-Fat 原則** に基づいて設計・実装されています。
+
+- **Fail Fast**: エラーを隠蔽せず、即座に顕在化させることで堅牢性を担保。
+- **Self-Documenting**: コメントを廃し、厳格な型定義と命名によってコード自体に語らせる。
+- **Modern Toolchain**: Astral 製ツールチェーン（uv, Ruff, ty）を統合し、機械的な品質保証を実現。
+
+詳細は [Modern Python & Zero-Fat 規約](docs/coding_rules.md) および [インタラクティブダッシュボード](docs/coding_rules_dashboard.html) を参照してください。
+
+---
+
 ## 🛠️ Tech Stack
 
 <table>

@@ -43,6 +43,13 @@ Key tasks:
 
 See [.agent/workflows/agentic-management.md](file:///home/kafka/projects/vlog/.agent/workflows/agentic-management.md) for maintenance procedures.
 See [.agent/workflows/agentic-optimization.md](file:///home/kafka/projects/vlog/.agent/workflows/agentic-optimization.md) for content quality improvement procedures.
+
+### Zero-Fat Development Constraints
+すべてのエージェントは、[docs/coding_rules.md](file:///home/kafka/projects/vlog/docs/coding_rules.md) に定義された **Zero-Fat 原則** を厳守しなければならない：
+- **Fail Fast**: エラーハンドリングによる不具合の隠蔽を禁止。
+- **Success Path Only**: 関数本体は正常系ロジックのみを記述。
+- **Any 禁止 / コメント排除**: 厳密な型定義を行い、自然言語による説明をコードから排除。
+
 Agents should perform a weekly health check and audit processed recordings.
 
 ## MCP Servers
