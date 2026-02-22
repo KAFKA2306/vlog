@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 class TraceLogger:
@@ -12,7 +12,7 @@ class TraceLogger:
     def log(
         self,
         component: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         content: str,
     ) -> None:
         entry = {
@@ -21,5 +21,5 @@ class TraceLogger:
             "metadata": metadata,
             "content_chars": len(content),
         }
-        with open(self._log_path, "a", encoding="utf-8") as f:
+        with self._log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")

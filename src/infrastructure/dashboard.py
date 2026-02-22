@@ -1,7 +1,6 @@
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Tuple
 
 import psutil
 from rich.console import Console
@@ -49,11 +48,12 @@ class Dashboard:
         grid.add_row("Press [b]Ctrl+C[/b] to exit")
         return Panel(grid, style="white on blue")
 
-    def _get_service_status(self, service_name: str) -> Tuple[str, str]:
+    def _get_service_status(self, service_name: str) -> tuple[str, str]:
         if not shutil.which("systemctl"):
             return "Unknown", "red"
-        result = subprocess.run(
-            ["systemctl", "--user", "is-active", service_name],
+        result = subprocess.run(  # noqa: S603
+            ["/usr/bin/systemctl", "--user", "is-active", service_name],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -104,14 +104,15 @@ class Dashboard:
 
     def _make_recent_panel(self) -> Panel:
         dates = set()
+        date_str_length = 8
         for d in ["novels", "photos"]:
             p = self.data_dir / d
             if p.exists():
                 for f in p.glob("*"):
-                    if f.stem.isdigit() and len(f.stem) == 8:
+                    if f.stem.isdigit() and len(f.stem) == date_str_length:
                         dates.add(f.stem)
 
-        sorted_dates = sorted(list(dates), reverse=True)[:10]
+        sorted_dates = sorted(dates, reverse=True)[:10]
         if not sorted_dates:
             return Panel(
                 "No content found", title="Daily Content Status", border_style="green"

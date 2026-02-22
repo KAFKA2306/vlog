@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from src.infrastructure.settings import settings
 from supabase import create_client
@@ -36,7 +36,7 @@ class FileRepository:
         dst = archive_dir / src.name
         src.rename(dst)
 
-    def save_evaluation(self, result: Dict[str, Any], date_str: str) -> None:
+    def save_evaluation(self, result: dict[str, Any], date_str: str) -> None:
         eval_path = (
             Path(settings.summary_dir).parent / "evaluations" / f"{date_str}.json"
         )
@@ -53,13 +53,13 @@ class TaskRepository:
         if not self.file_path.exists():
             self.file_path.write_text("[]", encoding="utf-8")
 
-    def _load(self) -> List[Dict[str, Any]]:
+    def _load(self) -> list[dict[str, Any]]:
         content = self.file_path.read_text(encoding="utf-8")
         if not content:
             return []
         return json.loads(content)
 
-    def _save(self, tasks: List[Dict[str, Any]]):
+    def _save(self, tasks: list[dict[str, Any]]):
         for task in tasks:
             if "file_paths" in task:
                 task["file_paths"] = [p.replace("\\", "/") for p in task["file_paths"]]
@@ -67,7 +67,7 @@ class TaskRepository:
             json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
-    def add(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
+    def add(self, task_data: dict[str, Any]) -> dict[str, Any]:
         tasks = self._load()
         new_task = {
             "id": str(uuid.uuid4()),
@@ -80,11 +80,11 @@ class TaskRepository:
         self._save(tasks)
         return new_task
 
-    def list_runnable(self) -> List[Dict[str, Any]]:
+    def list_runnable(self) -> list[dict[str, Any]]:
         tasks = self._load()
         return [t for t in tasks if t.get("status") in ("pending", "failed")]
 
-    def list_pending(self) -> List[Dict[str, Any]]:
+    def list_pending(self) -> list[dict[str, Any]]:
         tasks = self._load()
         return [t for t in tasks if t.get("status") != "completed"]
 
@@ -159,8 +159,9 @@ class SupabaseRepository:
         novel_dir = Path(settings.novel_out_dir)
         if not novel_dir.exists():
             return
+        date_str_length = 8
         for path in novel_dir.glob("*.md"):
-            if not path.stem.isdigit() or len(path.stem) != 8:
+            if not path.stem.isdigit() or len(path.stem) != date_str_length:
                 continue
             date_str = path.stem
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
@@ -183,15 +184,16 @@ class SupabaseRepository:
         photo_dir = Path(settings.photo_dir)
         if not photo_dir.exists():
             return
+        date_str_length = 8
         for path in photo_dir.glob("*.png"):
-            if not path.stem.isdigit() or len(path.stem) != 8:
+            if not path.stem.isdigit() or len(path.stem) != date_str_length:
                 continue
             date_str = path.stem
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             storage_path = f"photos/{date_str}.png"
             if not self.client:
                 return
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 self.client.storage.from_("vlog-photos").upload(
                     storage_path,
                     f.read(),
@@ -212,9 +214,10 @@ class SupabaseRepository:
         eval_dir = Path(settings.summary_dir).parent / "evaluations"
         if not eval_dir.exists():
             return
+        date_str_length = 8
         for path in eval_dir.glob("*.json"):
             date_str = path.stem
-            if not date_str.isdigit() or len(date_str) != 8:
+            if not date_str.isdigit() or len(date_str) != date_str_length:
                 continue
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             data = json.loads(path.read_text(encoding="utf-8"))

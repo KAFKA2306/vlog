@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
 from src.infrastructure.ai import ImageGenerator, Summarizer
 from src.infrastructure.repositories import (
     FileRepository,
@@ -40,7 +41,6 @@ class Application:
 
     def run(self):
         logger.info("Application started with Task-Driven Architecture")
-        from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
 
         repair_agent = PipelineRepairAgent()
         while True:

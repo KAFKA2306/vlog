@@ -1,17 +1,21 @@
 import logging
 import os
 import re
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 import sounddevice as sd
 import soundfile as sf
-from typing_extensions import TYPE_CHECKING
-
+import torch
+from cycler import cycler
+from faster_whisper import WhisperModel
+from pyannote.audio import Pipeline
 from src.infrastructure.settings import settings
 
 if TYPE_CHECKING:
@@ -20,6 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SILENCE_THRESHOLD = 0.02
+MIN_RECORDING_SIZE = 100
 
 
 def list_audio_devices() -> str:
@@ -42,9 +47,7 @@ def apply_design_system():
             "font.family": "sans-serif",
         }
     )
-    plt.rcParams["axes.prop_cycle"] = plt.cycler(
-        color=["#00A3AF", "#005CB9", "#FF2A6D"]
-    )
+    plt.rcParams["axes.prop_cycle"] = cycler(color=["#00A3AF", "#005CB9", "#FF2A6D"])
 
 
 class AudioRecorder:
@@ -60,7 +63,7 @@ class AudioRecorder:
             if self._current_file:
                 return self._current_file
 
-            os.makedirs(self._base_dir, exist_ok=True)
+            Path(self._base_dir).mkdir(parents=True, exist_ok=True)
             self._current_file = str(
                 Path(self._base_dir) / datetime.now().strftime("%Y%m%d_%H%M%S.flac")
             ).replace("\\", "/")
@@ -82,12 +85,16 @@ class AudioRecorder:
             path = self._current_file
             self._current_file = None
 
-            if path and os.path.exists(path):
-                if os.path.getsize(path) > 100:
-                    logger.info("Stopped recording. Saved %s", path)
-                    return (path,)
-                os.unlink(path)
-                logger.info("Stopped recording. File discarded due to size: %s", path)
+            if path:
+                p = Path(path)
+                if p.exists():
+                    if p.stat().st_size > MIN_RECORDING_SIZE:
+                        logger.info("Stopped recording. Saved %s", path)
+                        return (path,)
+                    p.unlink()
+                    logger.info(
+                        "Stopped recording. File discarded due to size: %s", path
+                    )
             return None
 
     @property
@@ -126,22 +133,17 @@ class AudioRecorder:
 
 class Transcriber:
     def __init__(self) -> None:
-        self._model: "WhisperModel" | None = None
+        self._model: WhisperModel | None = None
 
     @property
     def model(self) -> "WhisperModel":
         if self._model is None:
-            import torch
-            from faster_whisper import WhisperModel
-
             model_path = settings.whisper_model_size
             device = settings.whisper_device
             compute_type = settings.whisper_compute_type
 
             # Inject library path for cuDNN
             if device == "cuda":
-                import sys
-
                 base = Path(__file__).resolve().parent.parent.parent
                 is_windows = sys.platform == "win32"
                 venv_name = ".venv-win" if is_windows else ".venv"
@@ -157,11 +159,12 @@ class Transcriber:
                     lib_path = str(cudnn_libs[0])
                     if is_windows:
                         # Windows: add_dll_directory is preferred for Python 3.8+
-                        if hasattr(os, "add_dll_directory"):
+                        add_dll = getattr(os, "add_dll_directory", None)
+                        if add_dll:
                             try:
-                                os.add_dll_directory(lib_path)
+                                add_dll(lib_path)
                                 logger.info("Added DLL directory: %s", lib_path)
-                            except Exception:
+                            except Exception:  # noqa: S110
                                 pass
                         # Also add to PATH as fallback or for older versions/tools
                         current_path = os.environ.get("PATH", "")
@@ -169,7 +172,6 @@ class Transcriber:
                             os.environ["PATH"] = f"{lib_path};{current_path}"
                             logger.info("Injected PATH for CUDA: %s", lib_path)
                     else:
-                        # Linux: LD_LIBRARY_PATH
                         current_ld = os.environ.get("LD_LIBRARY_PATH", "")
                         if lib_path not in current_ld:
                             new_ld = f"{lib_path}:{current_ld}".strip(":")
@@ -181,28 +183,13 @@ class Transcriber:
                 device = "cpu"
                 compute_type = "int8"
 
-            try:
-                if device == "cuda":
-                    # Simple check if libs are loadable
-                    self._model = WhisperModel(
-                        model_path,
-                        device=device,
-                        compute_type=compute_type,
-                    )
-                else:
-                    raise ValueError("Force CPU")
-            except Exception as e:
-                if device == "cuda":
-                    logger.warning(
-                        "CUDA initialization failed: %s. Falling back to CPU.", e
-                    )
-                device = "cpu"
-                compute_type = "int8"
                 self._model = WhisperModel(
                     model_path,
                     device=device,
                     compute_type=compute_type,
                 )
+        if self._model is None:
+            raise RuntimeError("Failed to initialize Whisper model")
         return self._model
 
     def transcribe(self, audio_path: str) -> str:
@@ -214,14 +201,14 @@ class Transcriber:
             audio_path,
             beam_size=5,
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=100, speech_pad_ms=30),
+            vad_parameters={"min_silence_duration_ms": 100, "speech_pad_ms": 30},
             word_timestamps=True,
         )
         return list(segments)
 
     def transcribe_and_save(self, audio_path: str) -> tuple[str, str]:
         base = Path(audio_path).stem
-        os.makedirs(settings.transcript_dir, exist_ok=True)
+        Path(settings.transcript_dir).mkdir(parents=True, exist_ok=True)
         out_path = Path(settings.transcript_dir) / f"{base}.txt"
 
         if out_path.exists():
@@ -242,9 +229,6 @@ class Diarizer:
     @property
     def pipeline(self):
         if self._pipeline is None:
-            import torch
-            from pyannote.audio import Pipeline
-
             self._pipeline = Pipeline.from_pretrained(
                 "pyannote/speaker-diarization-3.1",
                 token=settings.huggingface_token,
@@ -255,6 +239,8 @@ class Diarizer:
 
     def diarize(self, audio_path: str) -> list[tuple[float, float, str]]:
         pipeline = self.pipeline
+        if pipeline is None:
+            return []
         diarization = pipeline(audio_path)
         results = []
         for turn, _, speaker in diarization.itertracks(yield_label=True):
@@ -297,8 +283,9 @@ class ProcessMonitor:
 
     def _sample_processes(self) -> list[str]:
         names = []
+        max_process_samples = 10
         for proc in psutil.process_iter(["name"]):
-            if len(names) >= 10:
+            if len(names) >= max_process_samples:
                 break
             name = proc.info.get("name")
             if name:
@@ -307,7 +294,7 @@ class ProcessMonitor:
 
 
 class TranscriptPreprocessor:
-    FILLERS = [
+    FILLERS: ClassVar[list[str]] = [
         r"えー",
         r"あのー",
         r"うーん",
@@ -350,14 +337,10 @@ class TranscriptPreprocessor:
         txt = self._normalize_text(text)
         txt = self._remove_repetition(txt)
         txt = self._remove_fillers(txt)
-        txt = self._dedupe_words(txt)
-        txt = self._merge_lines(txt)
-        return txt
+        return self._merge_lines(txt)
 
     def _normalize_text(self, txt: str) -> str:
-        txt = txt.replace("…", " ")
-        txt = re.sub(r"\.{2,}", " ", txt)
-        return txt
+        return re.sub(r"\.{2,}", " ", txt.replace("…", " "))
 
     def _remove_repetition(self, txt: str) -> str:
         return re.sub(r"(.{1,4}?)\1{4,}", r"\1", txt)

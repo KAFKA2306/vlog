@@ -28,9 +28,10 @@ def main():
     summary_files = list(settings.summary_dir.glob("*_summary.txt"))
     logger.info(f"Found {len(summary_files)} summary files.")
     dates_to_process = []
+    date_str_length = 8
     for summary_file in summary_files:
         parts = summary_file.stem.split("_")
-        if len(parts) < 1 or not parts[0].isdigit() or len(parts[0]) != 8:
+        if len(parts) < 1 or not parts[0].isdigit() or len(parts[0]) != date_str_length:
             continue
         date_str = parts[0]
         normalized_stem = summary_file.stem.replace("_summary", "")

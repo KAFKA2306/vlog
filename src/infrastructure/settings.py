@@ -1,6 +1,6 @@
 import platform
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 import yaml
 from pydantic import Field, field_validator
@@ -11,18 +11,18 @@ def _get_project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def load_config() -> Dict[str, Any]:
+def load_config() -> dict[str, Any]:
     config_path = _get_project_root() / "data/config.yaml"
     if config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
+        with config_path.open(encoding="utf-8") as f:
             return yaml.safe_load(f)
     return {}
 
 
-def load_prompts() -> Dict[str, Any]:
+def load_prompts() -> dict[str, Any]:
     prompts_path = _get_project_root() / "data/prompts.yaml"
     if prompts_path.exists():
-        with open(prompts_path, "r", encoding="utf-8") as f:
+        with prompts_path.open(encoding="utf-8") as f:
             return yaml.safe_load(f)
     return {}
 
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
         default="", alias="SUPABASE_SERVICE_ROLE_KEY"
     )
     check_interval: int = _config.get("process", {}).get("check_interval", 5)
-    process_names: Set[str] = Field(
+    process_names: set[str] = Field(
         default_factory=lambda: set(
             _config.get("process", {}).get("names", "VRChat").split(",")
         )
@@ -115,7 +115,7 @@ class Settings(BaseSettings):
     )
     image_guidance_scale: float = _config.get("image", {}).get("guidance_scale", 0.0)
     image_seed: int = _config.get("image", {}).get("seed", 42)
-    image_prompt_filters: List[str] = _config.get("image", {}).get("prompt_filters", [])
+    image_prompt_filters: list[str] = _config.get("image", {}).get("prompt_filters", [])
     image_generator_default_prompt: str = (
         "(masterpiece, best quality:1.2), anime scenery, highly detailed, "
         "expressive lighting, aesthetic, {text}"
@@ -139,7 +139,7 @@ class Settings(BaseSettings):
         ),
         alias="VLOG_TRACE_FILE",
     )
-    prompts: Dict[str, Any] = _prompts
+    prompts: dict[str, Any] = _prompts
 
     @field_validator(
         "recording_dir",

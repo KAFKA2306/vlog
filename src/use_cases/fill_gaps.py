@@ -1,5 +1,3 @@
-from typing import List
-
 from src.infrastructure.repositories import FileRepository, TaskRepository
 from src.infrastructure.settings import settings
 
@@ -9,7 +7,7 @@ class PhotoGapFillerUseCase:
         self._files = FileRepository()
         self._tasks = TaskRepository()
 
-    def execute(self) -> List[str]:
+    def execute(self) -> list[str]:
         novel_dir = settings.novel_out_dir
         photo_dir = settings.photo_dir
         if not novel_dir.exists():

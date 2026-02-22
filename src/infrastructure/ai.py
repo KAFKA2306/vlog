@@ -1,20 +1,19 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
-import google.generativeai as genai
+import google.generativeai as genai  # type: ignore
 import torch
-from diffusers import DiffusionPipeline
-
+from diffusers import DiffusionPipeline  # type: ignore
 from src.infrastructure.observability import TraceLogger
 from src.infrastructure.settings import settings
 
 
 class JulesClient:
     def __init__(self):
-        genai.configure(api_key=settings.gemini_api_key)
-        self._model = genai.GenerativeModel(settings.jules_model)
+        genai.configure(api_key=settings.gemini_api_key)  # pyright: ignore[reportPrivateImportUsage]
+        self._model = genai.GenerativeModel(settings.jules_model)  # pyright: ignore[reportPrivateImportUsage]
 
     def generate_image_prompt(self, chapter_text: str) -> str:
         msg = (
@@ -24,7 +23,7 @@ class JulesClient:
         response = self._model.generate_content(msg)
         return response.text.strip()
 
-    def evaluate_novel(self, chapter: str, transcript: str) -> Dict[str, Any]:
+    def evaluate_novel(self, chapter: str, transcript: str) -> dict[str, Any]:
         prompt = f"""Evaluate this novel chapter based on the transcript.
 Return JSON: {{"faithfulness_score": 0-10, "quality_score": 0-10, "reasoning": "..."}}
 Transcript: {transcript}
@@ -43,8 +42,8 @@ Chapter: {chapter}"""
 
 class Summarizer:
     def __init__(self):
-        genai.configure(api_key=settings.gemini_api_key)
-        self._model = genai.GenerativeModel(settings.novel_model)
+        genai.configure(api_key=settings.gemini_api_key)  # pyright: ignore[reportPrivateImportUsage]
+        self._model = genai.GenerativeModel(settings.novel_model)  # pyright: ignore[reportPrivateImportUsage]
         self._trace = TraceLogger()
 
     def generate_novel(self, transcript: str, date_str: str) -> str:
@@ -53,7 +52,7 @@ class Summarizer:
         ).format(transcript=transcript)
         response = self._model.generate_content(
             prompt,
-            generation_config=genai.types.GenerationConfig(
+            generation_config=genai.types.GenerationConfig(  # pyright: ignore[reportPrivateImportUsage]
                 max_output_tokens=settings.novel_max_output_tokens,
                 temperature=0.7,
             ),
@@ -125,5 +124,5 @@ class ImageGenerator:
 
 
 class Curator:
-    def evaluate(self, chapter: str, transcript: str) -> Dict[str, Any]:
+    def evaluate(self, chapter: str, transcript: str) -> dict[str, Any]:
         return JulesClient().evaluate_novel(chapter, transcript)

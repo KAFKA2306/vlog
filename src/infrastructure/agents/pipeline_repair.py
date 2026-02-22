@@ -3,7 +3,11 @@ import re
 from pathlib import Path
 
 from src.infrastructure.ai import ImageGenerator, Summarizer
-from src.infrastructure.repositories import FileRepository, SupabaseRepository
+from src.infrastructure.repositories import (
+    FileRepository,
+    SupabaseRepository,
+    TaskRepository,
+)
 from src.infrastructure.system import Transcriber, TranscriptPreprocessor
 from src.use_cases.build_novel import BuildNovelUseCase
 
@@ -30,8 +34,6 @@ class PipelineRepairAgent:
         SupabaseRepository().sync()
 
     def _repair_tasks(self):
-        from src.infrastructure.repositories import TaskRepository
-
         repo = TaskRepository()
         tasks = repo._load()
         fixed = False
@@ -39,15 +41,18 @@ class PipelineRepairAgent:
             status = task.get("status")
             if status in ("discarded", "processing"):
                 error = task.get("error", "")
-                if error and ("FileNotFoundError" in error or "No such file" in error):
-                    if "file_paths" in task:
-                        task["file_paths"] = [
-                            p.replace("\\", "/") for p in task["file_paths"]
-                        ]
-                        task["status"] = "pending"
-                        task["error"] = None
-                        fixed = True
-                        logger.info(f"Repaired path for task {task['id']}")
+                if (
+                    error
+                    and ("FileNotFoundError" in error or "No such file" in error)
+                    and "file_paths" in task
+                ):
+                    task["file_paths"] = [
+                        p.replace("\\", "/") for p in task["file_paths"]
+                    ]
+                    task["status"] = "pending"
+                    task["error"] = None
+                    fixed = True
+                    logger.info(f"Repaired path for task {task['id']}")
         if fixed:
             repo._save(tasks)
 
@@ -94,9 +99,9 @@ class PipelineRepairAgent:
         sm = None
         for d in sorted(dates):
             if not (self.summaries_dir / f"{d}_summary.txt").exists():
-                fs = sorted(
-                    list(self.transcripts_dir.glob(f"cleaned_{d}_*.txt"))
-                ) or sorted(list(self.transcripts_dir.glob(f"{d}_*.txt")))
+                fs = sorted(self.transcripts_dir.glob(f"cleaned_{d}_*.txt")) or sorted(
+                    self.transcripts_dir.glob(f"{d}_*.txt")
+                )
                 if not fs:
                     continue
                 if not sm:
@@ -123,8 +128,9 @@ class PipelineRepairAgent:
         if not self.novels_dir.exists():
             return
         ig = None
+        date_str_length = 8
         for f in self.novels_dir.glob("*.md"):
-            if not (f.stem.isdigit() and len(f.stem) == 8):
+            if not (f.stem.isdigit() and len(f.stem) == date_str_length):
                 continue
             d = f.stem
             if not (self.photos_dir / f"{d}.png").exists():

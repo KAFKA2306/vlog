@@ -1,27 +1,31 @@
 import argparse
 import logging
+import os
 import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 import torch
 
+from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
 from src.infrastructure.ai import ImageGenerator, Summarizer
+from src.infrastructure.dashboard import Dashboard
 from src.infrastructure.repositories import (
     FileRepository,
     SupabaseRepository,
 )
 from src.infrastructure.system import Transcriber, TranscriptPreprocessor
+from src.main import setup_logging
 from src.models import RecordingSession
 from src.use_cases.build_novel import BuildNovelUseCase
+from src.use_cases.evaluate import EvaluateDailyContentUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
 logger = logging.getLogger(__name__)
 
 
 def cmd_process(args):
-    from datetime import datetime
-
     path = Path(args.file)
     match = re.search(r"(\d{8}_\d{6})", path.name)
     start_time = (
@@ -71,9 +75,9 @@ def cmd_summarize(args):
     summarizer = Summarizer()
     if args.date:
         transcript_dir = Path("data/transcripts")
-        files = sorted(
-            list(transcript_dir.glob(f"cleaned_{args.date}_*.txt"))
-        ) or sorted(list(transcript_dir.glob(f"{args.date}_*.txt")))
+        files = sorted(transcript_dir.glob(f"cleaned_{args.date}_*.txt")) or sorted(
+            transcript_dir.glob(f"{args.date}_*.txt")
+        )
         combined_text = "\n\n".join(file_repo.read(str(f)) for f in files)
         file_repo.save_summary(
             summarizer.generate_novel(combined_text, args.date), args.date
@@ -113,8 +117,8 @@ def cmd_pending(args):
     summarizer = Summarizer()
     for d in dates:
         if not (summary_dir / f"{d}_summary.txt").exists():
-            files = sorted(list(transcript_dir.glob(f"cleaned_{d}_*.txt"))) or sorted(
-                list(transcript_dir.glob(f"{d}_*.txt"))
+            files = sorted(transcript_dir.glob(f"cleaned_{d}_*.txt")) or sorted(
+                transcript_dir.glob(f"{d}_*.txt")
             )
             file_repo.save_summary(
                 summarizer.generate_novel(
@@ -128,14 +132,10 @@ def cmd_pending(args):
 
 
 def cmd_repair(args):
-    from src.infrastructure.agents.pipeline_repair import PipelineRepairAgent
-
     PipelineRepairAgent().run()
 
 
 def cmd_doctor(args):
-    import os
-
     print("■ System Dependency Check")
     for cmd in ["ffmpeg", "sqlite3"]:
         path = shutil.which(cmd)
@@ -145,8 +145,6 @@ def cmd_doctor(args):
     cuda = torch.cuda.is_available()
     print(f"- CUDA Available: {cuda}")
     if cuda:
-        from pathlib import Path
-
         print(f"- Device: {torch.cuda.get_device_name(0)}")
         vram = torch.cuda.get_device_properties(0).total_memory // (1024**2)
         print(f"- VRAM: {vram} MiB")
@@ -174,20 +172,14 @@ def cmd_setup(args):
 
 
 def cmd_curator(args):
-    from src.use_cases.evaluate import EvaluateDailyContentUseCase
-
     EvaluateDailyContentUseCase().execute(args.date)
 
 
 def cmd_dashboard(args):
-    from src.infrastructure.dashboard import Dashboard
-
     Dashboard().render()
 
 
 def main():
-    from src.main import setup_logging
-
     setup_logging()
 
     parser = argparse.ArgumentParser(description="VLog CLI")
