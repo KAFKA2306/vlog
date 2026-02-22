@@ -25,9 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 class Application:
-    def __init__(self):
+    def __init__(self, record_only: bool = False):
         self._monitor = ProcessMonitor()
         self._recorder = AudioRecorder()
+        self._record_only = record_only or settings.record_only
         self._use_case = ProcessRecordingUseCase(
             transcriber=Transcriber(),
             preprocessor=TranscriptPreprocessor(),
@@ -40,7 +41,10 @@ class Application:
         self._active_session = None
 
     def run(self):
-        logger.info("Application started with Task-Driven Architecture")
+        logger.info(
+            "Application started with Task-Driven Architecture%s",
+            " (record-only)" if self._record_only else "",
+        )
 
         repair_agent = PipelineRepairAgent()
         while True:
@@ -58,7 +62,7 @@ class Application:
             logger.info("VRChat process ended. Stopping recording.")
             file_paths = self._recorder.stop()
             self._active_session = None
-            if file_paths:
+            if file_paths and not self._record_only:
                 tasks = TaskRepository()
                 tasks.add(
                     {
@@ -67,8 +71,12 @@ class Application:
                         "start_time": datetime.now().isoformat(),
                     }
                 )
+            elif file_paths:
+                logger.info("Record-only mode: processing queue skipped.")
 
     def _work(self):
+        if self._record_only:
+            return
         tasks = TaskRepository()
         runnable = tasks.list_runnable()
         if not runnable:

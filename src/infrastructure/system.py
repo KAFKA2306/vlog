@@ -161,11 +161,8 @@ class Transcriber:
                         # Windows: add_dll_directory is preferred for Python 3.8+
                         add_dll = getattr(os, "add_dll_directory", None)
                         if add_dll:
-                            try:
-                                add_dll(lib_path)
-                                logger.info("Added DLL directory: %s", lib_path)
-                            except Exception:  # noqa: S110
-                                pass
+                            add_dll(lib_path)
+                            logger.info("Added DLL directory: %s", lib_path)
                         # Also add to PATH as fallback or for older versions/tools
                         current_path = os.environ.get("PATH", "")
                         if lib_path not in current_path:

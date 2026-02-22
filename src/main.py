@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -24,10 +25,17 @@ if __name__ == "__main__":
 
     from src.app import Application
 
-    if len(sys.argv) > 1 and sys.argv[1] == "fill-photos":
+    args = set(sys.argv[1:])
+
+    if "fill-photos" in args:
         from src.use_cases.fill_gaps import PhotoGapFillerUseCase
 
         print("Scanning for missing photos...")
         PhotoGapFillerUseCase().execute()
     else:
-        Application().run()
+        record_only = "record-only" in args or os.environ.get("RECORD_ONLY", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        Application(record_only=record_only).run()
