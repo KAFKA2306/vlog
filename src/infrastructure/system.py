@@ -15,7 +15,6 @@ import soundfile as sf
 import torch
 from cycler import cycler
 from faster_whisper import WhisperModel
-from pyannote.audio import Pipeline
 from src.infrastructure.settings import settings
 
 if TYPE_CHECKING:
@@ -226,6 +225,12 @@ class Diarizer:
     @property
     def pipeline(self):
         if self._pipeline is None:
+            try:
+                from pyannote.audio import Pipeline
+            except (ImportError, ModuleNotFoundError):
+                logger.warning("pyannote.audio not installed. Diarization disabled.")
+                return None
+
             self._pipeline = Pipeline.from_pretrained(
                 "pyannote/speaker-diarization-3.1",
                 token=settings.huggingface_token,

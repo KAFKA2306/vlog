@@ -82,5 +82,18 @@
     "start_time": "2026-02-22T21:25:46.837038",
     "updated_at": "2026-02-22T21:26:08.660072",
     "completed_at": "2026-02-22T21:26:08.660078"
+  },
+  {
+    "id": "4668b074-c5cd-4b79-8f53-4c1164b7d532",
+    "created_at": "2026-02-23T11:33:51.351037",
+    "status": "completed",
+    "retry_count": 0,
+    "type": "process_session",
+    "file_paths": [
+      "data/recordings/20260222_214126.flac"
+    ],
+    "start_time": "2026-02-23T11:33:51.343389",
+    "updated_at": "2026-02-23T11:34:12.348518",
+    "completed_at": "2026-02-23T11:34:12.348528"
   }
 ]

@@ -37,24 +37,29 @@ class PipelineRepairAgent:
         repo = TaskRepository()
         tasks = repo._load()
         fixed = False
+        new_tasks = []
         for task in tasks:
-            status = task.get("status")
+            updated_task = task
+            status = task.status
             if status in ("discarded", "processing"):
-                error = task.get("error", "")
+                error = task.error or ""
                 if (
                     error
                     and ("FileNotFoundError" in error or "No such file" in error)
-                    and "file_paths" in task
+                    and task.file_paths
                 ):
-                    task["file_paths"] = [
-                        p.replace("\\", "/") for p in task["file_paths"]
-                    ]
-                    task["status"] = "pending"
-                    task["error"] = None
+                    updated_file_paths = [p.replace("\\", "/") for p in task.file_paths]
+                    updated_task = task.model_copy(update={
+                        "file_paths": updated_file_paths,
+                        "status": "pending",
+                        "error": None
+                    })
                     fixed = True
-                    logger.info(f"Repaired path for task {task['id']}")
+                    logger.info(f"Repaired path for task {task.id}")
+            new_tasks.append(updated_task)
+
         if fixed:
-            repo._save(tasks)
+            repo._save(new_tasks)
 
     def _check_logs(self):
         log_path = Path("data/logs/vlog.log")

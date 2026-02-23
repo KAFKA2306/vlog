@@ -8,7 +8,7 @@ set "RECORD_ONLY=1"
 
 
 
-set "HF_ENDPOINT=https://hf-mirror.com"
+rem set "HF_ENDPOINT=https://hf-mirror.com"
 
 
 
