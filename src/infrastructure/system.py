@@ -1,20 +1,16 @@
 import logging
 import os
 import re
-import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 import sounddevice as sd
 import soundfile as sf
-import torch
-from cycler import cycler
-from faster_whisper import WhisperModel
+
 from src.infrastructure.settings import settings
 
 if TYPE_CHECKING:
@@ -23,30 +19,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SILENCE_THRESHOLD = 0.02
-MIN_RECORDING_SIZE = 100
-
-
-def list_audio_devices() -> str:
-    devices = sd.query_devices()
-    return str(devices)
-
-
-def apply_design_system():
-    plt.rcParams.update(
-        {
-            "axes.facecolor": "#0A0A12",
-            "figure.facecolor": "#0A0A12",
-            "axes.edgecolor": "#00A3AF",
-            "text.color": "#FFFFFF",
-            "axes.labelcolor": "#FFFFFF",
-            "xtick.color": "#FFFFFF",
-            "ytick.color": "#FFFFFF",
-            "grid.color": "rgba(255, 255, 255, 0.1)",
-            "grid.alpha": 0.1,
-            "font.family": "sans-serif",
-        }
-    )
-    plt.rcParams["axes.prop_cycle"] = cycler(color=["#00A3AF", "#005CB9", "#FF2A6D"])
 
 
 class AudioRecorder:
@@ -62,10 +34,10 @@ class AudioRecorder:
             if self._current_file:
                 return self._current_file
 
-            Path(self._base_dir).mkdir(parents=True, exist_ok=True)
-            self._current_file = str(
-                Path(self._base_dir) / datetime.now().strftime("%Y%m%d_%H%M%S.flac")
-            ).replace("\\", "/")
+            os.makedirs(self._base_dir, exist_ok=True)
+            self._current_file = os.path.join(
+                self._base_dir, datetime.now().strftime("%Y%m%d_%H%M%S.flac")
+            )
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._record_loop, daemon=True)
             self._thread.start()
@@ -84,16 +56,12 @@ class AudioRecorder:
             path = self._current_file
             self._current_file = None
 
-            if path:
-                p = Path(path)
-                if p.exists():
-                    if p.stat().st_size > MIN_RECORDING_SIZE:
-                        logger.info("Stopped recording. Saved %s", path)
-                        return (path,)
-                    p.unlink()
-                    logger.info(
-                        "Stopped recording. File discarded due to size: %s", path
-                    )
+            if path and os.path.exists(path):
+                if os.path.getsize(path) > 100:
+                    logger.info("Stopped recording. Saved %s", path)
+                    return (path,)
+                os.unlink(path)
+                logger.info("Stopped recording. File discarded due to size: %s", path)
             return None
 
     @property
@@ -114,7 +82,6 @@ class AudioRecorder:
                 samplerate=settings.sample_rate,
                 channels=settings.channels,
                 blocksize=settings.block_size,
-                device=settings.device_index,
             ) as stream,
         ):
             while not self._stop_event.is_set():
@@ -132,82 +99,36 @@ class AudioRecorder:
 
 class Transcriber:
     def __init__(self) -> None:
-        self._model: WhisperModel | None = None
+        self._model: "WhisperModel" | None = None
 
     @property
     def model(self) -> "WhisperModel":
         if self._model is None:
-            model_path = settings.whisper_model_size
-            device = settings.whisper_device
-            compute_type = settings.whisper_compute_type
+            from faster_whisper import WhisperModel
 
-            # Inject library path for cuDNN
-            if device == "cuda":
-                base = Path(__file__).resolve().parent.parent.parent
-                is_windows = sys.platform == "win32"
-                venv_name = ".venv-win" if is_windows else ".venv"
-                venv_lib = base / venv_name
-
-                # Search for cuDNN libraries
-                search_pattern = (
-                    "nvidia/cudnn/bin" if is_windows else "nvidia/cudnn/lib"
-                )
-                cudnn_libs = list(venv_lib.rglob(search_pattern))
-
-                if cudnn_libs:
-                    lib_path = str(cudnn_libs[0])
-                    if is_windows:
-                        # Windows: add_dll_directory is preferred for Python 3.8+
-                        add_dll = getattr(os, "add_dll_directory", None)
-                        if add_dll:
-                            add_dll(lib_path)
-                            logger.info("Added DLL directory: %s", lib_path)
-                        # Also add to PATH as fallback or for older versions/tools
-                        current_path = os.environ.get("PATH", "")
-                        if lib_path not in current_path:
-                            os.environ["PATH"] = f"{lib_path};{current_path}"
-                            logger.info("Injected PATH for CUDA: %s", lib_path)
-                    else:
-                        current_ld = os.environ.get("LD_LIBRARY_PATH", "")
-                        if lib_path not in current_ld:
-                            new_ld = f"{lib_path}:{current_ld}".strip(":")
-                            os.environ["LD_LIBRARY_PATH"] = new_ld
-                            logger.info("Injected LD_LIBRARY_PATH: %s", lib_path)
-
-            if device == "cuda" and not torch.cuda.is_available():
-                logger.warning("CUDA not available. Falling back to CPU.")
-                device = "cpu"
-                compute_type = "int8"
-
-                self._model = WhisperModel(
-                    model_path,
-                    device=device,
-                    compute_type=compute_type,
-                )
-        if self._model is None:
-            raise RuntimeError("Failed to initialize Whisper model")
+            self._model = WhisperModel(
+                settings.whisper_model_size,
+                device=settings.whisper_device,
+                compute_type=settings.whisper_compute_type,
+            )
         return self._model
 
     def transcribe(self, audio_path: str) -> str:
-        segments = self.transcribe_segments(audio_path)
-        return " ".join(segment.text.strip() for segment in segments).strip()
-
-    def transcribe_segments(self, audio_path: str) -> list:
         segments, _ = self.model.transcribe(
             audio_path,
             beam_size=5,
             vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 100, "speech_pad_ms": 30},
-            word_timestamps=True,
+            vad_parameters=dict(min_silence_duration_ms=100, speech_pad_ms=30),
         )
-        return list(segments)
+        return " ".join(segment.text.strip() for segment in segments).strip()
 
     def transcribe_and_save(self, audio_path: str) -> tuple[str, str]:
         base = Path(audio_path).stem
-        Path(settings.transcript_dir).mkdir(parents=True, exist_ok=True)
+        os.makedirs(settings.transcript_dir, exist_ok=True)
         out_path = Path(settings.transcript_dir) / f"{base}.txt"
 
         if out_path.exists():
+            print(f"Transcript already exists for {base}, skipping Whisper.")
             return out_path.read_text(encoding="utf-8").strip(), str(out_path)
 
         text = self.transcribe(audio_path)
@@ -216,38 +137,6 @@ class Transcriber:
 
     def unload(self) -> None:
         self._model = None
-
-
-class Diarizer:
-    def __init__(self):
-        self._pipeline = None
-
-    @property
-    def pipeline(self):
-        if self._pipeline is None:
-            try:
-                from pyannote.audio import Pipeline
-            except (ImportError, ModuleNotFoundError):
-                logger.warning("pyannote.audio not installed. Diarization disabled.")
-                return None
-
-            self._pipeline = Pipeline.from_pretrained(
-                "pyannote/speaker-diarization-3.1",
-                token=settings.huggingface_token,
-            )
-            if self._pipeline is not None and torch.cuda.is_available():
-                self._pipeline.to(torch.device("cuda"))
-        return self._pipeline
-
-    def diarize(self, audio_path: str) -> list[tuple[float, float, str]]:
-        pipeline = self.pipeline
-        if pipeline is None:
-            return []
-        diarization = pipeline(audio_path)
-        results = []
-        for turn, _, speaker in diarization.itertracks(yield_label=True):
-            results.append((turn.start, turn.end, speaker))
-        return results
 
 
 class ProcessMonitor:
@@ -285,9 +174,8 @@ class ProcessMonitor:
 
     def _sample_processes(self) -> list[str]:
         names = []
-        max_process_samples = 10
         for proc in psutil.process_iter(["name"]):
-            if len(names) >= max_process_samples:
+            if len(names) >= 10:
                 break
             name = proc.info.get("name")
             if name:
@@ -296,7 +184,7 @@ class ProcessMonitor:
 
 
 class TranscriptPreprocessor:
-    FILLERS: ClassVar[list[str]] = [
+    FILLERS = [
         r"えー",
         r"あのー",
         r"うーん",
@@ -317,7 +205,7 @@ class TranscriptPreprocessor:
         r"ふんふん",
         r"ふんふんふん",
         r"うんうん",
-        r"うんうん埋ん",
+        r"うんうんうん",
         r"はいはい",
         r"はいはいはい",
         r"はいはいはいはい",
@@ -335,21 +223,25 @@ class TranscriptPreprocessor:
         r"ん",
     ]
 
-    def process(self, text: str) -> str:
-        txt = self._normalize_text(text)
+    def process(self, txt: str) -> str:
+        txt = self._normalize_text(txt)
         txt = self._remove_repetition(txt)
         txt = self._remove_fillers(txt)
-        return self._merge_lines(txt)
+        txt = self._dedupe_words(txt)
+        txt = self._merge_lines(txt)
+        return txt
 
     def _normalize_text(self, txt: str) -> str:
-        return re.sub(r"\.{2,}", " ", txt.replace("…", " "))
+        txt = txt.replace("…", " ")
+        txt = re.sub(r"\.{2,}", " ", txt)
+        return txt
 
     def _remove_repetition(self, txt: str) -> str:
         return re.sub(r"(.{1,4}?)\1{4,}", r"\1", txt)
 
     def _remove_fillers(self, txt: str) -> str:
         fillers = sorted(self.FILLERS, key=len, reverse=True)
-        pattern_str = "|".join(str(f) for f in fillers)
+        pattern_str = "|".join(fillers)
         pattern = f"(^|[\\s、。?!])({pattern_str})(?=[\\s、。?!]|$)"
 
         def repl(match: re.Match[str]) -> str:
@@ -366,11 +258,13 @@ class TranscriptPreprocessor:
         txt = re.sub(r"([、。])\1+", r"\1", txt)
         txt = re.sub(r"^[、。]+", "", txt).strip()
         txt = re.sub(r"\s+[、。]+", "", txt)
-        return re.sub(r"\s+", " ", txt).strip()
+        txt = re.sub(r"\s+", " ", txt).strip()
+        return txt
 
     def _dedupe_words(self, txt: str) -> str:
         return re.sub(r"(\S+)\s+\1\b", r"\1", txt)
 
     def _merge_lines(self, txt: str) -> str:
         txt = txt.replace("\n", " ")
-        return re.sub(r"\s+", " ", txt).strip()
+        txt = re.sub(r"\s+", " ", txt).strip()
+        return txt

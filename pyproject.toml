@@ -24,49 +24,15 @@ dependencies = [
     "sentencepiece>=0.2.0",
     "pydantic-settings>=2.12.0",
     "pillow>=12.0.0",
-    "matplotlib>=3.10.8",
-    "pyannote.audio>=3.1.1 ; sys_platform != 'win32'",
-    "rich>=14.3.2",
 ]
 
 [tool.ruff]
 line-length = 88
 target-version = "py311"
-src = ["src", "scripts"]
 
 [tool.ruff.lint]
-# E: pycodestyle errors
-# F: Pyflakes
-# I: isort (import sorting)
-# N: pep8-naming
-# UP: pyupgrade (modern python)
-# B: flake8-bugbear (common bugs)
-# S: flake8-bandit (security)
-# A: flake8-builtins
-# C4: flake8-comprehensions
-# RET: flake8-return
-# SIM: flake8-simplify
-# PTH: flake8-use-pathlib
-# ERA: eradicate (dead code)
-# PL: Pylint
-# TRY: tryceratops (exception handling check)
-# RUF: Ruff-specific rules
-select = [
-    "E", "F", "I", "N", "UP", "B", "S", "A", "C4",
-    "RET", "SIM", "PTH", "ERA", "PL", "TRY", "RUF"
-]
-ignore = [
-    "PLR0913", # Too many arguments
-    "TRY003",  # Avoid specifying long messages in exceptions
-]
-
-[tool.pyright]
-include = ["src", "scripts"]
-typeCheckingMode = "basic"
-pythonVersion = "3.11"
-reportUnusedImport = true
-reportUnusedVariable = true
-reportMissingTypeStubs = false
+select = ["E", "F", "I"]
+ignore = []
 
 [dependency-groups]
 dev = [

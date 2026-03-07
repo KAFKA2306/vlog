@@ -4,11 +4,6 @@ pushd "%~dp0.."
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"
 set "PYTHONIOENCODING=utf-8"
-set "RECORD_ONLY=1"
-
-
-
-rem set "HF_ENDPOINT=https://hf-mirror.com"
 
 
 

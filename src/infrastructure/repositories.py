@@ -1,15 +1,14 @@
 import json
-import logging
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
+
+from dotenv import load_dotenv
 
 from src.infrastructure.settings import settings
-from src.models import ActivityTask, DailyEntry, Evaluation
 from supabase import create_client
-
-logger = logging.getLogger(__name__)
 
 
 class FileRepository:
@@ -22,73 +21,85 @@ class FileRepository:
     def save_text(self, path: str, content: str) -> None:
         Path(path).write_text(content, encoding="utf-8")
 
-    def save_summary(self, content: str, date_str: str) -> None:
-        path = Path(settings.summary_dir) / f"{date_str}_summary.txt"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+    def save_summary(self, summary: str, date_str: str) -> None:
+        summary_path = Path(settings.summary_dir) / f"{date_str}_summary.txt"
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
+        self.save_text(str(summary_path), summary)
 
     def archive(self, path: str) -> None:
         if not settings.archive_after_process:
             return
-        dst = Path(settings.archive_dir) / Path(path).name
-        dst.parent.mkdir(exist_ok=True)
-        Path(path).rename(dst)
 
-    def save_evaluation(self, evaluation: Evaluation) -> None:
-        path = (
-            Path(settings.summary_dir).parent
-            / "evaluations"
-            / f"{evaluation.date.strftime('%Y%m%d')}.json"
+        archive_dir = Path(settings.archive_dir)
+        archive_dir.mkdir(exist_ok=True)
+        src = Path(path)
+        dst = archive_dir / src.name
+        src.rename(dst)
+
+
+    def save_evaluation(self, evaluation: Dict[str, Any], date_str: str) -> None:
+        eval_path = (
+            Path(settings.summary_dir).parent / "evaluations" / f"{date_str}.json"
         )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            evaluation.model_dump_json(indent=2), encoding="utf-8"
+        eval_path.parent.mkdir(parents=True, exist_ok=True)
+        eval_path.write_text(
+            json.dumps(evaluation, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
 
 class TaskRepository:
-    def __init__(self, path: str = "data/tasks.json"):
-        self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.path.exists():
-            self.path.write_text("[]", encoding="utf-8")
+    def __init__(self, file_path: str = "data/tasks.json"):
+        self.file_path = Path(file_path)
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.file_path.exists():
+            self.file_path.write_text("[]", encoding="utf-8")
 
-    def _load(self) -> list[ActivityTask]:
-        data = json.loads(self.path.read_text(encoding="utf-8"))
-        return [ActivityTask.model_validate(t) for t in data]
+    def _load(self) -> List[Dict[str, Any]]:
+        return json.loads(self.file_path.read_text(encoding="utf-8"))
 
-    def _save(self, tasks: list[ActivityTask]) -> None:
-        self.path.write_text(
-            json.dumps(
-                [t.model_dump(mode="json") for t in tasks],
-                indent=2,
-                ensure_ascii=False,
-            ),
-            encoding="utf-8",
+    def _save(self, tasks: List[Dict[str, Any]]):
+        self.file_path.write_text(
+            json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
-    def add(self, task: ActivityTask) -> None:
+    def add(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         tasks = self._load()
-        tasks.append(task)
+        new_task = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now().isoformat(),
+            "status": "pending",
+            **task_data,
+        }
+        tasks.append(new_task)
         self._save(tasks)
+        return new_task
 
-    def list_runnable(self) -> list[ActivityTask]:
-        return [t for t in self._load() if t.status in ("pending", "failed")]
+    def list_pending(self) -> List[Dict[str, Any]]:
+        tasks = self._load()
+        return [t for t in tasks if t.get("status") != "completed"]
 
-    def list_pending(self) -> list[ActivityTask]:
-        return [t for t in self._load() if t.status != "completed"]
+    def complete(self, task_id_prefix: str) -> Dict[str, Any] | None:
+        tasks = self._load()
+        found = False
+        target_task = None
 
+        for task in tasks:
+            if task["id"].startswith(task_id_prefix):
+                task["status"] = "completed"
+                task["completed_at"] = datetime.now().isoformat()
+                target_task = task
+                found = True
+                break
 
-    def update(self, updated: ActivityTask) -> None:
-        tasks = [updated if t.id == updated.id else t for t in self._load()]
-        self._save(tasks)
-
-    def complete(self, task: ActivityTask) -> None:
-        self.update(task.model_copy(update={"status": "completed", "completed_at": datetime.now()}))
+        if found:
+            self._save(tasks)
+            return target_task
+        return None
 
 
 class SupabaseRepository:
     def __init__(self):
+        load_dotenv()
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
         self.client = create_client(url, key) if url and key else None
@@ -96,100 +107,139 @@ class SupabaseRepository:
     def sync(self) -> None:
         if not self.client:
             return
+
         self._sync_summaries()
         self._sync_novels()
         self._sync_photos()
         self._sync_evaluations()
 
     def _sync_summaries(self) -> None:
+        rows = []
         summary_dir = Path(settings.summary_dir)
         if not summary_dir.exists():
             return
-        paths = [p for p in summary_dir.glob("*.txt") if p.stem.count("_") == 1]
-        entries = [
-            DailyEntry(
-                file_path=p.as_posix(),
-                date=datetime.strptime(p.stem.split("_")[0], "%Y%m%d").date(),
-                title=p.stem,
-                content=p.read_text(encoding="utf-8"),
+
+        for path in summary_dir.glob("*.txt"):
+            if not path.stem.endswith("_summary") or "_" in path.stem.replace(
+                "_summary", ""
+            ):
+                continue
+
+            date_str = path.stem.split("_")[0]
+            date_obj = datetime.strptime(date_str, "%Y%m%d").date()
+
+            rows.append(
+                {
+                    "file_path": path.as_posix(),
+                    "date": date_obj.isoformat(),
+                    "title": path.stem,
+                    "content": path.read_text(encoding="utf-8"),
+                    "tags": ["summary"],
+                    "is_public": True,
+                }
             )
-            for p in paths
-        ]
-        if entries:
+
+        if rows:
             self.client.table("daily_entries").upsert(
-                [e.model_dump(mode="json") for e in entries],
-                on_conflict="file_path",
+                rows, on_conflict="file_path"
             ).execute()
 
     def _sync_novels(self) -> None:
+        rows = []
         novel_dir = Path(settings.novel_out_dir)
         if not novel_dir.exists():
             return
-        paths = [p for p in novel_dir.glob("*.md") if p.stem.isdigit() and len(p.stem) == 8]
-        novels = [
-            DailyEntry(
-                file_path=p.as_posix(),
-                date=datetime.strptime(p.stem, "%Y%m%d").date(),
-                title=f"Novel {p.stem}",
-                content=p.read_text(encoding="utf-8"),
-                tags=("novel",),
+
+        for path in novel_dir.glob("*.md"):
+            if not path.stem.isdigit() or len(path.stem) != 8:
+                continue
+
+            date_str = path.stem
+            date_obj = datetime.strptime(date_str, "%Y%m%d").date()
+
+            rows.append(
+                {
+                    "file_path": path.as_posix(),
+                    "date": date_obj.isoformat(),
+                    "title": f"Novel {date_str}",
+                    "content": path.read_text(encoding="utf-8"),
+                    "tags": ["novel"],
+                    "is_public": True,
+                }
             )
-            for p in paths
-        ]
-        if novels:
-            self.client.table("novels").upsert(
-                [n.model_dump(mode="json") for n in novels],
-                on_conflict="file_path",
-            ).execute()
+
+        if rows:
+            self.client.table("novels").upsert(rows, on_conflict="file_path").execute()
 
     def _sync_photos(self) -> None:
         photo_dir = Path(settings.photo_dir)
         if not photo_dir.exists():
             return
-        for path in [p for p in photo_dir.glob("*.png") if p.stem.isdigit() and len(p.stem) == 8]:
+
+        for path in photo_dir.glob("*.png"):
+            if not path.stem.isdigit() or len(path.stem) != 8:
+                continue
+
             date_str = path.stem
+            date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             storage_path = f"photos/{date_str}.png"
-            self.client.storage.from_("vlog-photos").upload(
-                storage_path,
-                path.read_bytes(),
-                {"content-type": "image/png", "upsert": "true"},
+
+            with open(path, "rb") as f:
+                self.client.storage.from_("vlog-photos").upload(
+                    storage_path,
+                    f.read(),
+                    {"content-type": "image/png", "upsert": "true"},
+                )
+
+            image_url = self.client.storage.from_("vlog-photos").get_public_url(
+                storage_path
             )
-            url = self.client.storage.from_("vlog-photos").get_public_url(storage_path)
-            iso_date = datetime.strptime(date_str, "%Y%m%d").date().isoformat()
-            self.client.table("novels").update({"image_url": url}).eq("date", iso_date).execute()
-            self.client.table("daily_entries").update({"image_url": url}).eq("date", iso_date).execute()
+
+            self.client.table("novels").update({"image_url": image_url}).eq(
+                "date", date_obj.isoformat()
+            ).execute()
+            self.client.table("daily_entries").update({"image_url": image_url}).eq(
+                "date", date_obj.isoformat()
+            ).execute()
 
     def _sync_evaluations(self) -> None:
+        rows = []
         eval_dir = Path(settings.summary_dir).parent / "evaluations"
         if not eval_dir.exists():
             return
-        paths = [p for p in eval_dir.glob("*.json") if p.stem.isdigit() and len(p.stem) == 8]
-        evals = []
-        for p in paths:
-            data = json.loads(p.read_text(encoding="utf-8"))
-            evals.append(
-                Evaluation(
-                    date=datetime.strptime(p.stem, "%Y%m%d").date(),
-                    quality_score=data.get("quality_score", 0),
-                    faithfulness_score=data.get("faithfulness_score", 0),
-                    reasoning=data.get("reasoning", ""),
-                )
-            )
-        if evals:
-            rows = [
+
+        for path in eval_dir.glob("*.json"):
+            date_str = path.stem
+            if not date_str.isdigit() or len(date_str) != 8:
+                continue
+
+            date_obj = datetime.strptime(date_str, "%Y%m%d").date()
+            data = json.loads(path.read_text(encoding="utf-8"))
+
+            rows.append(
                 {
-                    "date": e.date.isoformat(),
-                    "target_type": e.target_type,
-                    "score": e.quality_score,
+                    "date": date_obj.isoformat(),
+                    "target_type": "novel",  # Currently we only evaluate novels
+                    "score": data.get("quality_score", 0),
                     "reasoning": json.dumps(
                         {
-                            "faithfulness": e.faithfulness_score,
-                            "quality": e.quality_score,
-                            "reasoning": e.reasoning,
+                            "faithfulness": data.get("faithfulness_score"),
+                            "quality": data.get("quality_score"),
+                            "reasoning": data.get("reasoning"),
                         },
                         ensure_ascii=False,
                     ),
                 }
-                for e in evals
-            ]
-            self.client.table("evaluations").upsert(rows, on_conflict="date, target_type").execute()
+            )
+
+        if rows:
+            # Upsert relying on date + target_type unique constraint?
+            # Or just ignore if table doesn't exist (user needs to create it)
+            try:
+                self.client.table("evaluations").upsert(
+                    rows, on_conflict="date, target_type"
+                ).execute()
+            except Exception as e:
+                print(
+                    f"Warning: Failed to sync evaluations. Table might be missing. {e}"
+                )

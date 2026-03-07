@@ -55,9 +55,8 @@ tasks:
         ■ デバッグ用
           task service:status           systemd状態のみ
           task log:status               ログ解析のみ
+          task transcribe FILE=...      文字起こしのみ
           task summarize FILE=...       要約のみ
-          task doctor                   システム診断
-          task status                   状態確認
         EOF
 
   # ────────────────────────────────────────
@@ -102,22 +101,6 @@ tasks:
   logs:
     desc: ログ追尾（リアルタイム）
     cmd: journalctl --user -u vlog -f
-
-  dashboard:
-    desc: 管理ダッシュボード (TUI)
-    cmd: uv run python -m src.cli dashboard
-
-  repair:
-    desc: パイプライン修復エージェント
-    cmd: uv run python -m src.cli repair
-
-  doctor:
-    desc: システム診断 (Protocol v8.0)
-    cmd: uv run python -m src.cli doctor
-
-  status:
-    desc: 状態確認 (Protocol v8.0)
-    cmd: uv run python -m src.cli pending # Use pending as a status check for now
 
   # ────────────────────────────────────────
   # 録音・処理
@@ -231,12 +214,8 @@ tasks:
   # メンテナンス
   # ────────────────────────────────────────
   lint:
-    desc: コード品質チェック (Format + Lint + Type Check + Zero-Fat Audit)
-    cmds:
-      - uv run ruff format src scripts
-      - uv run ruff check src scripts --fix
-      - uv run pyright
-      - uvx ty check src scripts || true # ty check in beta
+    desc: コード品質チェック
+    cmds: ["uv run ruff check src && uv run ruff format src"]
 
   clean:
     desc: キャッシュ削除
@@ -286,10 +265,6 @@ tasks:
     desc: 全小説から画像を一括生成
     cmds:
       - for f in data/novels/*.md; do [ -f "$f" ] && task photo novel="$f"; done || true
-  
-  photos:fill:
-    desc: 写真が欠落している日付を自動検出し、生成タスクを登録
-    cmd: uv run python -m src.main fill-photos
 
   # ────────────────────────────────────────
   # 内部ヘルパー

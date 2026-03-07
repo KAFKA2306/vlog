@@ -1,1 +1,0 @@
-/home/kafka/projects/.agent/workflows/git.md
