@@ -1,0 +1,4 @@
+interface:
+  display_name: "Windows CMD PS1 Ops"
+  short_description: "Fix CMD/PS1 path, auth, and bootstrap errors."
+  default_prompt: "Use $windows-cmd-ps1-ops to diagnose run.bat/bootstrap.ps1 failures, permission/path issues, and safe monitor stop/restart steps."
