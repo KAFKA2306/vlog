@@ -1,52 +1,23 @@
 ---
 name: gemini-3
-description: Manage and optimize Gemini usage for VLog summaries and narratives. ACTIVATE this skill whenever the user asks about Gemini config, model switching, prompt quality, summary quality regression, or cross-day long-context analysis. Always resolve model names from project configuration before recommending a switch.
-user-invocable: false
-allowed-tools:
-  - Read
+description: Manage and optimize the use of Google's Gemini 3 series within the VLog project. ACTIVATE this skill whenever the user mentions "Gemini", "Model switching", "Prompt engineering", or wants to improve the quality of audio summaries and narratives.
 ---
 
-# Gemini 3 Skill
+# gemini-3
 
-A skill to master the Gemini 3 lineup for high-fidelity life logging and narrative generation.
+ACTIVATE this skill whenever the user mentions "Gemini", "Model switching", "Prompt engineering", or wants to improve the quality of audio summaries and narratives.
 
-## Model Selection Guide
+## Models
+- **`models/gemini-3-flash-preview`**: The primary model used for summarizing, novelizing, and task parsing. It offers a large context window and high reasoning capabilities with low latency.
 
-Use project configuration as source of truth. Do not hardcode model IDs in this skill.
+## Configuration
+Model names and parameters are centrally managed in `data/config.yaml` under the `gemini` and `novel` sections.
 
-1. **Default model**
-   - Resolve from `src/domain/constants.rs` (`DEFAULT_GEMINI_MODEL`) and runtime settings.
-   - For operational behavior, check `src/infrastructure/settings.rs` where `GEMINI_MODEL` env override is applied.
+- `gemini.model`: Configures the summarizer model.
+- `novel.model`: Configures the novelizer model.
+- `novel.max_output_tokens`: Sets the output limit for chapters.
 
-2. **When to switch**
-   - Prefer higher-reasoning variants only when default quality is insufficient or multi-day analysis is requested.
-   - Record the selected model in config/env rather than embedding ad-hoc names in prompts.
-
-## Prompt Engineering for Gemini 3
-
-### 1. Large Context Windows
-- Gemini 3 supports 1M+ tokens. Don't be afraid to feed it multiple days of transcripts or entire code modules for cross-referencing.
-- **Pattern**: "Based on the transcripts from the last 7 days (attached), identify repeating themes in my social interactions."
-
-### 2. Systematic Instructions
-- Use structured formats (Markdown, XML-like tags) for complex instructions.
-- **Pattern**: 
-  ```xml
-  <instruction>Summarize the audio with a focus on emotional beats.</instruction>
-  <context>User was in a high-intensity VRChat event.</context>
-  ```
-
-### 3. Reasoning
-- For difficult debugging or temporal correlation tasks, request step-by-step analysis.
-- **Pattern**: "Analyze the monitor logs from yesterday and explain, step by step, why the recording stopped early at 14:00."
-
-## Project Configuration
-
-- **Primary Setting**: `DEFAULT_GEMINI_MODEL` in `src/domain/constants.rs`.
-- **Runtime Override**: `GEMINI_MODEL` in `.env` (resolved in `src/infrastructure/settings.rs`).
-
-## Examples
-- "Use a more accurate model for summaries" -> Check current model and propose a config-based switch.
-- "Where is Gemini configuration?" -> Point to `src/domain/constants.rs` and `src/infrastructure/settings.rs`.
-- "I want cross-day log analysis" -> Generate instructions for long-context analysis.
-- "I need deep debugging support" -> Recommend a higher-reasoning model only when default quality is insufficient.
+## Usage Guidelines
+- **Context Utilization**: Leverage Gemini's large context window (1M+ tokens) for cross-day analysis.
+- **Prompt Engineering**: Use the structured templates in `data/prompts.yaml`. Avoid hardcoding prompts in the source code.
+- **Model Switching**: If quality issues arise, verify the active model in `data/config.yaml` and `.env` (GOOGLE_API_KEY).
