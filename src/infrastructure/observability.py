@@ -29,7 +29,7 @@ class TraceLogger:
             "output_chars": len(output_text),
             "metadata": metadata or {},
         }
-        
+
         # Append to JSONL file
         with open(self._log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")

@@ -36,7 +36,6 @@ class FileRepository:
         dst = archive_dir / src.name
         src.rename(dst)
 
-
     def save_evaluation(self, evaluation: Dict[str, Any], date_str: str) -> None:
         eval_path = (
             Path(settings.summary_dir).parent / "evaluations" / f"{date_str}.json"
@@ -106,12 +105,15 @@ class SupabaseRepository:
 
     def sync(self) -> None:
         if not self.client:
+            print("Supabase client not initialized. Check your environment variables.")
             return
 
+        print("Starting Supabase sync...")
         self._sync_summaries()
         self._sync_novels()
         self._sync_photos()
         self._sync_evaluations()
+        print("Supabase sync completed.")
 
     def _sync_summaries(self) -> None:
         rows = []
@@ -119,6 +121,7 @@ class SupabaseRepository:
         if not summary_dir.exists():
             return
 
+        print(f"Checking summaries in {summary_dir}...")
         for path in summary_dir.glob("*.txt"):
             if not path.stem.endswith("_summary") or "_" in path.stem.replace(
                 "_summary", ""
@@ -140,6 +143,7 @@ class SupabaseRepository:
             )
 
         if rows:
+            print(f"Upserting {len(rows)} summaries to daily_entries...")
             self.client.table("daily_entries").upsert(
                 rows, on_conflict="file_path"
             ).execute()
@@ -150,6 +154,7 @@ class SupabaseRepository:
         if not novel_dir.exists():
             return
 
+        print(f"Checking novels in {novel_dir}...")
         for path in novel_dir.glob("*.md"):
             if not path.stem.isdigit() or len(path.stem) != 8:
                 continue
@@ -169,6 +174,7 @@ class SupabaseRepository:
             )
 
         if rows:
+            print(f"Upserting {len(rows)} novels to novels table...")
             self.client.table("novels").upsert(rows, on_conflict="file_path").execute()
 
     def _sync_photos(self) -> None:
@@ -176,7 +182,11 @@ class SupabaseRepository:
         if not photo_dir.exists():
             return
 
-        for path in photo_dir.glob("*.png"):
+        print(f"Checking photos in {photo_dir}...")
+        photo_paths = list(photo_dir.glob("*.png"))
+        total = len(photo_paths)
+
+        for i, path in enumerate(photo_paths, 1):
             if not path.stem.isdigit() or len(path.stem) != 8:
                 continue
 
@@ -184,6 +194,7 @@ class SupabaseRepository:
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             storage_path = f"photos/{date_str}.png"
 
+            print(f"[{i}/{total}] Uploading {path.name} to storage...")
             with open(path, "rb") as f:
                 self.client.storage.from_("vlog-photos").upload(
                     storage_path,
@@ -195,6 +206,7 @@ class SupabaseRepository:
                 storage_path
             )
 
+            print(f"  Updating image_url for {date_str}...")
             self.client.table("novels").update({"image_url": image_url}).eq(
                 "date", date_obj.isoformat()
             ).execute()
@@ -208,6 +220,7 @@ class SupabaseRepository:
         if not eval_dir.exists():
             return
 
+        print(f"Checking evaluations in {eval_dir}...")
         for path in eval_dir.glob("*.json"):
             date_str = path.stem
             if not date_str.isdigit() or len(date_str) != 8:
@@ -219,7 +232,7 @@ class SupabaseRepository:
             rows.append(
                 {
                     "date": date_obj.isoformat(),
-                    "target_type": "novel",  # Currently we only evaluate novels
+                    "target_type": "novel",
                     "score": data.get("quality_score", 0),
                     "reasoning": json.dumps(
                         {
@@ -233,8 +246,7 @@ class SupabaseRepository:
             )
 
         if rows:
-            # Upsert relying on date + target_type unique constraint?
-            # Or just ignore if table doesn't exist (user needs to create it)
+            print(f"Upserting {len(rows)} evaluations...")
             try:
                 self.client.table("evaluations").upsert(
                     rows, on_conflict="date, target_type"

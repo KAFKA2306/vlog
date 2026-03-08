@@ -37,10 +37,10 @@ class JulesClient:
     def parse_task(self, user_input: str) -> Dict[str, Any]:
         prompt = settings.prompts["jules"]["parse_task"].format(user_input=user_input)
         start_time = time.time()
-        
+
         response = self._model.generate_content(prompt)
         text = response.text.strip()
-        
+
         self._tracer.log(
             component="jules_parse_task",
             model=settings.jules_model,
@@ -60,7 +60,7 @@ class JulesClient:
         start_time = time.time()
         response = chat.send_message(message)
         text = response.text
-        
+
         self._tracer.log(
             component="jules_chat",
             model=settings.jules_model,
@@ -79,7 +79,7 @@ class JulesClient:
         text = ""
         if response.parts:
             text = response.text.strip()
-            
+
         self._tracer.log(
             component="jules_image_prompt",
             model=settings.jules_model,
@@ -178,14 +178,14 @@ class Novelizer:
             novel_so_far=novel_so_far,
             today_summary=today_summary,
         )
-        
+
         start_time = time.time()
         response = self._model.generate_content(
             prompt,
             generation_config={"max_output_tokens": settings.novel_max_output_tokens},
         )
         text = response.text.strip()
-        
+
         self._tracer.log(
             component="novelizer",
             model=settings.novel_model,
@@ -229,11 +229,11 @@ class Summarizer:
             end_time=e,
             transcript=transcript.strip(),
         )
-        
+
         start_time = time.time()
         response = self._model.generate_content(prompt)
         text = response.text.strip()
-        
+
         self._tracer.log(
             component="summarizer",
             model=settings.gemini_model,
@@ -257,10 +257,10 @@ class Curator:
 
         prompt = self._prompt_template.format(summary=summary, novel=novel)
         start_time = time.time()
-        
+
         response = self._model.generate_content(prompt)
         text = response.text.strip()
-        
+
         self._tracer.log(
             component="curator_evaluate",
             model=settings.jules_model,
@@ -273,12 +273,12 @@ class Curator:
             text = text[7:-3]
         elif text.startswith("```"):
             text = text[3:-3]
-            
+
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             return {
                 "faithfulness_score": 0,
                 "quality_score": 0,
-                "reasoning": f"JSON Parse Error: {text}"
+                "reasoning": f"JSON Parse Error: {text}",
             }

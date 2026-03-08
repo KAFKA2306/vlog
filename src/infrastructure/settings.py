@@ -115,9 +115,7 @@ class Settings(BaseSettings):
         alias="VLOG_NOVEL_OUT_DIR",
     )
 
-    image_model: str = _config.get("image", {}).get(
-        "model", "Tongyi-MAI/Z-Image-Turbo"
-    )
+    image_model: str = _config.get("image", {}).get("model", "Tongyi-MAI/Z-Image-Turbo")
     image_device: str = _config.get("image", {}).get("device", "cuda")
     image_height: int = _config.get("image", {}).get("height", 1024)
     image_width: int = _config.get("image", {}).get("width", 1024)
@@ -129,10 +127,13 @@ class Settings(BaseSettings):
     image_prompt_filters: List[str] = _config.get("image", {}).get("prompt_filters", [])
 
     image_generator_default_prompt: str = (
-        "(masterpiece, best quality:1.2), anime scenery, highly detailed, expressive lighting, aesthetic, {text}"
+        "(masterpiece, best quality:1.2), anime scenery, "
+        "highly detailed, expressive lighting, aesthetic, {text}"
     )
     image_generator_default_negative_prompt: str = (
-        "low quality, worst quality, bad anatomy, vr, headset, holding controller, holding object, holding weapon, floating objects, weird objects"
+        "low quality, worst quality, bad anatomy, vr, headset, "
+        "holding controller, holding object, holding weapon, "
+        "floating objects, weird objects"
     )
 
     archive_after_process: bool = _config.get("processing", {}).get(
