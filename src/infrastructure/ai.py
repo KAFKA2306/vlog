@@ -100,8 +100,12 @@ class ImageGenerator:
         self.generate(prompt, negative_prompt, output_path)
 
     def _extract_prompt(self, chapter_text: str) -> tuple[str, str]:
-        jules = JulesClient()
-        text = jules.generate_image_prompt(chapter_text)
+        match = re.search(r"\[IMAGE_PROMPT:\s*(.*?)\]", chapter_text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+        else:
+            jules = JulesClient()
+            text = jules.generate_image_prompt(chapter_text)
 
         for pattern in settings.image_prompt_filters:
             text = re.sub(pattern, "", text, flags=re.IGNORECASE)
@@ -274,11 +278,4 @@ class Curator:
         elif text.startswith("```"):
             text = text[3:-3]
 
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            return {
-                "faithfulness_score": 0,
-                "quality_score": 0,
-                "reasoning": f"JSON Parse Error: {text}",
-            }
+        return json.loads(text)
