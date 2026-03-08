@@ -52,6 +52,11 @@ class Application:
                     start_time=datetime.now(),
                     end_time=datetime.now(),
                 )
+
+                def run_and_sync(session):
+                    self._use_case.execute_session(session)
+                    SupabaseRepository().sync()
+
                 threading.Thread(
-                    target=self._use_case.execute_session, args=(session,), daemon=True
+                    target=run_and_sync, args=(session,), daemon=True
                 ).start()

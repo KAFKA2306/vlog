@@ -33,7 +33,7 @@ class ProcessRecordingUseCase:
         self._novelizer = novelizer
         self._image_generator = image_generator
 
-    def execute(self, audio_path: str) -> bool:
+    def execute(self, audio_path: str, sync: bool = True) -> bool:
         if not self._files.exists(audio_path):
             return False
 
@@ -42,17 +42,29 @@ class ProcessRecordingUseCase:
         self._save_summary(transcript, session)
         self._generate_novel_and_photo(session)
         self._finalize(audio_path)
+
+        if sync:
+            self._storage.sync()
+
         return True
 
     def execute_session(self, session: RecordingSession) -> None:
-        transcripts = [
+        transcripts_info = [
             self._transcriber.transcribe_and_save(path) for path in session.file_paths
         ]
         self._transcriber.unload()
-        merged = " ".join(text for text, _ in transcripts)
+
+        merged = " ".join(text for text, _ in transcripts_info)
         cleaned = self._preprocessor.process(merged)
+
+        if transcripts_info:
+            _, first_path = transcripts_info[0]
+            p = Path(first_path)
+            cleaned_path = p.with_name(f"cleaned_{p.name}")
+            self._files.save_text(str(cleaned_path), cleaned)
+
         self._save_summary(cleaned, session)
-        self._storage.sync()
+        self._generate_novel_and_photo(session)
 
         for audio_path in session.file_paths:
             self._files.archive(audio_path)
@@ -78,17 +90,23 @@ class ProcessRecordingUseCase:
         return cleaned
 
     def _save_summary(self, transcript: str, session: RecordingSession) -> None:
-        summary_path = (
-            settings.summary_dir
-            / f"{session.start_time.strftime('%Y%m%d')}_summary.txt"
-        )
+        target_date = session.start_time.strftime("%Y%m%d")
+        summary_path = settings.summary_dir / f"{target_date}_summary.txt"
         summary_path.parent.mkdir(parents=True, exist_ok=True)
 
         if summary_path.exists():
-            print(f"Summary already exists for {session.start_time}, skipping.")
+            print(f"Summary already exists for {target_date}, skipping.")
             return
 
-        summary_text = self._summarizer.summarize(transcript, session)
+        pattern = f"cleaned_{target_date}_*.txt"
+        daily_files = sorted(settings.transcript_dir.glob(pattern))
+        combined_transcript = (
+            "\n\n".join(f.read_text(encoding="utf-8") for f in daily_files)
+            if daily_files
+            else transcript
+        )
+
+        summary_text = self._summarizer.summarize(combined_transcript, session)
         self._files.save_text(str(summary_path), summary_text)
 
     def _generate_novel_and_photo(self, session: RecordingSession) -> None:
@@ -104,32 +122,18 @@ class ProcessRecordingUseCase:
         novel_path = settings.novel_out_dir / f"{target_date}.md"
         photo_path = settings.photo_dir / f"{target_date}.png"
 
-        # Check if both novel and photo exist
-        if novel_path.exists() and photo_path.exists():
-            print(f"Novel and photo already exist for {target_date}, skipping.")
-            return
+        novel_files = sorted(list(settings.novel_out_dir.glob("*.md")))
+        prev_files = [f for f in novel_files if f.name < f"{target_date}.md"]
+        novel_so_far = prev_files[-1].read_text(encoding="utf-8") if prev_files else ""
 
         today_summary = summary_path.read_text(encoding="utf-8")
+        chapter = self._novelizer.generate_chapter(today_summary, novel_so_far)
 
-        if not novel_path.exists():
-            novel_so_far = ""
-            if novel_path.exists():
-                novel_so_far = novel_path.read_text(encoding="utf-8")
+        novel_path.parent.mkdir(parents=True, exist_ok=True)
+        novel_path.write_text(chapter, encoding="utf-8")
 
-            chapter = self._novelizer.generate_chapter(today_summary, novel_so_far)
-            novel_path.parent.mkdir(parents=True, exist_ok=True)
-
-            if novel_so_far:
-                novel_path.write_text(f"{novel_so_far}\n\n{chapter}", encoding="utf-8")
-            else:
-                novel_path.write_text(chapter, encoding="utf-8")
-
-        if not photo_path.exists():
-            chapter = novel_path.read_text(encoding="utf-8")
-
-            photo_path.parent.mkdir(parents=True, exist_ok=True)
-            self._image_generator.generate_from_novel(chapter, photo_path)
+        photo_path.parent.mkdir(parents=True, exist_ok=True)
+        self._image_generator.generate_from_novel(chapter, photo_path)
 
     def _finalize(self, audio_path: str) -> None:
-        self._storage.sync()
         self._files.archive(audio_path)
