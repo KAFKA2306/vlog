@@ -6,6 +6,7 @@
 - Hardcoded values
 - Mocking
 - Root file creation
+- Modifying `data/prompts.yaml` without explicit user instruction (PROTECTED FILE)
 
 # Required
 
