@@ -25,7 +25,7 @@ def cmd_process(args):
         novelizer=Novelizer(),
         image_generator=ImageGenerator(),
     )
-    use_case.execute(args.file)
+    use_case.execute(args.file, sync=args.sync)
 
 
 def cmd_novel(args):
@@ -279,6 +279,18 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
     p_process = subparsers.add_parser("process", help="Process audio file")
     p_process.add_argument("--file", help="Path to audio file")
+    p_process.add_argument(
+        "--sync",
+        action="store_true",
+        default=True,
+        help="Sync with Supabase (default: True)",
+    )
+    p_process.add_argument(
+        "--no-sync",
+        dest="sync",
+        action="store_false",
+        help="Don't sync with Supabase",
+    )
 
     p_novel = subparsers.add_parser("novel", help="Generate novel chapter")
     p_novel.add_argument("--date", help="Target date (YYYYMMDD)")

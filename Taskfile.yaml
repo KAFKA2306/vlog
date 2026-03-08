@@ -112,12 +112,13 @@ tasks:
   process:
     desc: 録音→要約（単一ファイル）
     deps: [require_file]
-    cmds: ["uv run python -m src.cli process --file {{.FILE}}"]
+    cmds: ["uv run python -m src.cli process --file {{.FILE}} {{.EXTRA}}"]
 
   process:all:
     desc: 録音→要約（全ファイル一括）
     cmds:
-      - for f in data/recordings/*.wav data/recordings/*.flac; do [ -f "$f" ] && task process FILE="$f"; done || true
+      - for f in data/recordings/*.wav data/recordings/*.flac; do [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"; done || true
+      - task sync
 
   process:today:
     desc: 今日の録音を一括処理（要約は再生成）
@@ -126,8 +127,9 @@ tasks:
         TODAY=$(date +%Y%m%d)
         rm -f data/summaries/${TODAY}_summary.txt
         for f in data/recordings/${TODAY}*.wav data/recordings/${TODAY}*.flac; do
-          [ -f "$f" ] && task process FILE="$f"
+          [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
         done || true
+      - task sync
 
   process:yesterday:
     desc: 昨日の録音を一括処理
@@ -136,8 +138,9 @@ tasks:
         YESTERDAY=$(date -d "yesterday" +%Y%m%d)
         rm -f data/summaries/${YESTERDAY}_summary.txt
         for f in data/recordings/${YESTERDAY}*.wav data/recordings/${YESTERDAY}*.flac; do
-          [ -f "$f" ] && task process FILE="$f"
+          [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
         done || true
+      - task sync
 
   process:daily:
     desc: 日次処理（昨日＋今日）
