@@ -232,6 +232,30 @@ tasks:
     cmds: ["git add . && git commit -am '{{.MESSAGE}}'"]
 
   # ────────────────────────────────────────
+  # 自律的メンテナンス (VAMS)
+  # ────────────────────────────────────────
+  maintenance:
+    desc: システム自律クリーンアップ・整合性チェック
+    cmds:
+      - task lint
+      - task doc:check
+      - export PYTHONPATH=$PYTHONPATH:. && uv run pytest tests/
+      - echo "Maintenance complete. Check for any suggested refactors or ADR updates."
+
+  doc:check:
+    desc: ドキュメントのポインタ整合性チェック
+    cmds:
+      - |
+        ERR=0
+        for p in $(grep -rh "file:///" AGENTS.md .claude/rules/ | sed -n 's/.*(file:\/\/\([^)]*\)).*/\1/p'); do
+          if [ ! -e "$p" ]; then
+            echo "Broken pointer: $p"
+            ERR=1
+          fi
+        done
+        exit $ERR
+
+  # ────────────────────────────────────────
   # デバッグ用
   # ────────────────────────────────────────
   service:status:
