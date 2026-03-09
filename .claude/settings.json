@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(jq -r \".tool_input.file_path // .tool_input.path\" <<< \"$(cat)\"); PROTECTED=\"AGENTS.md pyproject.toml Taskfile.yaml .claude/settings.json\"; for p in $PROTECTED; do if [[ \"$FILE\" == *\"$p\"* ]]; then echo \"BLOCKED: $FILE is a protected config file. Harness Engineering practices forbid direct modification without explicit user request or architectural alignment check.\" >&2; exit 2; fi; done'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(jq -r \".tool_input.file_path // .tool_input.path\" <<< \"$(cat)\"); if [[ \"$FILE\" == *.py ]]; then uv run ruff check --fix \"$FILE\" 2>/dev/null; uv run ruff format \"$FILE\" 2>/dev/null; fi'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -d tests ]; then echo \"VERIFYING COMPLETION GATE...\"; export PYTHONPATH=$PYTHONPATH:. && uv run pytest tests/ 2>&1 | tail -20 || (echo \"BLOCKED: Completion Gate failed. Tests must pass before declaring task finished.\" >&2; exit 2); fi'"
+          }
+        ]
+      }
+    ]
+  }
+}
