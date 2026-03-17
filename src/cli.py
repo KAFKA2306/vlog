@@ -334,6 +334,9 @@ def main():
     p_curator.add_argument("action", choices=["eval"], help="Action to perform")
     p_curator.add_argument("--date", help="Target date (YYYYMMDD)")
 
+    p_notify = subparsers.add_parser("notify", help="Send notification to Discord")
+    p_notify.add_argument("--message", required=True, help="Notification message")
+
     args = parser.parse_args()
     if args.command == "jules":
         if args.action == "done":
@@ -355,6 +358,8 @@ def main():
         cmd_summarize(args)
     elif args.command == "pending":
         cmd_pending(args)
+    elif args.command == "notify":
+        cmd_notify(args)
     else:
         parser.print_help()
 
@@ -365,6 +370,14 @@ def cmd_curator(args):
     if args.action == "eval":
         use_case = EvaluateDailyContentUseCase()
         use_case.execute(args.date)
+
+
+def cmd_notify(args):
+    from src.infrastructure.discord import DiscordClient
+
+    client = DiscordClient()
+    client.send_message(args.message)
+    print("Notification sent to Discord")
 
 
 if __name__ == "__main__":

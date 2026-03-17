@@ -5,12 +5,12 @@
 - **Python 3.11+**, type hints everywhere.
 - 4-space indentation.
 - `snake_case` (functions/modules), `PascalCase` (classes), `UPPERCASE` (constants).
-- **Silent Operator**: No comments, no docstrings.
+- **Silent Operator**: コード自体をドキュメントとして機能させ、コメントやdocstringは省略します。これはLLMのコンテキストを節約し、本質的なロジックのみに集中させるためです。
 - **Zero-Fat**: 
-    - No try-except blocks (crash on failure).
-    - No retry/timeout logic.
-    - No raw dicts; use Pydantic models in `src/models.py`.
-- **Success Path Only**: Keep infrastructure/repositories minimal.
+    - try-exceptブロックは使用せず、失敗時は素直にクラッシュさせます。エラーの根本原因を隠蔽せず、上位レイヤーに確実に関知させるのが目的です。
+    - リトライやタイムアウトのロジックはインフラ側に委ね、コードには含めません。複雑さを排除し状態の蓄積を防ぎます。
+    - 生の辞書（dict）ではなく `src/models.py` のPydanticモデルを使用し、型の安全性を担保します。
+- **Success Path Only**: インフラ層やリポジトリ層の実装は正常系のみを記述し、過剰な防御的プログラミングを避けてシンプルに保ちます。
 
 ## Linting & Formatting
 

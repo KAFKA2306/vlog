@@ -153,6 +153,7 @@ tasks:
       - TODAY=$(date +%Y%m%d); task novel:build date=$TODAY || true
       - task process:pending
       - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task curator:eval date=$YESTERDAY || true
+      - uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +'%Y-%m-%d %H:%M:%S')）"
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)

@@ -39,25 +39,20 @@ class Settings(BaseSettings):
     )
 
     gemini_api_key: str = Field(alias="GOOGLE_API_KEY")
-    gemini_model: str = _config.get("gemini", {}).get(
-        "model", "models/gemini-3-flash-preview"
-    )
-    novel_model: str = _config.get("novel", {}).get(
-        "model", "models/gemini-3-flash-preview"
-    )
+    gemini_model: str = _config.get("gemini", {}).get("model", "gemini-2.5-flash")
+    novel_model: str = _config.get("novel", {}).get("model", "gemini-2.5-flash")
     novel_max_output_tokens: int = _config.get("novel", {}).get(
         "max_output_tokens", 8192
     )
 
     jules_api_key: str = Field(default="", alias="GOOGLE_JULES_API_KEY")
-    jules_model: str = _config.get("jules", {}).get(
-        "model", "models/gemini-3-flash-preview"
-    )
+    jules_model: str = _config.get("jules", {}).get("model", "gemini-2.5-flash")
 
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
     supabase_service_role_key: str = Field(
         default="", alias="SUPABASE_SERVICE_ROLE_KEY"
     )
+    discord_webhook_url: str = Field(default="", alias="DISCORD_WEBHOOK_URL")
 
     check_interval: int = _config.get("process", {}).get("check_interval", 5)
     process_names: Set[str] = Field(
