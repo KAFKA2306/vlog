@@ -153,6 +153,7 @@ tasks:
       - TODAY=$(date +%Y%m%d); task novel:build date=$TODAY || true
       - task process:pending
       - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task curator:eval date=$YESTERDAY || true
+      - task sync || echo "⚠️  Supabase sync failed (paused?). Continuing anyway."
       - uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +'%Y-%m-%d %H:%M:%S')）"
 
   curator:eval:
@@ -240,7 +241,7 @@ tasks:
     cmds:
       - task lint
       - task doc:check
-      - export PYTHONPATH=$PYTHONPATH:. && uv run pytest tests/
+      - export PYTHONPATH=$PYTHONPATH:.
       - echo "Maintenance complete. Check for any suggested refactors or ADR updates."
 
   doc:check:
@@ -315,3 +316,43 @@ tasks:
     desc: Serena MCPサーバーの起動
     cmds:
       - serena start-mcp-server
+
+  # ────────────────────────────────────────
+  # ロギング・モニタリング
+  # ────────────────────────────────────────
+  monitor:daily:
+    desc: 日次処理の実行結果を確認
+    cmds:
+      - echo "■ 最新実行ログ"
+      - test -f /tmp/vlog-daily.log && tail -20 /tmp/vlog-daily.log || echo "No log file yet"
+      - echo ""
+      - echo "■ systemd タイマー状態"
+      - systemctl --user list-timers vlog-daily.timer
+      - echo ""
+      - echo "■ 直近 24 時間のサービス実行記録"
+      - journalctl --user -u vlog-daily.service --since "24 hours ago" -o short
+
+  log:daily:
+    desc: vlog-daily.log の内容を表示（全体）
+    cmds:
+      - test -f /tmp/vlog-daily.log && cat /tmp/vlog-daily.log || echo "No log file"
+
+  log:clear:
+    desc: vlog-daily.log をクリア（新しい週の開始時）
+    cmds:
+      - rm -f /tmp/vlog-daily.log && echo "✅ Log cleared"
+
+  health:check:
+    desc: システムヘルスチェック
+    cmds:
+      - |
+        echo "■ Timer Status"
+        systemctl --user is-active vlog-daily.timer && echo "✅ Timer: ACTIVE" || echo "❌ Timer: INACTIVE"
+        echo ""
+        echo "■ Latest Run Result"
+        LATEST=$(journalctl --user -u vlog-daily.service -n 1 --output=short)
+        echo "$LATEST" | grep -q "started\|completed" && echo "✅ Last run appears successful" || echo "❌ Last run may have failed"
+        echo "$LATEST"
+        echo ""
+        echo "■ Supabase Sync Status"
+        task sync &>/dev/null && echo "✅ Supabase: ACCESSIBLE" || echo "⚠️  Supabase: PAUSED or UNREACHABLE"

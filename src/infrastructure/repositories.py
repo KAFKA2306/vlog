@@ -29,7 +29,6 @@ class FileRepository:
     def archive(self, path: str) -> None:
         if not settings.archive_after_process:
             return
-
         archive_dir = Path(settings.archive_dir)
         archive_dir.mkdir(exist_ok=True)
         src = Path(path)
@@ -56,7 +55,7 @@ class TaskRepository:
     def _load(self) -> List[Dict[str, Any]]:
         return json.loads(self.file_path.read_text(encoding="utf-8"))
 
-    def _save(self, tasks: List[Dict[str, Any]]):
+    def _save(self, tasks: List[Dict[str, Any]]) -> None:
         self.file_path.write_text(
             json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8"
         )
@@ -81,7 +80,6 @@ class TaskRepository:
         tasks = self._load()
         found = False
         target_task = None
-
         for task in tasks:
             if task["id"].startswith(task_id_prefix):
                 task["status"] = "completed"
@@ -89,7 +87,6 @@ class TaskRepository:
                 target_task = task
                 found = True
                 break
-
         if found:
             self._save(tasks)
             return target_task
@@ -97,7 +94,7 @@ class TaskRepository:
 
 
 class SupabaseRepository:
-    def __init__(self):
+    def __init__(self) -> None:
         load_dotenv()
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -105,32 +102,24 @@ class SupabaseRepository:
 
     def sync(self) -> None:
         if not self.client:
-            print("Supabase client not initialized. Check your environment variables.")
             return
-
-        print("Starting Supabase sync...")
         self._sync_summaries()
         self._sync_novels()
         self._sync_photos()
         self._sync_evaluations()
-        print("Supabase sync completed.")
 
     def _sync_summaries(self) -> None:
         rows = []
         summary_dir = Path(settings.summary_dir)
         if not summary_dir.exists():
             return
-
-        print(f"Checking summaries in {summary_dir}...")
         for path in summary_dir.glob("*.txt"):
             if not path.stem.endswith("_summary") or "_" in path.stem.replace(
                 "_summary", ""
             ):
                 continue
-
             date_str = path.stem.split("_")[0]
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
-
             rows.append(
                 {
                     "file_path": path.as_posix(),
@@ -141,9 +130,7 @@ class SupabaseRepository:
                     "is_public": True,
                 }
             )
-
         if rows:
-            print(f"Upserting {len(rows)} summaries to daily_entries...")
             self.client.table("daily_entries").upsert(
                 rows, on_conflict="file_path"
             ).execute()
@@ -153,15 +140,11 @@ class SupabaseRepository:
         novel_dir = Path(settings.novel_out_dir)
         if not novel_dir.exists():
             return
-
-        print(f"Checking novels in {novel_dir}...")
         for path in novel_dir.glob("*.md"):
             if not path.stem.isdigit() or len(path.stem) != 8:
                 continue
-
             date_str = path.stem
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
-
             rows.append(
                 {
                     "file_path": path.as_posix(),
@@ -172,41 +155,29 @@ class SupabaseRepository:
                     "is_public": True,
                 }
             )
-
         if rows:
-            print(f"Upserting {len(rows)} novels to novels table...")
             self.client.table("novels").upsert(rows, on_conflict="file_path").execute()
 
     def _sync_photos(self) -> None:
         photo_dir = Path(settings.photo_dir)
         if not photo_dir.exists():
             return
-
-        print(f"Checking photos in {photo_dir}...")
         photo_paths = list(photo_dir.glob("*.png"))
-        total = len(photo_paths)
-
-        for i, path in enumerate(photo_paths, 1):
+        for path in photo_paths:
             if not path.stem.isdigit() or len(path.stem) != 8:
                 continue
-
             date_str = path.stem
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             storage_path = f"photos/{date_str}.png"
-
-            print(f"[{i}/{total}] Uploading {path.name} to storage...")
             with open(path, "rb") as f:
                 self.client.storage.from_("vlog-photos").upload(
                     storage_path,
                     f.read(),
                     {"content-type": "image/png", "upsert": "true"},
                 )
-
             image_url = self.client.storage.from_("vlog-photos").get_public_url(
                 storage_path
             )
-
-            print(f"  Updating image_url for {date_str}...")
             self.client.table("novels").update({"image_url": image_url}).eq(
                 "date", date_obj.isoformat()
             ).execute()
@@ -219,16 +190,12 @@ class SupabaseRepository:
         eval_dir = Path(settings.summary_dir).parent / "evaluations"
         if not eval_dir.exists():
             return
-
-        print(f"Checking evaluations in {eval_dir}...")
         for path in eval_dir.glob("*.json"):
             date_str = path.stem
             if not date_str.isdigit() or len(date_str) != 8:
                 continue
-
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             data = json.loads(path.read_text(encoding="utf-8"))
-
             rows.append(
                 {
                     "date": date_obj.isoformat(),
@@ -244,14 +211,7 @@ class SupabaseRepository:
                     ),
                 }
             )
-
         if rows:
-            print(f"Upserting {len(rows)} evaluations...")
-            try:
-                self.client.table("evaluations").upsert(
-                    rows, on_conflict="date, target_type"
-                ).execute()
-            except Exception as e:
-                print(
-                    f"Warning: Failed to sync evaluations. Table might be missing. {e}"
-                )
+            self.client.table("evaluations").upsert(
+                rows, on_conflict="date, target_type"
+            ).execute()

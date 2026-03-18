@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import threading
@@ -16,13 +15,11 @@ from src.infrastructure.settings import settings
 if TYPE_CHECKING:
     from faster_whisper import WhisperModel
 
-logger = logging.getLogger(__name__)
-
 SILENCE_THRESHOLD = 0.02
 
 
 class AudioRecorder:
-    def __init__(self):
+    def __init__(self) -> None:
         self._base_dir = settings.recording_dir
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -33,7 +30,6 @@ class AudioRecorder:
         with self._lock:
             if self._current_file:
                 return self._current_file
-
             os.makedirs(self._base_dir, exist_ok=True)
             self._current_file = os.path.join(
                 self._base_dir, datetime.now().strftime("%Y%m%d_%H%M%S.flac")
@@ -41,34 +37,28 @@ class AudioRecorder:
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._record_loop, daemon=True)
             self._thread.start()
-            logger.info("Started recording to %s", self._current_file)
             return self._current_file
 
     def stop(self) -> tuple[str, ...] | None:
         if not self._thread:
             return None
-
         self._stop_event.set()
         self._thread.join()
-
         with self._lock:
             self._thread = None
             path = self._current_file
             self._current_file = None
-
             if path and os.path.exists(path):
                 if os.path.getsize(path) > 100:
-                    logger.info("Stopped recording. Saved %s", path)
                     return (path,)
                 os.unlink(path)
-                logger.info("Stopped recording. File discarded due to size: %s", path)
             return None
 
     @property
     def is_recording(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
 
-    def _record_loop(self):
+    def _record_loop(self) -> None:
         with (
             sf.SoundFile(
                 self._current_file,
@@ -126,11 +116,8 @@ class Transcriber:
         base = Path(audio_path).stem
         os.makedirs(settings.transcript_dir, exist_ok=True)
         out_path = Path(settings.transcript_dir) / f"{base}.txt"
-
         if out_path.exists():
-            print(f"Transcript already exists for {base}, skipping Whisper.")
             return out_path.read_text(encoding="utf-8").strip(), str(out_path)
-
         text = self.transcribe(audio_path)
         out_path.write_text(text + "\n", encoding="utf-8")
         return text, str(out_path)
@@ -140,24 +127,13 @@ class Transcriber:
 
 
 class ProcessMonitor:
-    def __init__(self):
+    def __init__(self) -> None:
         self._targets = {name.lower() for name in settings.process_names}
         self._last_status = False
-        self._logged_sample = False
 
     def is_running(self) -> bool:
         current_status = self._check_processes()
-        if current_status != self._last_status:
-            self._last_status = current_status
-            if current_status:
-                logger.info("Target process detected.")
-                self._logged_sample = False
-            else:
-                logger.info("Target process no longer detected.")
-        if not current_status and not self._logged_sample:
-            sample = self._sample_processes()
-            logger.info("No target found. Sample running processes: %s", sample)
-            self._logged_sample = True
+        self._last_status = current_status
         return current_status
 
     def _check_processes(self) -> bool:
@@ -171,16 +147,6 @@ class ProcessMonitor:
             if any(target in exe for target in self._targets):
                 return True
         return False
-
-    def _sample_processes(self) -> list[str]:
-        names = []
-        for proc in psutil.process_iter(["name"]):
-            if len(names) >= 10:
-                break
-            name = proc.info.get("name")
-            if name:
-                names.append(name)
-        return names
 
 
 class TranscriptPreprocessor:
@@ -233,16 +199,14 @@ class TranscriptPreprocessor:
 
     def _normalize_text(self, txt: str) -> str:
         txt = txt.replace("…", " ")
-        txt = re.sub(r"\.{2,}", " ", txt)
-        return txt
+        return re.sub(r"\.{2,}", " ", txt)
 
     def _remove_repetition(self, txt: str) -> str:
         return re.sub(r"(.{1,4}?)\1{4,}", r"\1", txt)
 
     def _remove_fillers(self, txt: str) -> str:
         fillers = sorted(self.FILLERS, key=len, reverse=True)
-        pattern_str = "|".join(fillers)
-        pattern = f"(^|[\\s、。?!])({pattern_str})(?=[\\s、。?!]|$)"
+        pattern = f"(^|[\\s、。?!])({'|'.join(fillers)})(?=[\\s、。?!]|$)"
 
         def repl(match: re.Match[str]) -> str:
             leading = match.group(1)
@@ -253,18 +217,14 @@ class TranscriptPreprocessor:
             txt = re.sub(pattern, repl, txt)
             if txt == prev_txt:
                 break
-
         txt = re.sub(r"\s+", " ", txt).strip()
         txt = re.sub(r"([、。])\1+", r"\1", txt)
         txt = re.sub(r"^[、。]+", "", txt).strip()
         txt = re.sub(r"\s+[、。]+", "", txt)
-        txt = re.sub(r"\s+", " ", txt).strip()
-        return txt
+        return re.sub(r"\s+", " ", txt).strip()
 
     def _dedupe_words(self, txt: str) -> str:
         return re.sub(r"(\S+)\s+\1\b", r"\1", txt)
 
     def _merge_lines(self, txt: str) -> str:
-        txt = txt.replace("\n", " ")
-        txt = re.sub(r"\s+", " ", txt).strip()
-        return txt
+        return re.sub(r"\s+", " ", txt.replace("\n", " ")).strip()
