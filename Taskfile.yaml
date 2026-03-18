@@ -333,9 +333,9 @@ tasks:
       - journalctl --user -u vlog-daily.service --since "24 hours ago" -o short
 
   log:daily:
-    desc: vlog-daily.log の内容を表示（全体）
+    desc: vlog-daily.service のジャーナルログを表示
     cmds:
-      - test -f /tmp/vlog-daily.log && cat /tmp/vlog-daily.log || echo "No log file"
+      - journalctl --user -u vlog-daily.service --no-pager
 
   log:clear:
     desc: vlog-daily.log をクリア（新しい週の開始時）
