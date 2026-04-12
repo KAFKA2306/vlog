@@ -134,6 +134,9 @@ class Settings(BaseSettings):
     archive_after_process: bool = _config.get("processing", {}).get(
         "archive_after_process", True
     )
+    min_transcript_size_bytes: int = _config.get("processing", {}).get(
+        "min_transcript_size_bytes", 50
+    )
     archive_dir: Path = Field(
         default_factory=lambda: Path(
             _config.get("paths", {}).get("archive_dir", "data/archives")

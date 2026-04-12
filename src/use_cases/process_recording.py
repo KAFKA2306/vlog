@@ -39,6 +39,10 @@ class ProcessRecordingUseCase:
 
         session = self._create_session(audio_path)
         transcript = self._process_transcript(audio_path)
+        if transcript is None:
+            self._finalize(audio_path)
+            return False
+
         self._save_summary(transcript, session)
         self._generate_novel_and_photo(session)
         self._finalize(audio_path)
@@ -56,6 +60,12 @@ class ProcessRecordingUseCase:
 
         merged = " ".join(text for text, _ in transcripts_info)
         cleaned = self._preprocessor.process(merged)
+
+        if len(cleaned.encode("utf-8")) <= settings.min_transcript_size_bytes:
+            print(f"Transcript too short ({len(cleaned.encode('utf-8'))}B), skipping.")
+            for audio_path in session.file_paths:
+                self._files.archive(audio_path)
+            return
 
         if transcripts_info:
             _, first_path = transcripts_info[0]
@@ -78,11 +88,16 @@ class ProcessRecordingUseCase:
             end_time=datetime.now(),
         )
 
-    def _process_transcript(self, audio_path: str) -> str:
+    def _process_transcript(self, audio_path: str) -> str | None:
         transcript, transcript_path = self._transcriber.transcribe_and_save(audio_path)
         self._transcriber.unload()
 
         cleaned = self._preprocessor.process(transcript)
+
+        if len(cleaned.encode("utf-8")) <= settings.min_transcript_size_bytes:
+            print(f"Transcript too short ({len(cleaned.encode('utf-8'))}B), skipping.")
+            return None
+
         cleaned_path = str(
             Path(transcript_path).with_name(f"cleaned_{Path(transcript_path).name}")
         )

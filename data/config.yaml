@@ -16,6 +16,7 @@ audio:
   max_duration_minutes: 30
 processing:
   min_file_size_bytes: 102400
+  min_transcript_size_bytes: 50
   min_duration_seconds: 10
   skip_if_processed: true
   archive_after_process: true
