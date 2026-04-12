@@ -6,6 +6,9 @@ from src.domain.interfaces import ImageGeneratorProtocol, NovelizerProtocol
 from src.infrastructure.cognee import cognee_memory
 from src.infrastructure.settings import settings
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
+
 
 class BuildNovelUseCase:
     def __init__(
@@ -30,7 +33,6 @@ class BuildNovelUseCase:
         if novel_path.exists():
             novel_so_far = novel_path.read_text(encoding="utf-8")
 
-        # Fetch relevant memories from Cognee
         past_memories = self._fetch_memories(today_summary)
         context = f"Past Memories:\n{past_memories}\n\n" if past_memories else ""
 
@@ -49,21 +51,18 @@ class BuildNovelUseCase:
         return novel_path
 
     def _fetch_memories(self, query: str) -> str:
-        """Fetch relevant memories from Cognee based on today's summary."""
-        try:
-            results = asyncio.run(cognee_memory.search(query))
-            if not results:
-                return ""
-
-            # Standardize extraction of results based on Cognee 1.0 output structure
-            memory_texts = []
-            for res in results:
-                if isinstance(res, dict) and "search_result" in res:
-                    memory_texts.extend(res["search_result"])
-                else:
-                    memory_texts.append(str(res))
-
-            return "\n---\n".join(memory_texts[:3])  # Top 3 relevant memories
-        except Exception as e:
-            print(f"Failed to fetch memories: {e}")
+        if not QUEUE_PATH.exists():
             return ""
+
+        results = asyncio.run(cognee_memory.search(query))
+        if not results:
+            return ""
+
+        memory_texts = []
+        for res in results:
+            if isinstance(res, dict) and "search_result" in res:
+                memory_texts.extend(res["search_result"])
+            else:
+                memory_texts.append(str(res))
+
+        return "\n---\n".join(memory_texts[:3])

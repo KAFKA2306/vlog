@@ -258,6 +258,38 @@ tasks:
         exit $ERR
 
   # ────────────────────────────────────────
+  # Cognee ナレッジグラフ
+  # ────────────────────────────────────────
+  cognee:init:
+    desc: Cognee キュー初期化
+    cmd: uv run python scripts/init_cognee_queue.py
+
+  cognee:ingest:
+    desc: Cognee キューから次のバッチを処理
+    cmd: uv run python scripts/ingest_to_cognee.py
+
+  cognee:status:
+    desc: Cognee キュー状況表示
+    cmd: |
+      uv run python -c "
+      import yaml
+      q = yaml.safe_load(open('data/cognee_queue.yaml'))
+      files = q['files']
+      total = len(files)
+      stats = {}
+      for f in files:
+          stats[f['status']] = stats.get(f['status'], 0) + 1
+      print(f'Total: {total}')
+      for s in ['completed','pending','processing','failed']:
+          if s in stats: print(f'  {s}: {stats[s]}')
+      failed = [f for f in files if f['status'] == 'failed']
+      if failed:
+          print('Failed files:')
+          for f in failed:
+              print(f'  - {f[\"name\"]}: {f[\"error\"]}')
+      "
+
+  # ────────────────────────────────────────
   # デバッグ用
   # ────────────────────────────────────────
   service:status:

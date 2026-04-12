@@ -1,6 +1,7 @@
-import asyncio
 from datetime import datetime
 from pathlib import Path
+
+import yaml
 
 from src.domain.entities import RecordingSession
 from src.domain.interfaces import (
@@ -12,8 +13,10 @@ from src.domain.interfaces import (
     TranscriberProtocol,
     TranscriptPreprocessorProtocol,
 )
-from src.infrastructure.cognee import cognee_memory
 from src.infrastructure.settings import settings
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
 
 
 class ProcessRecordingUseCase:
@@ -134,17 +137,25 @@ class ProcessRecordingUseCase:
         return summary_text
 
     def _update_memory(self, summary_text: str, session: RecordingSession) -> None:
-        """Update Cognee long-term memory with the new summary."""
-        try:
-            metadata = {
-                "date": session.start_time.strftime("%Y-%m-%d"),
-                "type": "daily_summary",
-            }
-            # Run async Cognee operation in the background
-            asyncio.run(cognee_memory.remember(summary_text, metadata))
-            print(f"Long-term memory updated for {metadata['date']}.")
-        except Exception as e:
-            print(f"Failed to update long-term memory: {e}")
+        target_date = session.start_time.strftime("%Y%m%d")
+        summary_name = f"{target_date}_summary.txt"
+
+        if not QUEUE_PATH.exists():
+            return
+
+        queue = yaml.safe_load(QUEUE_PATH.read_text(encoding="utf-8"))
+        known = {f["name"] for f in queue.get("files", [])}
+        if summary_name not in known:
+            queue.setdefault("files", []).append(
+                {"name": summary_name, "status": "pending", "error": None}
+            )
+            content = yaml.dump(
+                queue,
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=False,
+            )
+            QUEUE_PATH.write_text(content, encoding="utf-8")
 
     def _generate_novel_and_photo(self, session: RecordingSession) -> None:
         if not (self._novelizer and self._image_generator):
