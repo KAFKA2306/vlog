@@ -23,7 +23,7 @@
 
 # Model
 
-Use gemini-3-flash-preview, always in config.yaml
+Model name defined in `data/config.yaml` only (PROTECTED — see model_protection.md)
 
 # Docs
 

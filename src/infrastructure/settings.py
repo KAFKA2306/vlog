@@ -32,6 +32,10 @@ def load_prompts() -> Dict[str, Any]:
 _config = load_config()
 _prompts = load_prompts()
 
+_DEFAULT_LLM_MODEL = _config.get("gemini", {}).get(
+    "model", "gemini-3.1-flash-lite-preview"
+)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -39,14 +43,14 @@ class Settings(BaseSettings):
     )
 
     gemini_api_key: str = Field(alias="GOOGLE_API_KEY")
-    gemini_model: str = _config.get("gemini", {}).get("model", "gemini-2.5-flash")
-    novel_model: str = _config.get("novel", {}).get("model", "gemini-2.5-flash")
+    gemini_model: str = _config.get("gemini", {}).get("model", _DEFAULT_LLM_MODEL)
+    novel_model: str = _config.get("novel", {}).get("model", _DEFAULT_LLM_MODEL)
     novel_max_output_tokens: int = _config.get("novel", {}).get(
         "max_output_tokens", 8192
     )
 
     jules_api_key: str = Field(default="", alias="GOOGLE_JULES_API_KEY")
-    jules_model: str = _config.get("jules", {}).get("model", "gemini-2.5-flash")
+    jules_model: str = _config.get("jules", {}).get("model", _DEFAULT_LLM_MODEL)
 
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
     supabase_service_role_key: str = Field(
