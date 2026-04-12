@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from src.domain.interfaces import (
     TranscriberProtocol,
     TranscriptPreprocessorProtocol,
 )
+from src.infrastructure.cognee import cognee_memory
 from src.infrastructure.settings import settings
 
 
@@ -43,7 +45,10 @@ class ProcessRecordingUseCase:
             self._finalize(audio_path)
             return False
 
-        self._save_summary(transcript, session)
+        summary_text = self._save_summary(transcript, session)
+        if summary_text:
+            self._update_memory(summary_text, session)
+
         self._generate_novel_and_photo(session)
         self._finalize(audio_path)
 
@@ -73,7 +78,10 @@ class ProcessRecordingUseCase:
             cleaned_path = p.with_name(f"cleaned_{p.name}")
             self._files.save_text(str(cleaned_path), cleaned)
 
-        self._save_summary(cleaned, session)
+        summary_text = self._save_summary(cleaned, session)
+        if summary_text:
+            self._update_memory(summary_text, session)
+
         self._generate_novel_and_photo(session)
 
         for audio_path in session.file_paths:
@@ -104,14 +112,14 @@ class ProcessRecordingUseCase:
         self._files.save_text(cleaned_path, cleaned)
         return cleaned
 
-    def _save_summary(self, transcript: str, session: RecordingSession) -> None:
+    def _save_summary(self, transcript: str, session: RecordingSession) -> str | None:
         target_date = session.start_time.strftime("%Y%m%d")
         summary_path = settings.summary_dir / f"{target_date}_summary.txt"
         summary_path.parent.mkdir(parents=True, exist_ok=True)
 
         if summary_path.exists():
             print(f"Summary already exists for {target_date}, skipping.")
-            return
+            return summary_path.read_text(encoding="utf-8")
 
         pattern = f"cleaned_{target_date}_*.txt"
         daily_files = sorted(settings.transcript_dir.glob(pattern))
@@ -123,6 +131,20 @@ class ProcessRecordingUseCase:
 
         summary_text = self._summarizer.summarize(combined_transcript, session)
         self._files.save_text(str(summary_path), summary_text)
+        return summary_text
+
+    def _update_memory(self, summary_text: str, session: RecordingSession) -> None:
+        """Update Cognee long-term memory with the new summary."""
+        try:
+            metadata = {
+                "date": session.start_time.strftime("%Y-%m-%d"),
+                "type": "daily_summary",
+            }
+            # Run async Cognee operation in the background
+            asyncio.run(cognee_memory.remember(summary_text, metadata))
+            print(f"Long-term memory updated for {metadata['date']}.")
+        except Exception as e:
+            print(f"Failed to update long-term memory: {e}")
 
     def _generate_novel_and_photo(self, session: RecordingSession) -> None:
         if not (self._novelizer and self._image_generator):
