@@ -3,6 +3,7 @@ pushd "%~dp0.."
 
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"
+set "UV_PYTHON=3.12"
 set "PYTHONIOENCODING=utf-8"
 
 
