@@ -1,8 +1,13 @@
 [Unit]
 Description=VRChat Vlog Daily Processing
+OnFailure=vlog-daily-failure.service
 
 [Service]
 Type=oneshot
 WorkingDirectory=/home/kafka/projects/vlog
-ExecStart=/usr/bin/bash -c "/snap/bin/task process:daily"
+EnvironmentFile=/home/kafka/projects/vlog/.env
+ExecStart=/bin/bash -c "/snap/bin/task process:daily"
 Environment="PATH=/snap/bin:/home/kafka/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=default.target

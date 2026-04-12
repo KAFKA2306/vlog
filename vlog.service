@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/home/kafka/projects/vlog
+EnvironmentFile=/home/kafka/projects/vlog/.env
 ExecStart=/home/kafka/.local/bin/uv run python -m src.main
 Restart=always
 RestartSec=10
