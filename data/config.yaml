@@ -1,58 +1,8 @@
-process:
-  names: "VRChat.exe,VRChat,VRChatClient.exe"
-  check_interval: 5
-paths:
-  recording_dir: "data/recordings"
-  transcript_dir: "data/transcripts"
-  summary_dir: "data/summaries"
-  archive_dir: "data/archives"
-  photo_dir: "data/photos"
-  photo_prompt_dir: "data/photos_prompts"
-audio:
-  sample_rate: 16000
-  channels: 1
-  block_size: 1024
-  silence_threshold: 0.02
-  max_duration_minutes: 30
-processing:
-  min_file_size_bytes: 102400
-  min_transcript_size_bytes: 50
-  min_duration_seconds: 10
-  skip_if_processed: true
-  archive_after_process: true
-whisper:
-  model_size: "large-v3-turbo"
-  device: "cpu"
-  compute_type: "int8"
-  beam_size: 5
-  vad_filter: true
-  language: "ja"
-  vad_min_silence_duration_ms: 100
-  vad_speech_pad_ms: 360
-  chunk_length: 25
-  temperature: 0.0
-  repetition_penalty: 1.08
-  word_timestamps: true
 gemini:
-  model: "gemini-3.1-flash-lite-preview"
-
+  model: "gemini-2.5-flash"
 novel:
-  enabled: true
-  title: "VRChat Long Diary 2025"
-  out_dir: "data/novels"
-  model: "gemini-3.1-flash-lite-preview"
-  max_output_tokens: 4096
-
-image:
-  model: "Tongyi-MAI/Z-Image-Turbo"
-  device: "cuda"
-  width: 1024
-  height: 1024
-  num_inference_steps: 9
-  guidance_scale: 0.0
-  seed: 42
-  prompt_filters:
-    - '\b(pig|swine|hog|boar|piglet)s?\b'
-    - '\b(translucent|transparent|semi-transparent|ethereal)\b'
-    - '\b(vr|virtual|cyber|digital|hmd|headset|interface|hud|gui)\b'
-    - '\b(controller|tracker|vive|oculus|quest)\b'
+  model: "gemini-2.5-flash"
+manga:
+  model: "gemini-2.5-flash"
+jules:
+  model: "gemini-2.5-flash"
