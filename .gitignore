@@ -41,19 +41,20 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# Data (strict - no recordings, transcripts, summaries, novels)
-data/recordings/
-data/transcripts/
-data/summaries/
-data/archives/
-data/novels/
-data/photos/
-data/**/*.txt
-data/**/*.md
+# Data (Ignore all by default, allow only essential configs)
+data/**/*
+!data/config.yaml
+!data/prompts.yaml
+!data/tasks.json
+!data/cognee_queue.yaml
+!data/.gitkeep
+
+# Logs and Media
 logs/
 *.wav
 *.flac
 *.mp3
+*.png
 data/traces.jsonl
 data/evaluations/
 
