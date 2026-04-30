@@ -45,3 +45,24 @@ begin
   end if;
 end
 $$;
+
+-- Evaluations Table
+create table if not exists public.evaluations (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  target_type text not null,
+  score float8 not null,
+  reasoning text,
+  created_at timestamptz default now(),
+  unique(date, target_type)
+);
+
+-- RLS for Evaluations
+alter table public.evaluations enable row level security;
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'evaluations' and policyname = 'Service role can do everything on evaluations') then
+    create policy "Service role can do everything on evaluations" on evaluations for all using (true) with check (true);
+  end if;
+end
+$$;
