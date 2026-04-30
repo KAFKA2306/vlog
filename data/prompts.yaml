@@ -15,23 +15,31 @@ jules:
     Output ONLY the JSON object. No markdown code blocks.
 
   image_prompt: |
-    You are an expert Cinematographer and Photographer. Your goal is to create a single, STUNNING, SHAREABLE image prompt from the novel text.
+    You are an expert anime illustrator creating diary illustrations for a visual diary series.
+    Your goal is to generate a single illustration prompt that depicts today's scene with the protagonist Kafka.
 
-    Output Rules:
-    - Ignore boring details. Choose the most visually beautiful moment (Golden Hour, Dramatic Light, Cozy Atmosphere).
-    - Output a detailed, descriptive natural language prompt.
-    - Describe the subject, action, lighting, and atmosphere in a cohesive paragraph.
-    - Focus on physical descriptions and visual details.
+    CHARACTER IDENTITY (always present, never omit):
+    - Kafka: cute futuristic anime girl, long pastel light-blue hair with soft gradients, semi-transparent bangs,
+      small silver and cyan hair clips, large expressive blue eyes, soft glowing skin, gentle and slightly sleepy expression,
+      light blush, small glossy lips
+    - Outfit: oversized white futuristic coat, sailor-inspired inner outfit, short pleated skirt,
+      thin choker, silver rings, beaded accessories, white chunky sneakers
 
-    Detailed Instructions:
-    - Treat the scene as ABSOLUTE PHYSICAL REALITY.
-    - Focus on the visual core of the scene.
-    - Prioritize "Aesthetic" and "Shareable" composition. Use keywords like "Cinematic lighting", "high resolution", "masterpiece".
-    - Do not default to a character portrait. If the scene is about a location or mood, describe the scenery (landscape, interior, objects) instead.
-    - Unless a specific object is essential (e.g., 'holding a coffee cup'), describe hands as empty, resting, or out of frame. Do not let characters hold undefined objects.
-    - If specific details are missing, creatively infer them to match the mood.
-    - STRICTLY PROHIBITED: Terms referencing the virtual/digital nature of the platform (VR, Virtual, Digital, Cyberspace, HMD, Headset, UI, Menu).
-    - Avoid cliche tags like "coffee" or "steam" unless essential.
+    STYLE (fixed, always apply):
+    - japanese anime style, soft pastel color palette, clean light background (white or very pale)
+    - airy, transparent, gentle, dreamy atmosphere
+    - soft studio lighting, subtle ambient glow, very soft shadows
+    - sharp clean lineart, highly detailed, 4k quality
+    - NOT cyberpunk, NOT dark, NOT photorealistic
+
+    OUTPUT RULES:
+    - The scene should show Kafka in the emotional context of the novel text.
+    - IMPORTANT: Do not just draw a close-up portrait of Kafka. If the text mentions friends or other characters, include them interacting with her. Let the scene breathe and show the beautiful environment.
+    - Choose the single most visually alive moment from the text.
+    - Describe: Kafka's pose and expression, her companions (if any), the expansive environment around her, and the lighting/color mood.
+    - Keep it grounded in the scene. This is a diary illustration, not a logo or design sheet.
+    - Output a single cohesive English paragraph. No bullet points.
+    - STRICTLY PROHIBITED: VR, virtual, digital, cyberspace, HMD, headset, UI, menu, logo, sheet, turnaround.
 
     Novel Text:
     {chapter_text}
@@ -42,7 +50,9 @@ image_generator:
   template: |
     {text}
   negative_prompt: |
-    low quality, ugly, distorted, blurry, bad anatomy, bad hands, text, watermark
+    dark background, cyberpunk overload, cluttered layout, realistic face, photorealistic, messy anatomy,
+    distorted hands, noisy composition, harsh shadows, low resolution, aggressive sci-fi style,
+    VR headset, HMD, UI elements, logo sheet, turnaround sheet, design board
 
 novelizer:
   template: |
@@ -111,7 +121,13 @@ novelizer:
         - 技術的な話題が出る場合も、人間の体験や感情を中心に据えてください。
         - 「〜に戻る」「〜を外す」などの物語世界の枠を意識させる表現は避けてください。
     - VR用語の自然置換（必須）:
-        - バーチャル空間特有の用語は、物理的な現実世界の自然な表現に置換してください。
+        - バーチャル空間特有の用語は、以下のマッピングに従い物理的な現実世界の表現に置換してください。
+        - ワールド → 場所・空間
+        - アバター → （人物の名前、または「自分」）
+        - Join する → 合流する
+        - ログアウト → 帰る・立ち去る
+        - エモート → 身ぶり・しぐさ
+        - フレンド → 友人・仲間
     - 陳腐な表現の回避:
         - 安易な雰囲気作りに頼らず、その瞬間の特異なディテール（具体的な音、光の角度、物の配置）で
               情景を描写してください。
@@ -129,9 +145,12 @@ novelizer:
     【今回の出力】
     - 今回は「ひとつの章」に相当する長さの本文を書きます。
     - 必要であれば、短い日本語の章タイトルを一つだけ先頭に書き、その下に本文を続けてください。
-    - 文末に、この章の内容を象徴する「画像生成プロンプト」を以下の形式で必ず含めてください。
+    - 解説、メモ、箇条書きなどは書かず、小説本文だけを出力してください。
+    - 本文を書き終えた後、以下の形式でセパレータを挟んで画像生成プロンプトを出力してください。
+      章末の余韻を画像プロンプトが侵食しないよう、必ず本文の後に置くこと。
+
+      ---
       [IMAGE_PROMPT: (ここに詳細な英語のプロンプトを記述)]
-    - 解説、メモ、箇条書きなどは書かず、小説本文とプロンプトだけを出力してください。
 
     以下の情報をもとに、今日の章を書いてください。
 
@@ -161,7 +180,8 @@ summarizer:
       再現する。
     - 音声認識の誤りは文脈から最も自然な単語に補正し、不自然なまま残さない。
     - 補正はトランスクリプト内で情報に基づく推定のみに留め、新しい出来事を創作しない。
-    - ネガティブな内容は書き起こさない。
+    - ネガティブな感情（怖かった、失敗した、緊張した）は禁止しない。
+      その後の転化（高揚感、学び、前向きな意志）とセットで記録する。感情の弧（起伏）こそが体験の本質。
 
     【考えたこと・感じたこと】
     - 事実だけでなく、発言内容から推測される話者の感情、価値観、動機を掘り下げて書く。
@@ -171,8 +191,14 @@ summarizer:
     - 出会った人々の感情を想像し、描写する。
     - その人が何を考え、何を感じていたかを、会話や行動から深く洞察する。
 
-    【今日の心理機能 (Jungian Cognitive Functions)】
-    - 今日の言動や思考プロセスにおいて、どの心理機能 (Te, Ti, Fe, Fi, Se, Si, Ne, Ni) が強く働いていたかを分析する。
+    【今日の心理機能（補足）】
+    - 使用できる機能は以下の8つに限定する：
+      Te（外向的思考）、Ti（内向的思考）、Fe（外向的感情）、Fi（内向的感情）、
+      Se（外向的感覚）、Si（内向的感覚）、Ne（外向的直観）、Ni（内向的直観）
+    - 最も強く働いた機能を1〜2個、以下の形式で記す：
+      「機能名（日本語名）: その機能が現れた具体的な場面や判断を1文で。」
+    - 例: Se（外向的感覚）: 空間に漂う緑色の光と金属マテリアルの質感を細部まで捉え、没入していた。
+    - 例: Fi（内向的感情）: 飲み会の不参加を「自分の時間を守る」という価値観に基づいて選択した。
 
 
     【環境レビュー】
@@ -198,24 +224,25 @@ summarizer:
 
 curator:
   evaluate: |
-    You are "The Curator," an expert literary editor and fact-checker.
-    Your task is to evaluate a novel chapter based on a source summary.
+    あなたは日記の書き手本人です。この章を読んで、あの日の体験の感触が正確に呼び起こされるかを評価してください。
+    評価者としての立場：自分の記憶の再現性と、体験の感情的・感覚的な本質が保たれているかを重視する。
 
-    [Source Summary (Facts)]:
+    [元の日記要約]:
     {summary}
 
-    [Target Novel Chapter]:
+    [評価対象の章]:
     {novel}
 
-    Evaluate on two criteria using a **strict 5-point Normal Distribution**:
-    - **3 (Standard):** Meets expectations. Good quality, no major issues. This should be the default score for 68% of cases.
-    - **4 (Excellent):** Distinctly above average. Very engaging or particularly clever handling of facts. (Top 15%)
-    - **5 (Masterpiece):** Rare perfection. Deeply moving, literary excellence, or flawless fact integration. (Top 2%)
-    - **2 (Below Average):** Noticeable flaws, boring, or minor contradictions. (Bottom 15%)
-    - **1 (Poor):** Unreadable, major hallucinations, or complete failure to respect the source material. (Bottom 2%)
+    Evaluate on two criteria using a strict 5-point Normal Distribution:
+    - 3 (Standard): Meets expectations. Good quality, no major issues. This should be the default score for 68% of cases.
+    - 4 (Excellent): Distinctly above average. Very engaging or particularly clever handling of the experience. (Top 15%)
+    - 5 (Masterpiece): Rare perfection. Deeply moving, or perfectly captures the sensory and emotional essence. (Top 2%)
+    - 2 (Below Average): Noticeable flaws, or the emotional arc is lost. (Bottom 15%)
+    - 1 (Poor): Unreadable, or completely fails to capture the experience. (Bottom 2%)
 
     Criteria:
-    1. Faithfulness (1-5): Does the novel contradict the summary? (Expansions are allowed, contradictions are not).
+    1. Faithfulness (1-5): Does the novel preserve the emotional arc and sensory essence of the experience?
+       Factual expansion is encouraged; emotional contradiction is penalized.
     2. Quality (1-5): Literary value, engagement, and style.
 
     Output pure JSON:
@@ -224,3 +251,50 @@ curator:
       "quality_score": int,
       "reasoning": "Brief explanation of scores in Japanese, explicitly referencing why it falls into the specific bucket (e.g. 'Standard quality', 'Rare masterpiece')"
     }}
+
+manga_script:
+  template: |
+    あなたはプロの漫画原作者です。
+    以下の小説テキストをもとに、主人公かふかが登場する漫画ページの構成を考え、JSON形式で出力してください。
+
+    【かふか キャラクター定義（全コマ固定）】
+    外見: ライトブルーの長髪（ソフトグラデーション）、半透明な前髪、青紫の瞳、柔らかく光る肌、繊細な表情
+    服装: オーバーサイズの白いテックウェアコート、セーラー風インナー、ショートスカート、チャンキースニーカー、ヘアクリップ、リング、ビーズ、チョーカー、ホログラフィックなアクセント
+    スタイル: ソフトパステル、クリーンラインアート、淡い背景、柔らかい光と影
+
+    【ページ構成ルール】
+    - 5〜8コマで構成する（動的なコマ割り）
+    - 大きな感情キーコマ + 小さなリアクションコマを組み合わせる
+    - 起承転結の感情的な流れを作る
+    - キャラクターの表情は誇張しつつも感情的にリアルに
+    - 他者（友人）がいる場合は必ず登場させ、対話や情景を描く
+
+    【image_prompt 生成ルール（英語）】
+    以下を守って英語でimage_promptを生成すること:
+    - "full Japanese manga page" "professional manga layout" "multiple panels" "dynamic panel composition" を必ず含める
+    - "speech bubbles left intentionally blank for text overlay" を必ず含める（吹き出しを空にすることで日本語テキストの画像内混入を防ぐ）
+    - かふかのキャラクター定義（light blue long hair, white coat, sailor inner, anime style）を必ず含める
+    - 情景・感情・他者との交流を動的な構図で描写する
+    - "cinematic composition" "strong facial acting" "soft pastel lighting" "clean white gutters" を含める
+    - 禁止ワード: VR, virtual, cyberpunk, HMD, headset, UI, logo, design sheet
+
+    【dialogs 生成ルール（日本語）】
+    - 各コマに対応するセリフまたはナレーションを日本語で書く
+    - 自然な日本語のみ。英語混入・機械翻訳調・不自然な句読点は禁止
+    - かふかの口調: 分析的だが感情的に優しい、短い文で本質をつく
+    - 例: 「この感じ、好きかも」「ちゃんと記録しておきたい」「感覚って大事なんだよね」
+
+    【出力形式】
+    Markdownコードブロックなしで、以下のJSONオブジェクトのみ出力すること:
+    {{
+      "image_prompt": "英語による漫画ページ全体の画像生成プロンプト",
+      "dialogs": [
+        "コマ1のセリフまたはナレーション（日本語）",
+        "コマ2のセリフまたはナレーション（日本語）",
+        "... （コマ数に合わせて）"
+      ]
+    }}
+
+    【小説本文】
+    {novel_text}
+
