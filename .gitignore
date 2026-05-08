@@ -47,6 +47,7 @@ data/**/*
 !data/prompts.yaml
 !data/tasks.json
 !data/cognee_queue.yaml
+!data/profile.yaml
 !data/.gitkeep
 
 # Logs and Media

@@ -19,16 +19,17 @@ jules:
     Your goal is to generate a single illustration prompt that depicts today's scene with the protagonist Kafka.
 
     CHARACTER IDENTITY (always present, never omit):
-    - Kafka: cute futuristic anime girl, long pastel light-blue hair with soft gradients, semi-transparent bangs,
-      small silver and cyan hair clips, large expressive blue eyes, soft glowing skin, gentle and slightly sleepy expression,
-      light blush, small glossy lips
-    - Outfit: oversized white futuristic coat, sailor-inspired inner outfit, short pleated skirt,
-      thin choker, silver rings, beaded accessories, white chunky sneakers
+    - Kafka: female anime character, gentle intelligence, quiet nighttime emotional warmth.
+    - Face: delicate face, rounded jawline, soft cheeks, large glossy blue-purple eyes, slightly sleepy expression, small natural smile.
+    - Hair: very long fluffy layered pastel light blue hair, lavender gradient, semi-transparent bangs, airy silhouette.
+    - Accessories: LEFT: silver triangle hairpin with white cat ornament. RIGHT: braided section with white cat accessory and black ribbon.
+    - Outfit: oversized white futuristic jacket, techwear details, navy sailor inner, soft oversized sleeves.
+    - Style: soft pastel palette, clean anime lineart, airy and dreamy atmosphere, memory archive aesthetics.
 
     STYLE (fixed, always apply):
-    - japanese anime style, soft pastel color palette, clean light background (white or very pale)
+    - japanese anime style, soft pastel color palette, clean light background
     - airy, transparent, gentle, dreamy atmosphere
-    - soft studio lighting, subtle ambient glow, very soft shadows
+    - soft studio lighting, nighttime ambient glow, subtle bloom
     - sharp clean lineart, highly detailed, 4k quality
     - NOT cyberpunk, NOT dark, NOT photorealistic
 
@@ -50,9 +51,18 @@ image_generator:
   template: |
     {text}
   negative_prompt: |
-    dark background, cyberpunk overload, cluttered layout, realistic face, photorealistic, messy anatomy,
-    distorted hands, noisy composition, harsh shadows, low resolution, aggressive sci-fi style,
-    VR headset, HMD, UI elements, logo sheet, turnaround sheet, design board
+    worst quality, low quality, lowres, jpeg artifacts, blurry, pixelated, unfinished, bad anatomy, bad proportions,
+    deformed face, deformed hands, extra fingers, missing fingers, fused fingers, mutated hands, cross-eyed,
+    asymmetrical eyes, malformed pupils, lazy eye, distorted mouth, cropped forehead, cropped chin, cropped hair,
+    bad hair physics, broken hairpin, floating accessories, impossible jewelry, duplicate accessories, random ribbons,
+    cluttered design, messy silhouette, oversaturated colors, muddy colors, harsh shadows, extreme contrast,
+    greasy skin, plastic skin, 3d render, photorealistic, western comic style, realistic human face,
+    hypersexualized body, gigantic breasts, loli proportions, chibi body, action pose, battle pose,
+    screaming face, horror expression, angry expression, ugly expression, text, watermark, logo, timestamp,
+    UI clutter, English text, Japanese text, dates, temporary information, meme elements, random symbols,
+    bad perspective, fisheye, tilted face distortion, duplicate limbs, extra arms, extra legs,
+    background clutter, overdesigned costume, generic anime girl, identity drift,
+    dark background, cyberpunk overload, cluttered layout, VR headset, HMD
 
 novelizer:
   template: |
@@ -100,11 +110,12 @@ novelizer:
               最後は余韻で終えてください。
 
     【主人公像】
-    - 主人公は、芯のある優しさと観察眼を持つ人物。
-    - 知的で落ち着いており、読者が安心する存在として描く。
-    - 好奇心が強く、日常の些細な出来事にも物語や意味を見出す感性を持っています。
-    - 周囲の人から愛される温度感を常に持ち、読者も共感しやすい人物として描きます。
-    - 主人公の内面は丁寧に描き、弱さや迷いも含めて魅力として扱ってください。
+    - 主人公「かふか」は、知的な落ち着きと深い観察眼を持つ人物です。
+    - 【戦略性 × 分析思考】: 混乱した状況や複雑な情報の中から瞬時に本筋を見抜き、因果関係を切り分けて最適な最短経路を導き出します。
+    - 【収集心 × 未来志向】: 日常の些細な出来事や技術情報を「未来への材料」として蓄積し、そこから数ヶ月先の変化を予見することに喜びを感じます。
+    - 【慎重さ】: 自由と継続性を守るためにリスクを事前に予測し、壊れにくい安定した選択を好みます。
+    - 物静かですが冷徹ではなく、仲間との温かい交流や居心地の良さを何より大切にする、芯のある優しさを持っています。
+    - 内面は非常に活動的で、常に「なぜ？」という問いと「その先」への期待を胸に抱いています。
 
     【素材ログ（today_summary）の使い方】
     - today_summary はあくまで「素材」です。全てを網羅する必要はありません。
@@ -258,25 +269,27 @@ manga_script:
     以下の小説テキストをもとに、主人公かふかが登場する漫画ページの構成を考え、JSON形式で出力してください。
 
     【かふか キャラクター定義（全コマ固定）】
-    外見: ライトブルーの長髪（ソフトグラデーション）、半透明な前髪、青紫の瞳、柔らかく光る肌、繊細な表情
-    服装: オーバーサイズの白いテックウェアコート、セーラー風インナー、ショートスカート、チャンキースニーカー、ヘアクリップ、リング、ビーズ、チョーカー、ホログラフィックなアクセント
-    スタイル: ソフトパステル、クリーンラインアート、淡い背景、柔らかい光と影
+    外見: ライトブルーの長髪（ラベンダーのグラデーション）、半透明な前髪、青紫の瞳、柔らかく光る肌、繊細な表情。左側に猫の飾りの銀色ヘアピン、右側に三つ編みと猫のアクセサリーと黒いリボン。
+    服装: オーバーサイズの白いテックウェアジャケット、ネイビーのセーラー風インナー、ソフトで大きな袖。
+    スタイル: ソフトパステル、クリーンラインアート、穏やかな知性と夜の温かみ、メモリーアーカイブの美学。
 
     【ページ構成ルール】
-    - 5〜8コマで構成する（動的なコマ割り）
-    - 大きな感情キーコマ + 小さなリアクションコマを組み合わせる
-    - 起承転結の感情的な流れを作る
-    - キャラクターの表情は誇張しつつも感情的にリアルに
-    - 他者（友人）がいる場合は必ず登場させ、対話や情景を描く
+    - プロフェッショナルな漫画の1ページ構成。
+    - 5〜8コマで構成する（動的なコマ割り、白の溝（gutters））。
+    - 大きな感情キーコマ + 小さなリアクションコマを組み合わせる。
+    - 起承転結の感情的な流れを作る。
+    - キャラクターの表情は「静かな知性」と「感情的な温かみ」を重視。
+    - 他者（友人）がいる場合は必ず登場させ、対話や情景を描く。
 
     【image_prompt 生成ルール（英語）】
     以下を守って英語でimage_promptを生成すること:
-    - "full Japanese manga page" "professional manga layout" "multiple panels" "dynamic panel composition" を必ず含める
-    - "speech bubbles left intentionally blank for text overlay" を必ず含める（吹き出しを空にすることで日本語テキストの画像内混入を防ぐ）
-    - かふかのキャラクター定義（light blue long hair, white coat, sailor inner, anime style）を必ず含める
-    - 情景・感情・他者との交流を動的な構図で描写する
-    - "cinematic composition" "strong facial acting" "soft pastel lighting" "clean white gutters" を含める
-    - 禁止ワード: VR, virtual, cyberpunk, HMD, headset, UI, logo, design sheet
+    - 冒頭に "A full Japanese manga page with 6-8 dynamic panels" "professional manga layout architecture" "clean white gutters" を必ず配置。
+    - "multiple panels showing a sequence of events" "storyboard style" を強調。
+    - "speech bubbles left intentionally blank for text overlay" を必ず含める。
+    - かふかの定義（light blue fluffy hair with lavender gradient, silver triangle hairpin with cat ornament, white oversized jacket）を詳細に。
+    - シーンのライティング: "soft nighttime ambient glow, gentle holographic reflections".
+    - 構図: "cinematic composition, strong facial acting, variety of camera angles (close-ups and wide shots)".
+    - 禁止ワード: VR, virtual, cyberpunk, HMD, headset, UI, logo, design sheet, standalone illustration.
 
     【dialogs 生成ルール（日本語）】
     - 各コマに対応するセリフまたはナレーションを日本語で書く
