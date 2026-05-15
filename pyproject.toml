@@ -25,6 +25,7 @@ dependencies = [
     "pydantic-settings>=2.12.0",
     "pillow>=12.0.0",
     "cognee[all]>=1.0.0",
+    "codd-dev>=2.18.0",
 ]
 
 [tool.ruff]
