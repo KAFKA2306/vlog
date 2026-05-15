@@ -3,14 +3,29 @@ import re
 from pathlib import Path
 
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
+from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.repositories import (
     FileRepository,
     SupabaseRepository,
     TaskRepository,
 )
-from src.infrastructure.system import Transcriber, TranscriptPreprocessor
+from src.infrastructure.system import (
+    ProcessMonitor,
+    Transcriber,
+    TranscriptPreprocessor,
+)
 from src.use_cases.build_novel import BuildNovelUseCase
+from src.use_cases.extract_graph import ExtractGraphUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
+
+
+def _guard_vrc_running() -> None:
+    """Exit if VRChat is running to prevent GPU crash."""
+    if ProcessMonitor().is_running():
+        print("⚠️ VRChat is running. Skipping heavy processing to prevent crash.")
+        import sys
+
+        sys.exit(0)
 
 
 def cmd_process(args: argparse.Namespace) -> None:
@@ -27,7 +42,8 @@ def cmd_process(args: argparse.Namespace) -> None:
 
 
 def cmd_novel(args: argparse.Namespace) -> None:
-    use_case = BuildNovelUseCase(Novelizer(), ImageGenerator())
+    graph_storage = GraphStorage(Path("data/graph.jsonl"))
+    use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
     use_case.execute(args.date)
     SupabaseRepository().sync()
 
@@ -87,6 +103,7 @@ def cmd_summarize(args: argparse.Namespace) -> None:
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
+    _guard_vrc_running()
     transcript_dir = Path("data/transcripts")
     summary_dir = Path("data/summaries")
     novel_dir = Path("data/novels")
@@ -113,6 +130,11 @@ def cmd_pending(args: argparse.Namespace) -> None:
             for f in transcript_dir.glob("*.txt")
             if re.search(r"(\d{8})", f.stem)
         }
+        | {
+            re.search(r"(\d{8})", f.stem).group(1)
+            for f in summary_dir.glob("*_summary.txt")
+            if re.search(r"(\d{8})", f.stem)
+        }
     )
     summarizer = Summarizer()
     for d in [dt for dt in dates if not (summary_dir / f"{dt}_summary.txt").exists()]:
@@ -124,7 +146,17 @@ def cmd_pending(args: argparse.Namespace) -> None:
             date_str=d,
         )
         file_repo.save_summary(summary, d)
-    use_case = BuildNovelUseCase(Novelizer(), ImageGenerator())
+    import time
+
+    graph_storage = GraphStorage(Path("data/graph.jsonl"))
+    extractor = ExtractGraphUseCase(graph_storage)
+    for d in dates:
+        summary_p = summary_dir / f"{d}_summary.txt"
+        if summary_p.exists():
+            if extractor.execute(summary_p) > 0:
+                time.sleep(4)  # Avoid rate limit (15 RPM)
+
+    use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
     for d in [
         dt
         for dt in dates
@@ -145,3 +177,16 @@ def cmd_notify(args: argparse.Namespace) -> None:
     from src.infrastructure.discord import DiscordClient
 
     DiscordClient().send_message(args.message)
+
+
+def cmd_manga(args: argparse.Namespace) -> None:
+    from src.use_cases.build_manga import build_manga
+
+    build_manga(args.novel_file)
+
+
+def cmd_check_vrc(args: argparse.Namespace) -> None:
+    if ProcessMonitor().is_running():
+        import sys
+
+        sys.exit(1)

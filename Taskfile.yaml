@@ -1,6 +1,7 @@
 version: "3"
 
-env: {}
+env:
+  LD_LIBRARY_PATH: "{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cudnn/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cublas/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/nccl/lib"
 
 tasks:
   # ────────────────────────────────────────
@@ -145,6 +146,7 @@ tasks:
   process:daily:
     desc: 日次処理（昨日＋今日）
     cmds:
+      - uv run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
       - task process:yesterday
       - task process:today
       - YESTERDAY=$(date -d "yesterday" +%Y%m%d); uv run python -m src.cli summarize --date $YESTERDAY || true
@@ -153,6 +155,9 @@ tasks:
       - TODAY=$(date +%Y%m%d); task novel:build date=$TODAY || true
       - task process:pending
       - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task curator:eval date=$YESTERDAY || true
+      - task graph:ingest
+      - task cognee:init || true
+      - task cognee:ingest || true
       - task sync || echo "⚠️  Supabase sync failed (paused?). Continuing anyway."
       - uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +'%Y-%m-%d %H:%M:%S')）"
 
@@ -258,6 +263,15 @@ tasks:
         exit $ERR
 
   # ────────────────────────────────────────
+  # Graph Scribe (シンプルグラフ)
+  # ────────────────────────────────────────
+  graph:ingest:
+    desc: 全要約からグラフデータを抽出
+    cmd: uv run python -m src.cli pending
+    # cmd_pending がグラフ抽出を含むようになったため、pending を呼ぶだけでOK
+    # 明示的に呼びたい場合は専用のCLIコマンドを作るが、今はpendingに統合。
+
+  # ────────────────────────────────────────
   # Cognee ナレッジグラフ
   # ────────────────────────────────────────
   cognee:init:
@@ -266,6 +280,8 @@ tasks:
 
   cognee:ingest:
     desc: Cognee キューから次のバッチを処理
+    env:
+      COGNEE_SKIP_CONNECTION_TEST: "true"
     cmd: uv run python scripts/ingest_to_cognee.py
 
   cognee:status:
@@ -326,6 +342,19 @@ tasks:
     desc: 全小説から画像を一括生成
     cmds:
       - for f in data/novels/*.md; do [ -f "$f" ] && task photo novel="$f"; done || true
+
+  manga:
+    desc: 小説から4コマ漫画を生成
+    cmds:
+      - uv run python -m src.cli manga --novel-file {{.novel}}
+    preconditions:
+      - sh: test -n "{{.novel}}"
+        msg: novel=data/novels/YYYYMMDD.mdを指定してください
+
+  mangas:
+    desc: 全小説から4コマ漫画を一括生成
+    cmds:
+      - for f in data/novels/*.md; do [ -f "$f" ] && task manga novel="$f"; done || true
 
   # ────────────────────────────────────────
   # 内部ヘルパー
@@ -388,3 +417,13 @@ tasks:
         echo ""
         echo "■ Supabase Sync Status"
         task sync &>/dev/null && echo "✅ Supabase: ACCESSIBLE" || echo "⚠️  Supabase: PAUSED or UNREACHABLE"
+        echo ""
+        echo "■ Persona Distillation"
+        test -d data/skills/vlog_user && echo "✅ vlog_user skill: EXISTS" || echo "❌ vlog_user skill: NOT FOUND"
+
+  # ────────────────────────────────────────
+  # dot-skill 連携
+  # ────────────────────────────────────────
+  dot-skill:distill:
+    desc: 要約データからユーザーペルソナを蒸留
+    cmd: export PYTHONPATH=$PYTHONPATH:. && uv run python scripts/distill_user_persona.py

@@ -14,6 +14,7 @@ def main() -> None:
         cmd_curator,
         cmd_image_generate,
         cmd_jules,
+        cmd_manga,
         cmd_notify,
         cmd_novel,
         cmd_pending,
@@ -21,6 +22,7 @@ def main() -> None:
         cmd_summarize,
         cmd_sync,
         cmd_transcribe,
+        cmd_check_vrc,
     )
 
     p_process = subparsers.add_parser("process", help="Process audio file")
@@ -37,6 +39,9 @@ def main() -> None:
     p_image_generate = subparsers.add_parser("image-generate", help="Generate image")
     p_image_generate.add_argument("--novel-file", required=True)
     p_image_generate.add_argument("--output-file")
+
+    p_manga = subparsers.add_parser("manga", help="Generate 4-koma manga")
+    p_manga.add_argument("--novel-file", required=True)
 
     p_transcribe = subparsers.add_parser("transcribe", help="Transcribe audio file")
     p_transcribe.add_argument("--file", required=True)
@@ -58,6 +63,8 @@ def main() -> None:
     p_notify = subparsers.add_parser("notify", help="Notify Discord")
     p_notify.add_argument("--message", required=True)
 
+    subparsers.add_parser("check-vrc", help="Check if VRChat is running")
+
     args = parser.parse_args()
 
     if args.command == "jules":
@@ -74,6 +81,8 @@ def main() -> None:
         cmd_sync(args)
     elif args.command == "image-generate":
         cmd_image_generate(args)
+    elif args.command == "manga":
+        cmd_manga(args)
     elif args.command == "transcribe":
         cmd_transcribe(args)
     elif args.command == "summarize":
@@ -82,6 +91,8 @@ def main() -> None:
         cmd_pending(args)
     elif args.command == "notify":
         cmd_notify(args)
+    elif args.command == "check-vrc":
+        cmd_check_vrc(args)
 
 
 if __name__ == "__main__":
