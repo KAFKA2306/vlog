@@ -151,6 +151,7 @@ class Novelizer:
         self,
         today_summary: str,
         novel_so_far: str = "",
+        context: str = "",
     ) -> str:
         if not self._model:
             genai.configure(api_key=settings.gemini_api_key)
@@ -158,6 +159,7 @@ class Novelizer:
         prompt = self._prompt_template.format(
             novel_so_far=novel_so_far,
             today_summary=today_summary,
+            context=context,
         )
         start_time = time.time()
         response = self._model.generate_content(
@@ -236,6 +238,35 @@ class Curator:
         self._tracer.log(
             component="curator_evaluate",
             model=settings.jules_model,
+            start_time=start_time,
+            input_text=prompt,
+            output_text=text,
+        )
+        if text.startswith("```json"):
+            text = text[7:-3]
+        elif text.startswith("```"):
+            text = text[3:-3]
+        return json.loads(text)
+
+
+class MangaScriptGenerator:
+    def __init__(self) -> None:
+        self._model = None
+        self._prompt_template = settings.prompts["manga_script"]["template"]
+        self._tracer = TraceLogger()
+
+    def generate(self, novel_text: str) -> Dict[str, Any]:
+        target_model = getattr(settings, "manga_model", settings.gemini_model)
+        if not self._model:
+            genai.configure(api_key=settings.gemini_api_key)
+            self._model = genai.GenerativeModel(target_model)
+        prompt = self._prompt_template.format(novel_text=novel_text)
+        start_time = time.time()
+        response = self._model.generate_content(prompt)
+        text = response.text.strip()
+        self._tracer.log(
+            component="manga_script",
+            model=target_model,
             start_time=start_time,
             input_text=prompt,
             output_text=text,

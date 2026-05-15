@@ -1,9 +1,9 @@
-import asyncio
+import re
 from datetime import datetime
 from pathlib import Path
 
 from src.domain.interfaces import ImageGeneratorProtocol, NovelizerProtocol
-from src.infrastructure.cognee import cognee_memory
+from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.settings import settings
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -15,11 +15,13 @@ class BuildNovelUseCase:
         self,
         novelizer: NovelizerProtocol,
         image_generator: ImageGeneratorProtocol,
+        graph_storage: GraphStorage,
     ):
         self._novelizer = novelizer
         self._image_generator = image_generator
+        self._graph_storage = graph_storage
 
-    def execute(self, date: str = None) -> Path | None:
+    def execute(self, date: str | None = None) -> Path | None:
         target_date = date or datetime.now().strftime("%Y%m%d")
         summary_path = settings.summary_dir / f"{target_date}_summary.txt"
 
@@ -50,19 +52,12 @@ class BuildNovelUseCase:
 
         return novel_path
 
-    def _fetch_memories(self, query: str) -> str:
-        if not QUEUE_PATH.exists():
-            return ""
+    def _fetch_memories(self, summary: str) -> str:
+        query = self._build_search_query(summary)
+        results = self._graph_storage.search(query, limit=5)
+        return self._graph_storage.get_context_string(results)
 
-        results = asyncio.run(cognee_memory.search(query))
-        if not results:
-            return ""
-
-        memory_texts = []
-        for res in results:
-            if isinstance(res, dict) and "search_result" in res:
-                memory_texts.extend(res["search_result"])
-            else:
-                memory_texts.append(str(res))
-
-        return "\n---\n".join(memory_texts[:3])
+    def _build_search_query(self, summary: str) -> str:
+        first_line = summary.splitlines()[0].strip()
+        first_sentence = re.split(r"[。．.!?！？]", first_line, maxsplit=1)[0].strip()
+        return first_sentence[:200] or first_line[:200] or summary[:200]

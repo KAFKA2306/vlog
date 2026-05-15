@@ -114,6 +114,14 @@ class Settings(BaseSettings):
         alias="VLOG_NOVEL_OUT_DIR",
     )
 
+    manga_model: str = _config.get("manga", {}).get("model", _DEFAULT_LLM_MODEL)
+    manga_out_dir: Path = Field(
+        default_factory=lambda: Path(
+            _config.get("manga", {}).get("out_dir", "data/manga")
+        ),
+        alias="VLOG_MANGA_OUT_DIR",
+    )
+
     image_model: str = _config.get("image", {}).get("model", "Tongyi-MAI/Z-Image-Turbo")
     image_device: str = _config.get("image", {}).get("device", "cuda")
     image_height: int = _config.get("image", {}).get("height", 1024)
@@ -152,6 +160,12 @@ class Settings(BaseSettings):
             _config.get("paths", {}).get("trace_file", "data/traces.jsonl")
         ),
         alias="VLOG_TRACE_FILE",
+    )
+    profile_path: Path = Field(
+        default_factory=lambda: Path(
+            _config.get("paths", {}).get("profile_path", "data/profile.yaml")
+        ),
+        alias="VLOG_PROFILE_PATH",
     )
 
     prompts: Dict[str, Any] = _prompts

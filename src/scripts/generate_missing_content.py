@@ -7,6 +7,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_root))
 
 from src.infrastructure.ai import ImageGenerator, Novelizer  # noqa: E402
+from src.infrastructure.graph_storage import GraphStorage  # noqa: E402
 from src.infrastructure.repositories import SupabaseRepository  # noqa: E402
 from src.infrastructure.settings import settings  # noqa: E402
 from src.use_cases.build_novel import BuildNovelUseCase  # noqa: E402
@@ -30,7 +31,8 @@ def main():
     # Note: We need to instantiate the concrete classes for the use case
     novelizer = Novelizer()
     image_generator = ImageGenerator()
-    build_novel_use_case = BuildNovelUseCase(novelizer, image_generator)
+    graph_storage = GraphStorage(Path("data/graph.jsonl"))
+    build_novel_use_case = BuildNovelUseCase(novelizer, image_generator, graph_storage)
     supabase_repo = SupabaseRepository()
 
     # Get all summary dates
@@ -58,8 +60,6 @@ def main():
 
         dates_to_process.append(date_str)
 
-    import traceback
-
     dates_to_process.sort()
     logger.info(f"Found {len(dates_to_process)} valid daily summary dates.")
 
@@ -79,34 +79,20 @@ def main():
 
         if not novel_exists:
             logger.info(f"Generating Novel and Image for {date_str}...")
-            # BuildNovelUseCase generates both Novel AND Image
-            try:
-                build_novel_use_case.execute(date=date_str)
-                logger.info(f"Successfully generated content for {date_str}")
-            except Exception as e:
-                logger.error(f"Failed to generate content for {date_str}: {e}")
-                logger.error(traceback.format_exc())
+            build_novel_use_case.execute(date=date_str)
+            logger.info(f"Successfully generated content for {date_str}")
 
         elif not photo_exists:
             logger.info(
                 f"Novel exists but Image missing for {date_str}. Generating Image..."
             )
-            try:
-                # We can use ImageGenerator directly if we have the novel text
-                novel_text = novel_path.read_text(encoding="utf-8")
-                # Use the whole text as context for the prompt generator.
-                image_generator.generate_from_novel(novel_text, photo_path)
-                logger.info(f"Successfully generated image for {date_str}")
-            except Exception as e:
-                logger.error(f"Failed to generate image for {date_str}: {e}")
-                logger.error(traceback.format_exc())
+            novel_text = novel_path.read_text(encoding="utf-8")
+            image_generator.generate_from_novel(novel_text, photo_path)
+            logger.info(f"Successfully generated image for {date_str}")
 
     logger.info("Syncing to Supabase...")
-    try:
-        supabase_repo.sync()
-        logger.info("Sync complete.")
-    except Exception as e:
-        logger.error(f"Sync failed: {e}")
+    supabase_repo.sync()
+    logger.info("Sync complete.")
 
     logger.info("Done.")
 

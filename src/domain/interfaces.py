@@ -28,7 +28,9 @@ class FileRepositoryProtocol(Protocol):
 
 
 class NovelizerProtocol(Protocol):
-    def generate_chapter(self, today_summary: str, novel_so_far: str = "") -> str: ...
+    def generate_chapter(
+        self, today_summary: str, novel_so_far: str = "", context: str = ""
+    ) -> str: ...
 
 
 class ImageGeneratorProtocol(Protocol):
