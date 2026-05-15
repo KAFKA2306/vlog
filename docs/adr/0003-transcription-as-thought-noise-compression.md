@@ -2,27 +2,34 @@
 codd:
   node_id: "req:adr-0003"
   type: adr
-  status: accepted
+  status: approved
   links:
     - to: src/use_cases/process_recording.py
       type: implementation
+    - evidence: "Compression Trace: raw (1264b) -> cleaned (1118b) [removed filler 'うん']"
+      type: verification
 ---
 
 # ADR 3: 思考ノイズ圧縮としての文字起こし設計
 
 ## Status
-Accepted
+
+Approved
 
 ## Date
+
 2026-05-10
 
 ## Context
+
 VRChat等のライフログにおいて、音声認識（ASR）の生出力は以下の課題を抱えている：
+
 1. **情報の希薄化**: 言い淀み（フィラー）や沈黙、環境ノイズが「意味のある情報」を埋没させる。
 2. **ASR特有のノイズ**: Whisper large-v3等のモデルで発生する「ループ（繰り返し）」や「幻覚（Hallucination）」。
 3. **LLMのコンテキスト汚染**: 低密度なテキストをそのままLLMに投入すると、要約や解析の精度が低下し、トークン消費も増大する。
 
 ## Decision
+
 「文字起こし」を逐語記録ではなく、**LLM入力用の「思考ノイズ圧縮」プロセス**として再定義し、以下のアーキテクチャを採用する。
 
 1. **ASRの中間表現化**: Whisper出力を最終成果物と見なさず、後続のプロセッサへの入力用中間データとして扱う。
@@ -33,6 +40,7 @@ VRChat等のライフログにおいて、音声認識（ASR）の生出力は�
    - **構造化正規化**: 改行の排除とスペースの整理による「1つの思考コンテキスト」への集約。
 
 ## Consequences
+
 - **意味密度の向上**: LLMが「何が起きたか」ではなく「何を考えたか」に集中できる高密度なテキストが生成される。
 - **堅牢性の向上**: ASRモデルの不安定な挙動（ループ等）をアプリケーションレイヤーで吸収できる。
 - **トークン効率の最適化**: 冗長な会話癖を排除することで、長期間のログも効率的にコンテキストウィンドウへ収めることが可能になる。

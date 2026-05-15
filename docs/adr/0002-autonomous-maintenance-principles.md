@@ -2,26 +2,32 @@
 codd:
   node_id: "req:adr-0002"
   type: adr
-  status: accepted
+  status: approved
   links:
     - to: Taskfile.yaml
       type: implementation
     - to: src/cli.py
       type: implementation
+    - evidence: "task maintenance PASS (Deterministic garbage collection executed)"
+      type: verification
 ---
 
 # ADR 2: Principles of Autonomous Maintenance
 
 ## Status
-Accepted
+
+Approved
 
 ## Date
+
 2026-03-09
 
 ## Context
+
 ADR-0001 で導入したハーネスを、人間の介入なしにエージェントが自ら維持・進化させる仕組み（VAMS）を定義する必要がある。
 
 ## Decision
+
 以下の自律的メンテナンス原則を確立し、エージェントにその実行を義務付ける。
 
 1. **品質の「不退転」原則**: 全ての修正・機能追加において、既存のテストをパスさせることが「完了」の絶対条件である（Stop Hook による強制）。
@@ -30,6 +36,7 @@ ADR-0001 で導入したハーネスを、人間の介入なしにエージェ�
 4. **透明性の確保**: 全ての自律的変更は明確な理由（WHAT/WHY）とともにコミットログ、または `docs/adr/` に記録する。
 
 ## Consequences
+
 - 「人間がコードを管理する」から「人間がハーネスの健全性を管理する」へと役割がシフトする。
 - リポジトリの技術的負債が蓄積されにくくなり、長期的な開発速度が向上する。
 - エージェントはシステムの一部としてコードと環境を同時に改善する責任を持つ。
