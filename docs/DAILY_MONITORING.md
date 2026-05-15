@@ -1,3 +1,13 @@
+---
+codd:
+  node_id: "req:monitoring"
+  type: spec
+  status: approved
+  links:
+    - to: Taskfile.yaml
+      type: implementation
+---
+
 # VLog 日次実行とロギング (必須)
 
 ## 概要

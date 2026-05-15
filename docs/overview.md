@@ -1,3 +1,13 @@
+---
+codd:
+  node_id: "req:overview"
+  type: spec
+  status: approved
+  links:
+    - to: src/main.py
+      type: implementation
+---
+
 # VLog - VRChat Auto-Diary 完全ドキュメント
 
 > 開発コマンド・コーディング規約 → [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md)  

@@ -1,3 +1,13 @@
+---
+codd:
+  node_id: "req:maintenance"
+  type: spec
+  status: approved
+  links:
+    - to: Taskfile.yaml
+      type: implementation
+---
+
 # VLog Maintenance Manual
 
 ## Latest Status (2026-03-18)

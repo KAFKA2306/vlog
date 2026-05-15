@@ -1,3 +1,15 @@
+---
+codd:
+  node_id: "req:adr-0002"
+  type: adr
+  status: accepted
+  links:
+    - to: Taskfile.yaml
+      type: implementation
+    - to: src/cli.py
+      type: implementation
+---
+
 # ADR 2: Principles of Autonomous Maintenance
 
 ## Status

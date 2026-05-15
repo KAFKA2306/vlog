@@ -1,3 +1,15 @@
+---
+codd:
+  node_id: "req:architecture"
+  type: spec
+  status: approved
+  links:
+    - to: src/main.py
+      type: implementation
+    - to: src/app.py
+      type: implementation
+---
+
 # VRChat Auto-Diary システム構成図
 
 > マスタードキュメント → [docs/overview.md](file:///home/kafka/projects/vlog/docs/overview.md)  

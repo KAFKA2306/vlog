@@ -1,3 +1,15 @@
+---
+codd:
+  node_id: "req:adr-0001"
+  type: adr
+  status: accepted
+  links:
+    - to: Taskfile.yaml
+      type: implementation
+    - to: AGENTS.md
+      type: reference
+---
+
 # ADR 1: Implement Harness Engineering
 
 ## Status

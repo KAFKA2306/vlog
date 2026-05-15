@@ -1,3 +1,13 @@
+---
+codd:
+  node_id: "req:image-generation"
+  type: spec
+  status: approved
+  links:
+    - to: src/infrastructure/ai.py
+      type: implementation
+---
+
 # 画像生成サブシステム詳細仕様書 (Image Generation Subsystem Internal Specification)
 
 > マスタードキュメント → [docs/overview.md](file:///home/kafka/projects/vlog/docs/overview.md)  
