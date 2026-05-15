@@ -11,6 +11,7 @@ def main() -> None:
     # Subparsers for commands (simplified)
     # Full command implementation moved to src/cli_handlers.py for simplicity & brevity
     from src.cli_handlers import (
+        cmd_check_vrc,
         cmd_curator,
         cmd_image_generate,
         cmd_jules,
@@ -22,7 +23,6 @@ def main() -> None:
         cmd_summarize,
         cmd_sync,
         cmd_transcribe,
-        cmd_check_vrc,
     )
 
     p_process = subparsers.add_parser("process", help="Process audio file")
