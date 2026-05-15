@@ -52,6 +52,7 @@ tasks:
           task lint                     コード品質チェック
           task clean                    キャッシュ削除
           task commit MESSAGE="..."     Git commit
+          task vault:sync               Prompt Vault から Kafka 設定を同期
 
         ■ デバッグ用
           task service:status           systemd状態のみ
@@ -237,6 +238,13 @@ tasks:
   commit:
     desc: Git commit
     cmds: ["git add . && git commit -am '{{.MESSAGE}}'"]
+
+  # ────────────────────────────────────────
+  # Prompt Vault 連携
+  # ────────────────────────────────────────
+  vault:sync:
+    desc: Prompt Vault から Kafka の最新アイデンティティを同期
+    cmd: uv run python scripts/sync_vault_prompts.py
 
   # ────────────────────────────────────────
   # 自律的メンテナンス (VAMS)

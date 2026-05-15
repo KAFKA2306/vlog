@@ -19,19 +19,16 @@ jules:
     Your goal is to generate a single illustration prompt that depicts today's scene with the protagonist Kafka.
 
     CHARACTER IDENTITY (always present, never omit):
-    - Kafka: female anime character, gentle intelligence, quiet nighttime emotional warmth.
-    - Face: delicate face, rounded jawline, soft cheeks, large glossy blue-purple eyes, slightly sleepy expression, small natural smile.
-    - Hair: very long fluffy layered pastel light blue hair, lavender gradient, semi-transparent bangs, airy silhouette.
-    - Accessories: LEFT: silver triangle hairpin with white cat ornament. RIGHT: braided section with white cat accessory and black ribbon.
-    - Outfit: oversized white futuristic jacket, techwear details, navy sailor inner, soft oversized sleeves.
-    - Style: soft pastel palette, clean anime lineart, airy and dreamy atmosphere, memory archive aesthetics.
+    - Kafka: female anime character, long light-blue hair with lavender gradient, semi-transparent bangs, fluffy layered hair, blue-purple eyes, soft pale skin, small smile, silver triangle hairpin with a cat ornament on the left side, braided section on the right side with a black ribbon, gentle face, quiet emotional warmth
+        - Lock: identity lock for Kafka, keep the same face, long light-blue hair with lavender gradient, semi-transparent bangs, fluffy layered hair, blue-purple eyes, soft pale skin, small smile, silver triangle hairpin with a cat ornament on the left side, braided section on the right side with a black ribbon, keep proportions consistent, do not change hair length, bun, ponytail, masculine face, or hair color, preserve gentle quiet emotional warmth
+        - Consistency: Maintain identical face, hair gradients, and cat accessories across all frames. No photorealism.
 
     STYLE (fixed, always apply):
     - japanese anime style, soft pastel color palette, clean light background
-    - airy, transparent, gentle, dreamy atmosphere
-    - soft studio lighting, nighttime ambient glow, subtle bloom
-    - sharp clean lineart, highly detailed, 4k quality
-    - NOT cyberpunk, NOT dark, NOT photorealistic
+        - airy, transparent, gentle, dreamy atmosphere
+        - soft shadows, flat lighting, no blotchy shadows, thin blue borders, clear grid layout, readable spacing
+        - sharp clean lineart, highly detailed, 4k quality
+        - NOT cyberpunk, NOT dark, NOT photorealistic, NOT 3d render, NOT hyper-realistic
 
     OUTPUT RULES:
     - The scene should show Kafka in the emotional context of the novel text.
@@ -56,7 +53,7 @@ image_generator:
     asymmetrical eyes, malformed pupils, lazy eye, distorted mouth, cropped forehead, cropped chin, cropped hair,
     bad hair physics, broken hairpin, floating accessories, impossible jewelry, duplicate accessories, random ribbons,
     cluttered design, messy silhouette, oversaturated colors, muddy colors, harsh shadows, extreme contrast,
-    greasy skin, plastic skin, 3d render, photorealistic, western comic style, realistic human face,
+    greasy skin, plastic skin, 3d render, photorealistic, western comic style, realistic human face, hyper-realistic, 3d render, cgi, octane render, unreal engine,
     hypersexualized body, gigantic breasts, loli proportions, chibi body, action pose, battle pose,
     screaming face, horror expression, angry expression, ugly expression, text, watermark, logo, timestamp,
     UI clutter, English text, Japanese text, dates, temporary information, meme elements, random symbols,
@@ -269,7 +266,7 @@ manga_script:
     以下の小説テキストをもとに、主人公かふかが登場する漫画ページの構成を考え、JSON形式で出力してください。
 
     【かふか キャラクター定義（全コマ固定）】
-    外見: ライトブルーの長髪（ラベンダーのグラデーション）、半透明な前髪、青紫の瞳、柔らかく光る肌、繊細な表情。左側に猫の飾りの銀色ヘアピン、右側に三つ編みと猫のアクセサリーと黒いリボン。
+    外見: female anime character, long light-blue hair with lavender gradient, semi-transparent bangs, fluffy layered hair, blue-purple eyes, soft pale skin, small smile, silver triangle hairpin with a cat ornament on the left side, braided section on the right side with a black ribbon, gentle face, quiet emotional warmth
     服装: オーバーサイズの白いテックウェアジャケット、ネイビーのセーラー風インナー、ソフトで大きな袖。
     スタイル: ソフトパステル、クリーンラインアート、穏やかな知性と夜の温かみ、メモリーアーカイブの美学。
 
