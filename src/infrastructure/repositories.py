@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
+from src.infrastructure.image_optimizer import ImageOptimizer
 from src.infrastructure.settings import settings
 from supabase import create_client
 
@@ -168,13 +169,20 @@ class SupabaseRepository:
                 continue
             date_str = path.stem
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
-            storage_path = f"photos/{date_str}.png"
-            with open(path, "rb") as f:
-                self.client.storage.from_("vlog-photos").upload(
-                    storage_path,
-                    f.read(),
-                    {"content-type": "image/png", "upsert": "true"},
-                )
+
+            # WebPに最適化
+            image_data, extension = ImageOptimizer.to_webp(path)
+            storage_path = f"photos/{date_str}{extension}"
+            ext_type = extension[1:] if extension.startswith(".") else extension
+            content_type = f"image/{ext_type}"
+            if content_type == "image/jpg":
+                content_type = "image/jpeg"
+
+            self.client.storage.from_("vlog-photos").upload(
+                storage_path,
+                image_data,
+                {"content-type": content_type, "upsert": "true"},
+            )
             image_url = self.client.storage.from_("vlog-photos").get_public_url(
                 storage_path
             )
