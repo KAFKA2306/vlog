@@ -4,10 +4,17 @@ OnFailure=vlog-daily-failure.service
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/kafka/projects/vlog
-EnvironmentFile=/home/kafka/projects/vlog/.env
-ExecStart=/bin/bash -c "/snap/bin/task process:daily"
-Environment="PATH=/snap/bin:/home/kafka/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+WorkingDirectory=%h/projects/vlog
+EnvironmentFile=%h/projects/vlog/.env
+ExecStart=/usr/bin/bash -c "/snap/bin/task process:daily"
+Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Security Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=%h/projects/vlog/data %h/projects/vlog/data/archives %h/projects/vlog/data/summaries %h/projects/vlog/data/transcripts %h/projects/vlog/data/logs
+ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
 
 [Install]
 WantedBy=default.target

@@ -1,9 +1,12 @@
 import argparse
 import re
 from pathlib import Path
+from typing import Any
 
+from src.domain.harness import TaskWeight
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
 from src.infrastructure.graph_storage import GraphStorage
+from src.infrastructure.harness import ZeroTrustHarness
 from src.infrastructure.repositories import (
     FileRepository,
     SupabaseRepository,
@@ -19,10 +22,16 @@ from src.use_cases.extract_graph import ExtractGraphUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
 
+def _harness_run(
+    task_name: str, weight: TaskWeight, func: Any, *args: Any, **kwargs: Any
+) -> Any:
+    return ZeroTrustHarness().run(task_name, weight, func, *args, **kwargs)
+
+
 def _guard_vrc_running() -> None:
-    """Exit if VRChat is running to prevent GPU crash."""
-    if ProcessMonitor().is_running():
-        print("⚠️ VRChat is running. Skipping heavy processing to prevent crash.")
+    safe, reason = ZeroTrustHarness().guard.check_safety(TaskWeight.HEAVY)
+    if not safe:
+        print(f"⚠️ {reason}. Skipping heavy processing.")
         import sys
 
         sys.exit(0)
@@ -103,7 +112,10 @@ def cmd_summarize(args: argparse.Namespace) -> None:
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
-    _guard_vrc_running()
+    _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args)
+
+
+def _cmd_pending_logic(args: argparse.Namespace) -> None:
     transcript_dir = Path("data/transcripts")
     summary_dir = Path("data/summaries")
     novel_dir = Path("data/novels")

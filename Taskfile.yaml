@@ -160,7 +160,7 @@ tasks:
       - task cognee:init || true
       - task cognee:ingest || true
       - task sync || echo "⚠️  Supabase sync failed (paused?). Continuing anyway."
-      - uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +'%Y-%m-%d %H:%M:%S')）"
+      - uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +'%Y-%m-%d %H:%M:%S')）\n🌐 Reader: https://rule-scribe-games.vercel.app"
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)
@@ -269,6 +269,25 @@ tasks:
           fi
         done
         exit $ERR
+
+  audit:
+    desc: 直近のインシデント履歴を表示
+    cmds:
+      - |
+        if [ -f data/incidents.jsonl ]; then
+          tail -n 20 data/incidents.jsonl | uv run python -c "
+        import sys, json
+        for line in sys.stdin:
+            d = json.loads(line)
+            ts = d['timestamp'].split('.')[0].replace('T', ' ')
+            status = d['type'].upper()
+            task = d['task_name']
+            reason = f' ({d[\"reason\"]})' if d.get('reason') else ''
+            print(f'[{ts}] {status:10} | {task}{reason}')
+        "
+        else
+          echo "No incidents logged yet."
+        fi
 
   # ────────────────────────────────────────
   # Graph Scribe (シンプルグラフ)

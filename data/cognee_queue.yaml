@@ -1,5 +1,5 @@
 batch_size: 5
-last_run: '2026-05-14T20:51:21.897412+00:00'
+last_run: '2026-05-16T23:48:31.302984+00:00'
 files:
 - name: 20251120_205733_summary.txt
   status: completed
@@ -92,19 +92,19 @@ files:
   status: completed
   error: null
 - name: 20251220_summary.txt
-  status: pending
+  status: completed
   error: null
 - name: 20251221_summary.txt
-  status: pending
+  status: completed
   error: null
 - name: 20251222_summary.txt
-  status: pending
+  status: completed
   error: null
 - name: 20251223_summary.txt
-  status: pending
+  status: completed
   error: null
 - name: 20251224_summary.txt
-  status: pending
+  status: completed
   error: null
 - name: 20251226_summary.txt
   status: pending
@@ -338,5 +338,11 @@ files:
   status: pending
   error: null
 - name: 20260516_summary.txt
+  status: pending
+  error: null
+- name: 20260517_summary.txt
+  status: pending
+  error: null
+- name: 20260518_summary.txt
   status: pending
   error: null

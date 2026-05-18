@@ -4,12 +4,20 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/kafka/projects/vlog
-EnvironmentFile=/home/kafka/projects/vlog/.env
-ExecStart=/home/kafka/.local/bin/uv run python -m src.main
+WorkingDirectory=%h/projects/vlog
+EnvironmentFile=%h/projects/vlog/.env
+ExecStart=%h/.local/bin/uv run python -m src.main
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
+
+# Security Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/projects/vlog/data %h/projects/vlog/data/recordings %h/projects/vlog/data/logs
+ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
 
 [Install]
 WantedBy=default.target

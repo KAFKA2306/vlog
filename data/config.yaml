@@ -7,6 +7,6 @@ manga:
 jules:
   model: "gemini-2.5-flash"
 whisper:
-  model_size: "large-v3"
-  device: "cpu"
-  compute_type: "int8"
+  model_size: "large-v3-turbo"
+  device: "cuda"
+  compute_type: "float16"

@@ -168,6 +168,13 @@ class Settings(BaseSettings):
         alias="VLOG_PROFILE_PATH",
     )
 
+    incident_file: Path = Field(
+        default_factory=lambda: Path(
+            _config.get("paths", {}).get("incident_file", "data/incidents.jsonl")
+        ),
+        alias="VLOG_INCIDENT_FILE",
+    )
+
     prompts: Dict[str, Any] = _prompts
 
     @field_validator(
