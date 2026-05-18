@@ -160,7 +160,7 @@ tasks:
       - task cognee:init || true
       - task cognee:ingest || true
       - task sync || echo "⚠️  Supabase sync failed (paused?). Continuing anyway."
-      - 'uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +''%Y-%m-%d %H:%M:%S'')）\n🌐 Reader: https://rule-scribe-games.vercel.app"'
+      - 'uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +''%Y-%m-%d %H:%M:%S'')）\n🌐 Reader: https://kaflog.vercel.app"'
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)
