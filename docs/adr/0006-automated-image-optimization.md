@@ -2,17 +2,18 @@
 codd:
   node_id: "req:adr-0006"
   type: adr
-  status: proposed
+  status: accepted
   links:
     - to: src/infrastructure/image_optimizer.py
       type: implementation
+  evidence: "src/infrastructure/image_optimizer.py EXISTS and integrated into SupabaseRepository._sync_photos"
 ---
 
 # ADR 0006: 自動画像最適化（WebPパイプライン）の導入
 
 ## ステータス
 
-提案中
+承認済み
 
 ## コンテキスト
 

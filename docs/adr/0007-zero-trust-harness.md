@@ -2,19 +2,20 @@
 codd:
   node_id: "req:adr-0007"
   type: adr
-  status: proposed
+  status: accepted
   links:
     - to: src/domain/harness.py
       type: implementation
     - to: src/infrastructure/harness.py
       type: implementation
+  evidence: "task audit PASS (Confirming TRY/SUCCESS/FAILED/SKIPPED logging and GPU/Disk safety checks)"
 ---
 
 # ADR-0007: ゼロトラスト・ランタイム・ハーネスとインシデント監査システムの導入
 
 ## ステータス
 
-提案中 (Proposed)
+承認済み (Accepted)
 
 ## コンテキスト
 
