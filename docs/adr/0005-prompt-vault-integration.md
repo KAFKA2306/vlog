@@ -8,7 +8,9 @@ codd:
       type: implementation
     - to: data/prompts.yaml
       type: configuration
----
+    - evidence: "rg -n \"sync_vault_prompts|task vault:sync|prompt-vault|AGENTS.md\" docs/adr/0005-prompt-vault-integration.md scripts/sync_vault_prompts.py Taskfile.yaml AGENTS.md"
+    ---
+
 
 # ADR-0005: Prompt Vault をソースオブトゥルースとするプロンプト管理
 

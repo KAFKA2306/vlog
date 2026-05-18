@@ -1,10 +1,14 @@
 import argparse
+import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
+from src.domain.audit import AuditState
 from src.domain.harness import TaskWeight
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
+from src.infrastructure.audit import StrictAuditor
 from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.harness import ZeroTrustHarness
 from src.infrastructure.repositories import (
@@ -223,6 +227,46 @@ def cmd_manga(args: argparse.Namespace) -> None:
 
 def cmd_check_vrc(args: argparse.Namespace) -> None:
     if ProcessMonitor().is_running():
-        import sys
-
         sys.exit(1)
+
+
+def cmd_audit(args: argparse.Namespace) -> None:
+    report = StrictAuditor(
+        recent_limit=args.recent,
+        trace_window_minutes=args.trace_window_minutes,
+    ).run()
+
+    if args.json:
+        print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+    else:
+        _print_audit_report(report)
+
+    if args.strict and report.has_blockers:
+        sys.exit(1)
+
+
+def _print_audit_report(report) -> None:
+    counts = {
+        state: 0
+        for state in (
+            AuditState.PASS,
+            AuditState.FAIL,
+            AuditState.UNVERIFIED,
+            AuditState.NOT_APPLICABLE,
+        )
+    }
+    for finding in report.findings:
+        counts[finding.state] += 1
+        details = f" | {finding.details}" if finding.details else ""
+        print(
+            f"{finding.state.value.upper():13} {finding.check_name} :: "
+            f"{finding.evidence}{details}"
+        )
+
+    print(
+        "SUMMARY        "
+        f"pass={counts[AuditState.PASS]} "
+        f"fail={counts[AuditState.FAIL]} "
+        f"unverified={counts[AuditState.UNVERIFIED]} "
+        f"n/a={counts[AuditState.NOT_APPLICABLE]}"
+    )

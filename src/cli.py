@@ -11,6 +11,7 @@ def main() -> None:
     # Subparsers for commands (simplified)
     # Full command implementation moved to src/cli_handlers.py for simplicity & brevity
     from src.cli_handlers import (
+        cmd_audit,
         cmd_check_vrc,
         cmd_curator,
         cmd_image_generate,
@@ -65,6 +66,13 @@ def main() -> None:
 
     subparsers.add_parser("check-vrc", help="Check if VRChat is running")
 
+    p_audit = subparsers.add_parser("audit", help="Run strict evidence-based audit")
+    p_audit.add_argument("--recent", type=int, default=100)
+    p_audit.add_argument("--trace-window-minutes", type=int, default=30)
+    p_audit.add_argument("--json", action="store_true")
+    p_audit.add_argument("--strict", action="store_true", default=True)
+    p_audit.add_argument("--no-strict", dest="strict", action="store_false")
+
     args = parser.parse_args()
 
     if args.command == "jules":
@@ -93,6 +101,8 @@ def main() -> None:
         cmd_notify(args)
     elif args.command == "check-vrc":
         cmd_check_vrc(args)
+    elif args.command == "audit":
+        cmd_audit(args)
 
 
 if __name__ == "__main__":

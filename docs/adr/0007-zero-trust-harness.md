@@ -8,8 +8,9 @@ codd:
       type: implementation
     - to: src/infrastructure/harness.py
       type: implementation
-  evidence: "task audit PASS (Confirming TRY/SUCCESS/FAILED/SKIPPED logging and GPU/Disk safety checks)"
----
+    - evidence: "task audit PASS (Confirming TRY/SUCCESS/FAILED/SKIPPED logging and GPU/Disk safety checks)"
+    ---
+
 
 # ADR-0007: ゼロトラスト・ランタイム・ハーネスとインシデント監査システムの導入
 
@@ -52,8 +53,15 @@ VLogシステムはWhisper（文字起こし）や画像生成などの非常に
 
 1. `src/domain/harness.py`: ハーネスのインターフェース、タスクの重み、インシデントのデータモデルを定義。
 2. `src/infrastructure/harness.py`: 具体的な環境チェックロジック（`GuardDog`）とログ出力（`IncidentLogger`）を実装。
-3. `src/cli_handlers.py`: 各CLIコマンド（`pending`, `process`等）をハーネスでラップし、実行可否の判断と監査を自動化。
+3. `src/cli_handlers.py`: 主要CLIコマンド（`process`, `novel`, `sync`, `image-generate`, `jules`, `transcribe`, `summarize`, `pending`, `curator`, `manga`）をハーネスでラップし、実行可否の判断と監査を自動化。
 4. `Taskfile.yaml`: `task audit` コマンドを追加し、直近のインシデント履歴を要約表示できるようにする。
+
+## 実装状況
+
+- `src/domain/harness.py` と `src/infrastructure/harness.py` により、`TRY` / `SUCCESS` / `SKIPPED` / `FAILED` / `VERIFICATION_ERROR` を記録する監査フローを実装済み。
+- `src/cli_handlers.py` では主要CLIコマンドをハーネス経由で実行している。
+- `cmd_notify` と `cmd_check_vrc` は現時点では直接実装のままで、将来的なハーネス接続候補として残っている。
+- `task audit` は `PASS / FAIL / UNVERIFIED / NOT_APPLICABLE` の監査判定を返す。
 
 ## 影響
 
