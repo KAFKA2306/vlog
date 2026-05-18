@@ -13,6 +13,7 @@ Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sb
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
+ProtectHome=read-only
 ReadWritePaths=%h/projects/vlog/data %h/projects/vlog/data/archives %h/projects/vlog/data/summaries %h/projects/vlog/data/transcripts %h/projects/vlog/data/logs
 ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
 

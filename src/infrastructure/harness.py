@@ -1,4 +1,6 @@
 import json
+import shutil
+import subprocess
 from datetime import datetime
 from typing import Any, Callable
 
@@ -29,8 +31,35 @@ class GuardDog:
         self.monitor = ProcessMonitor()
 
     def check_safety(self, weight: TaskWeight) -> tuple[bool, str | None]:
-        if weight == TaskWeight.HEAVY and self.monitor.is_running():
+        if weight == TaskWeight.LIGHT:
+            return True, None
+
+        if self.monitor.is_running():
             return False, "VRChat is running"
+
+        # Check GPU VRAM (requires 2GB free for HEAVY)
+        try:
+            vram_free = int(
+                subprocess.check_output(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=memory.free",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    encoding="utf-8",
+                ).strip()
+            )
+            if vram_free < 2000:
+                return False, f"Low GPU VRAM: {vram_free}MiB free"
+        except (subprocess.SubprocessError, ValueError, FileNotFoundError):
+            pass  # Ignore if nvidia-smi is not available
+
+        # Check Disk Space (requires 1GB free)
+        usage = shutil.disk_usage(".")
+        free_gb = usage.free / (1024**3)
+        if free_gb < 1.0:
+            return False, f"Low disk space: {free_gb:.2f}GB free"
+
         return True, None
 
 
@@ -59,7 +88,13 @@ class ZeroTrustHarness:
             )
             return None
 
-        result = func(*args, **kwargs)
+        try:
+            result = func(*args, **kwargs)
+        except Exception as e:
+            self.logger.log(
+                Incident(datetime.now(), task_name, weight, IncidentType.FAILED, str(e))
+            )
+            raise
 
         if verify and not verify(result):
             self.logger.log(

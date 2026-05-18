@@ -1,3 +1,13 @@
+---
+codd:
+  node_id: "req:adr-0006"
+  type: adr
+  status: proposed
+  links:
+    - to: src/infrastructure/image_optimizer.py
+      type: implementation
+---
+
 # ADR 0006: 自動画像最適化（WebPパイプライン）の導入
 
 ## ステータス

@@ -38,6 +38,10 @@ def _guard_vrc_running() -> None:
 
 
 def cmd_process(args: argparse.Namespace) -> None:
+    _harness_run("process", TaskWeight.HEAVY, _cmd_process_logic, args)
+
+
+def _cmd_process_logic(args: argparse.Namespace) -> None:
     use_case = ProcessRecordingUseCase(
         transcriber=Transcriber(),
         preprocessor=TranscriptPreprocessor(),
@@ -51,6 +55,10 @@ def cmd_process(args: argparse.Namespace) -> None:
 
 
 def cmd_novel(args: argparse.Namespace) -> None:
+    _harness_run("novel", TaskWeight.HEAVY, _cmd_novel_logic, args)
+
+
+def _cmd_novel_logic(args: argparse.Namespace) -> None:
     graph_storage = GraphStorage(Path("data/graph.jsonl"))
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
     use_case.execute(args.date)
@@ -58,10 +66,14 @@ def cmd_novel(args: argparse.Namespace) -> None:
 
 
 def cmd_sync(args: argparse.Namespace) -> None:
-    SupabaseRepository().sync()
+    _harness_run("sync", TaskWeight.LIGHT, SupabaseRepository().sync)
 
 
 def cmd_image_generate(args: argparse.Namespace) -> None:
+    _harness_run("image_generate", TaskWeight.HEAVY, _cmd_image_generate_logic, args)
+
+
+def _cmd_image_generate_logic(args: argparse.Namespace) -> None:
     novel_path = Path(args.novel_file)
     novel_content = novel_path.read_text(encoding="utf-8")
     output_path = (
@@ -74,6 +86,10 @@ def cmd_image_generate(args: argparse.Namespace) -> None:
 
 
 def cmd_jules(args: argparse.Namespace) -> None:
+    _harness_run("jules", TaskWeight.LIGHT, _cmd_jules_logic, args)
+
+
+def _cmd_jules_logic(args: argparse.Namespace) -> None:
     repo = TaskRepository()
     if args.action == "add":
         task_data = JulesClient().parse_task(args.content)
@@ -85,10 +101,16 @@ def cmd_jules(args: argparse.Namespace) -> None:
 
 
 def cmd_transcribe(args: argparse.Namespace) -> None:
-    Transcriber().transcribe_and_save(args.file)
+    _harness_run(
+        "transcribe", TaskWeight.HEAVY, Transcriber().transcribe_and_save, args.file
+    )
 
 
 def cmd_summarize(args: argparse.Namespace) -> None:
+    _harness_run("summarize", TaskWeight.LIGHT, _cmd_summarize_logic, args)
+
+
+def _cmd_summarize_logic(args: argparse.Namespace) -> None:
     file_repo = FileRepository()
     summarizer = Summarizer()
     if getattr(args, "date", None):
@@ -182,7 +204,9 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
 def cmd_curator(args: argparse.Namespace) -> None:
     from src.use_cases.evaluate import EvaluateDailyContentUseCase
 
-    EvaluateDailyContentUseCase().execute(args.date)
+    _harness_run(
+        "curator", TaskWeight.LIGHT, EvaluateDailyContentUseCase().execute, args.date
+    )
 
 
 def cmd_notify(args: argparse.Namespace) -> None:
@@ -194,7 +218,7 @@ def cmd_notify(args: argparse.Namespace) -> None:
 def cmd_manga(args: argparse.Namespace) -> None:
     from src.use_cases.build_manga import build_manga
 
-    build_manga(args.novel_file)
+    _harness_run("manga", TaskWeight.LIGHT, build_manga, args.novel_file)
 
 
 def cmd_check_vrc(args: argparse.Namespace) -> None:
