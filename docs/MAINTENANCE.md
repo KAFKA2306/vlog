@@ -13,7 +13,7 @@ codd:
 ## Latest Status (2026-03-18)
 
 ### systemd Service & Timer
-- ✅ **vlog-daily.timer**: Runs at 03:00 JST daily
+- ✅ **vlog-daily.timer**: Runs at 06:00 JST daily
 - ✅ **vlog-daily.service**: Executes `/snap/bin/task process:daily`
 - ✅ **Taskfile**: `process:daily` now tolerates Supabase sync failures
 
@@ -39,8 +39,8 @@ codd:
 - **Fixed**: Taskfile now uses `|| true` to allow task to complete despite sync failure
 
 #### 🔄 Timer Execution Times
-- Timer configured: `OnCalendar=*-*-* 03:00:00` (3 AM JST)
-- Observed in logs: Executions at 03:00 and 15:40 (12-hour offset observed in Mar 17)
+- Timer configured: `OnCalendar=*-*-* 06:00:00` (6 AM JST)
+- Observed in logs: Executions at 06:00 and 18:00 (12-hour offset observed in Mar 17)
 - **Status**: Timer schedule is correct; offset may be timezone interpretation in journal
 
 ### Data Integrity

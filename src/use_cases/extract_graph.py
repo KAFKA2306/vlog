@@ -80,7 +80,4 @@ class ExtractGraphUseCase:
         elif "```" in result_text:
             result_text = result_text.split("```")[1].split("```")[0].strip()
 
-        try:
-            return json.loads(result_text)
-        except json.JSONDecodeError:
-            return []
+        return json.loads(result_text)

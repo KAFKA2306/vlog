@@ -12,12 +12,12 @@ codd:
 
 ## 概要
 
-VLog は毎日 **03:00 JST** に自動実行されます。実行結果は複数の場所に記録されます。
+VLog は毎日 **06:00 JST** に自動実行されます。実行結果は複数の場所に記録されます。
 
 ## 実行スケジュール
 
 ```
-Timer:   vlog-daily.timer (03:00 JST 毎日)
+Timer:   vlog-daily.timer (06:00 JST 毎日)
 Service: vlog-daily.service
           ├─ ExecStartPre:  ログ開始記録
           ├─ ExecStart:     task process:daily 実行
@@ -62,8 +62,8 @@ tail -20 /tmp/vlog-daily.log
 
 **例**:
 ```
-[2026-03-19 03:00:01] vlog-daily.service starting...
-[2026-03-19 03:07:34] vlog-daily.service completed ✅
+[2026-03-19 06:00:01] vlog-daily.service starting...
+[2026-03-19 06:07:34] vlog-daily.service completed ✅
 ```
 
 ## 日次チェック手順

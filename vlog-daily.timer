@@ -1,8 +1,8 @@
 [Unit]
-Description=Run VRChat Vlog Daily Processing at 5AM JST
+Description=Run VRChat Vlog Daily Processing at 6AM JST
 
 [Timer]
-OnCalendar=*-*-* 05:00:00
+OnCalendar=*-*-* 06:00:00
 Persistent=true
 Unit=vlog-daily.service
 

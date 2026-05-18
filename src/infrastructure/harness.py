@@ -38,21 +38,18 @@ class GuardDog:
             return False, "VRChat is running"
 
         # Check GPU VRAM (requires 2GB free for HEAVY)
-        try:
-            vram_free = int(
-                subprocess.check_output(
-                    [
-                        "nvidia-smi",
-                        "--query-gpu=memory.free",
-                        "--format=csv,noheader,nounits",
-                    ],
-                    encoding="utf-8",
-                ).strip()
-            )
-            if vram_free < 2000:
-                return False, f"Low GPU VRAM: {vram_free}MiB free"
-        except (subprocess.SubprocessError, ValueError, FileNotFoundError):
-            pass  # Ignore if nvidia-smi is not available
+        vram_free = int(
+            subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.free",
+                    "--format=csv,noheader,nounits",
+                ],
+                encoding="utf-8",
+            ).strip()
+        )
+        if vram_free < 2000:
+            return False, f"Low GPU VRAM: {vram_free}MiB free"
 
         # Check Disk Space (requires 1GB free)
         usage = shutil.disk_usage(".")
