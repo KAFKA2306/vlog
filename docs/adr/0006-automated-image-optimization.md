@@ -1,8 +1,20 @@
+---
+codd:
+  node_id: "req:adr-0006"
+  type: adr
+  status: accepted
+  links:
+    - to: src/infrastructure/image_optimizer.py
+      type: implementation
+    - evidence: "src/infrastructure/image_optimizer.py EXISTS and integrated into SupabaseRepository._sync_photos"
+    ---
+
+
 # ADR 0006: 自動画像最適化（WebPパイプライン）の導入
 
 ## ステータス
 
-提案中
+承認済み (Accepted)
 
 ## コンテキスト
 
@@ -12,18 +24,18 @@ VLogプロジェクトでは、VRChat内での活動を記録した画像アセ�
 
 ## 決定事項
 
-以下の画像最適化パイプラインを実装し、配信の軽量化を自動化します。
+以下の画像最適化パイプラインを実装し、配信の軽量化を自動化した。
 
 1. **WebP変換の自動化**:
-   * `src/infrastructure/image_optimizer.py` を新設し、Pillowを使用して PNG から WebP への変換を実装する。
+   * `src/infrastructure/image_optimizer.py` を新設し、Pillowを使用して PNG から WebP への変換を実装した。
    * 品質（quality）は視覚的な劣化を最小限に抑えつつ、ファイルサイズを劇的に削減できる `80` 前後をデフォルトとする。
 
 2. **同期プロセスへの統合**:
-   * `SupabaseRepository._sync_photos` において、PNGを直接アップロードする代わりに、WebP変換後のバイナリを優先的にアップロードするように変更する。
-   * ストレージ上のパスを `photos/{date}.webp` とし、Content-Type を `image/webp` に設定する。
+   * `SupabaseRepository._sync_photos` において、PNGを直接アップロードする代わりに、WebP変換後のバイナリを優先的にアップロードするように変更した。
+   * ストレージ上のパスを `photos/{date}.webp` とし、Content-Type を `image/webp` に設定した。
 
 3. **フォールバック設計**:
-   * 変換環境（Pillowの有無など）に依存せず、失敗時はオリジナルのPNGを使用する弾力性を確保する。
+   * 変換環境（Pillowの有無など）に依存せず、失敗時はオリジナルのPNGを使用する弾力性を確保した。
 
 ## 期待される効果
 

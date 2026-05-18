@@ -10,7 +10,9 @@ codd:
       type: implementation
     - to: vlog-daily-failure.service
       type: implementation
----
+    - evidence: "rg -n \"OnFailure=vlog-daily-failure.service|ProtectSystem=strict|NoNewPrivileges=yes|ReadWritePaths=|ReadOnlyPaths=\" vlog.service vlog-daily.service vlog-daily-failure.service"
+    ---
+
 
 # ADR-0008: systemd サービスのセキュリティ強化と観測性の向上
 

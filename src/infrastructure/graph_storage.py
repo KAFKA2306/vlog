@@ -23,17 +23,14 @@ class GraphStorage:
 
         with open(self.storage_path, "r", encoding="utf-8") as f:
             for line in f:
-                try:
-                    triple = json.loads(line)
-                    # Simple keyword search in subject, predicate, or object
-                    subject = triple.get("subject", "")
-                    predicate = triple.get("predicate", "")
-                    obj = triple.get("object", "")
-                    content = f"{subject} {predicate} {obj}".lower()
-                    if query in content:
-                        results.append(triple)
-                except json.JSONDecodeError:
-                    continue
+                triple = json.loads(line)
+                # Simple keyword search in subject, predicate, or object
+                subject = triple.get("subject", "")
+                predicate = triple.get("predicate", "")
+                obj = triple.get("object", "")
+                content = f"{subject} {predicate} {obj}".lower()
+                if query in content:
+                    results.append(triple)
 
         # Sort by relevance or just return latest (reversed)
         return list(reversed(results))[:limit]
@@ -58,10 +55,7 @@ class GraphStorage:
 
         with open(self.storage_path, "r", encoding="utf-8") as f:
             for line in f:
-                try:
-                    triple = json.loads(line)
-                    if triple.get("_source") == source:
-                        return True
-                except json.JSONDecodeError:
-                    continue
+                triple = json.loads(line)
+                if triple.get("_source") == source:
+                    return True
         return False

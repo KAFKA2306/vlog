@@ -8,7 +8,9 @@ codd:
       type: implementation
     - to: .claude/skills/discord-operations/SKILL.md
       type: implementation
----
+    - evidence: "rg -n \"kaflog\\.vercel\\.app|rule-scribe-games\\.vercel\\.app\" README.md docs/architecture.md frontend/reader/README.md Taskfile.yaml .claude/skills/discord-operations/SKILL.md docs/adr/0010-external-reader-integration.md"
+    ---
+
 
 # ADR-0010: 通知システムへの外部リーダー（Vercel）連携の統合
 
@@ -18,7 +20,7 @@ codd:
 
 ## コンテキスト
 
-VLog システムによって生成された成果物（日記、小説、画像）は、Vercel 上でホストされている Reader 画面（https://rule-scribe-games.vercel.app）を通じて閲覧される。
+VLog システムによって生成された成果物（日記、小説、画像）は、Vercel 上でホストされている Reader 画面（https://kaflog.vercel.app）を通じて閲覧される。
 しかし、これまでの通知システム（Discord Webhook）には以下の課題があった：
 
 1. **成果物へのアクセシビリティ**: 処理完了の通知を受け取っても、Reader 画面へ移動するためにブラウザのブックマークや手動入力が必要であり、ユーザー体験が分断されていた。
@@ -40,7 +42,7 @@ Discord 通知を単なる「ステータス報告」から「閲覧ゲートウ
 
 ### 3. プロダクション URL の固定
 
-- Vercel のプロダクション URL (`https://rule-scribe-games.vercel.app`) を通知のソースオブトゥルースとして定義し、環境を問わず一貫したアクセス手段を提供する。
+- Vercel のプロダクション URL (`https://kaflog.vercel.app`) を通知のソースオブトゥルースとして定義し、環境を問わず一貫したアクセス手段を提供する。
 
 ## 影響
 

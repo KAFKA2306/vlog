@@ -22,7 +22,7 @@ VLogシステムの稼働状況や日次処理の結果をDiscordチャンネル
 ### 1. Alert Notifications (`task notify`)
 `src.cli notify` コマンドを使用して、リアルタイムの通知を送信する：
 - **info**: 録音開始、システム起動などのマイルストーン。
-- **success**: 日次処理の完了、小説・画像生成の成功。**MUST** include Vercel URL (https://rule-scribe-games.vercel.app).
+- **success**: 日次処理の完了、小説・画像生成の成功。**MUST** include Vercel URL (https://kaflog.vercel.app).
 - **warn**: 一時的なAPIエラー、VRChat実行中によるHEAVY処理のスキップ。
 - **error**: 致命的なクラッシュ、ディスク容量不足、通知サービス (`vlog-daily-failure.service`) による自動報告。
 

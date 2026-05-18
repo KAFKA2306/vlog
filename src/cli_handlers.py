@@ -1,10 +1,14 @@
 import argparse
+import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
+from src.domain.audit import AuditState
 from src.domain.harness import TaskWeight
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
+from src.infrastructure.audit import StrictAuditor
 from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.harness import ZeroTrustHarness
 from src.infrastructure.repositories import (
@@ -38,6 +42,10 @@ def _guard_vrc_running() -> None:
 
 
 def cmd_process(args: argparse.Namespace) -> None:
+    _harness_run("process", TaskWeight.HEAVY, _cmd_process_logic, args)
+
+
+def _cmd_process_logic(args: argparse.Namespace) -> None:
     use_case = ProcessRecordingUseCase(
         transcriber=Transcriber(),
         preprocessor=TranscriptPreprocessor(),
@@ -51,6 +59,10 @@ def cmd_process(args: argparse.Namespace) -> None:
 
 
 def cmd_novel(args: argparse.Namespace) -> None:
+    _harness_run("novel", TaskWeight.HEAVY, _cmd_novel_logic, args)
+
+
+def _cmd_novel_logic(args: argparse.Namespace) -> None:
     graph_storage = GraphStorage(Path("data/graph.jsonl"))
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
     use_case.execute(args.date)
@@ -58,10 +70,14 @@ def cmd_novel(args: argparse.Namespace) -> None:
 
 
 def cmd_sync(args: argparse.Namespace) -> None:
-    SupabaseRepository().sync()
+    _harness_run("sync", TaskWeight.LIGHT, SupabaseRepository().sync)
 
 
 def cmd_image_generate(args: argparse.Namespace) -> None:
+    _harness_run("image_generate", TaskWeight.HEAVY, _cmd_image_generate_logic, args)
+
+
+def _cmd_image_generate_logic(args: argparse.Namespace) -> None:
     novel_path = Path(args.novel_file)
     novel_content = novel_path.read_text(encoding="utf-8")
     output_path = (
@@ -74,6 +90,10 @@ def cmd_image_generate(args: argparse.Namespace) -> None:
 
 
 def cmd_jules(args: argparse.Namespace) -> None:
+    _harness_run("jules", TaskWeight.LIGHT, _cmd_jules_logic, args)
+
+
+def _cmd_jules_logic(args: argparse.Namespace) -> None:
     repo = TaskRepository()
     if args.action == "add":
         task_data = JulesClient().parse_task(args.content)
@@ -85,10 +105,16 @@ def cmd_jules(args: argparse.Namespace) -> None:
 
 
 def cmd_transcribe(args: argparse.Namespace) -> None:
-    Transcriber().transcribe_and_save(args.file)
+    _harness_run(
+        "transcribe", TaskWeight.HEAVY, Transcriber().transcribe_and_save, args.file
+    )
 
 
 def cmd_summarize(args: argparse.Namespace) -> None:
+    _harness_run("summarize", TaskWeight.LIGHT, _cmd_summarize_logic, args)
+
+
+def _cmd_summarize_logic(args: argparse.Namespace) -> None:
     file_repo = FileRepository()
     summarizer = Summarizer()
     if getattr(args, "date", None):
@@ -182,7 +208,9 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
 def cmd_curator(args: argparse.Namespace) -> None:
     from src.use_cases.evaluate import EvaluateDailyContentUseCase
 
-    EvaluateDailyContentUseCase().execute(args.date)
+    _harness_run(
+        "curator", TaskWeight.LIGHT, EvaluateDailyContentUseCase().execute, args.date
+    )
 
 
 def cmd_notify(args: argparse.Namespace) -> None:
@@ -194,11 +222,51 @@ def cmd_notify(args: argparse.Namespace) -> None:
 def cmd_manga(args: argparse.Namespace) -> None:
     from src.use_cases.build_manga import build_manga
 
-    build_manga(args.novel_file)
+    _harness_run("manga", TaskWeight.LIGHT, build_manga, args.novel_file)
 
 
 def cmd_check_vrc(args: argparse.Namespace) -> None:
     if ProcessMonitor().is_running():
-        import sys
-
         sys.exit(1)
+
+
+def cmd_audit(args: argparse.Namespace) -> None:
+    report = StrictAuditor(
+        recent_limit=args.recent,
+        trace_window_minutes=args.trace_window_minutes,
+    ).run()
+
+    if args.json:
+        print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+    else:
+        _print_audit_report(report)
+
+    if args.strict and report.has_blockers:
+        sys.exit(1)
+
+
+def _print_audit_report(report) -> None:
+    counts = {
+        state: 0
+        for state in (
+            AuditState.PASS,
+            AuditState.FAIL,
+            AuditState.UNVERIFIED,
+            AuditState.NOT_APPLICABLE,
+        )
+    }
+    for finding in report.findings:
+        counts[finding.state] += 1
+        details = f" | {finding.details}" if finding.details else ""
+        print(
+            f"{finding.state.value.upper():13} {finding.check_name} :: "
+            f"{finding.evidence}{details}"
+        )
+
+    print(
+        "SUMMARY        "
+        f"pass={counts[AuditState.PASS]} "
+        f"fail={counts[AuditState.FAIL]} "
+        f"unverified={counts[AuditState.UNVERIFIED]} "
+        f"n/a={counts[AuditState.NOT_APPLICABLE]}"
+    )

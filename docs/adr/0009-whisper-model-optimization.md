@@ -8,7 +8,9 @@ codd:
       type: configuration
     - to: src/infrastructure/system.py
       type: implementation
----
+    - evidence: "rg -n \"large-v3-turbo|compute_type|device|model_size\" data/config.yaml src/infrastructure/system.py src/infrastructure/README.md .claude/CLAUDE.md"
+    ---
+
 
 # ADR-0009: Whisper Large-v3-Turbo への移行による文字起こしの効率化
 
