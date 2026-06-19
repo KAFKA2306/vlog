@@ -1,21 +1,6 @@
 # VRChat Auto-Diary Reader
 
-Next.jsベースのWebリーダー。Supabaseから日記エントリを取得して表示。
-
-## 環境変数
-
-`.env.local`ファイルに以下を設定：
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
-```
-
-環境変数は親ディレクトリの`.env`から自動抽出可能：
-
-```bash
-task web:env  # プロジェクトルートで実行
-```
+Next.jsベースのWebリーダー。`data/summaries/` のローカルファイルを読み込んで表示。
 
 ## 開発
 
@@ -59,34 +44,6 @@ task web:deploy  # プロジェクトルートから
 
 <https://kaflog.vercel.app>
 
-## Supabase設定
-
-### テーブル
-
-`daily_entries`テーブルが必要：
-
-```sql
-CREATE TABLE daily_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  file_path TEXT UNIQUE NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### Row Level Security (RLS)
-
-読み取り専用ポリシーを設定：
-
-```sql
-ALTER TABLE daily_entries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Enable read access for all users"
-ON daily_entries FOR SELECT
-USING (true);
-```
-
 ## プロジェクト構成
 
 ```
@@ -94,19 +51,12 @@ frontend/reader/
 ├── app/              Next.js App Router
 │   ├── page.tsx      メインページ
 │   └── layout.tsx    レイアウト
-├── components/       Reactコンポーネント
 ├── lib/              ユーティリティ
-│   └── supabase.ts   Supabaseクライアント
+│   └── entries.ts    ローカル要約読み込み
 └── public/           静的ファイル
 ```
 
 ## トラブルシューティング
-
-### Supabase接続エラー
-
-1. `.env.local`の環境変数を確認
-2. Supabaseプロジェクトの設定を確認
-3. RLSポリシーが有効か確認
 
 ### ビルドエラー
 
@@ -115,4 +65,3 @@ rm -rf .next node_modules
 npm install
 npm run build
 ```
-
