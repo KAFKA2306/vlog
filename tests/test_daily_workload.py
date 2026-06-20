@@ -3,7 +3,40 @@ from src.use_cases import daily_workload
 from src.use_cases.daily_workload import collect_daily_workload, render_daily_workload
 
 
-def _patch_settings(monkeypatch, tmp_path):
+class StubResourceMonitor:
+    def __init__(
+        self,
+        *,
+        gpu_vram_free_mib: int | None = 8192,
+        cpu_percent: float = 12.5,
+        ready: bool = True,
+        reason: str | None = None,
+    ) -> None:
+        self._gpu_vram_free_mib = gpu_vram_free_mib
+        self._cpu_percent = cpu_percent
+        self._ready = ready
+        self._reason = reason
+
+    def snapshot(self):
+        return type(
+            "Snapshot",
+            (),
+            {
+                "gpu_vram_free_mib": self._gpu_vram_free_mib,
+                "cpu_percent": self._cpu_percent,
+            },
+        )()
+
+    def is_idle_for_heavy_work(self, *, snapshot=None, **_kwargs):
+        return self._ready, self._reason, snapshot or self.snapshot()
+
+
+class StubProcessMonitor:
+    def is_running(self) -> bool:
+        return False
+
+
+def _patch_settings(monkeypatch, tmp_path, resource_monitor=None):
     recording_dir = tmp_path / "recordings"
     transcript_dir = tmp_path / "transcripts"
     summary_dir = tmp_path / "summaries"
@@ -22,6 +55,12 @@ def _patch_settings(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "novel_out_dir", novel_dir)
     monkeypatch.setattr(settings, "photo_dir", tmp_path / "photos")
     monkeypatch.setattr(daily_workload, "COGNEE_QUEUE_PATH", tmp_path / "queue.yaml")
+    monkeypatch.setattr(daily_workload, "ProcessMonitor", StubProcessMonitor)
+    monkeypatch.setattr(
+        daily_workload,
+        "SystemResourceMonitor",
+        lambda: resource_monitor or StubResourceMonitor(),
+    )
 
 
 def test_daily_workload_plan_reports_stage_vector(monkeypatch, tmp_path):
@@ -76,6 +115,9 @@ files:
     assert plan.counts.cognee_batch_size == 3
     assert plan.counts.workload_score == 8
     assert plan.counts.cognee_batches_remaining == 1
+    assert plan.vrc_running is False
+    assert plan.resource_ready is True
+    assert plan.can_autorun_recording_flow is True
     assert plan.next_action == "transcribe"
     assert plan.next_action_target == 1
     assert plan.next_action_limit is None
@@ -83,6 +125,7 @@ files:
     rendered = render_daily_workload(plan)
     assert "recordings_pending=1" in rendered
     assert "next_action=transcribe" in rendered
+    assert "recording_flow=enabled" in rendered
 
 
 def test_daily_workload_falls_back_to_cognee_batch(monkeypatch, tmp_path):
@@ -130,3 +173,25 @@ files: []
     assert plan.next_action == "evaluate"
     assert plan.next_action_target == 1
     assert plan.next_action_limit == 1
+
+
+def test_daily_workload_pauses_recording_flow_when_cpu_busy(monkeypatch, tmp_path):
+    resource_monitor = StubResourceMonitor(
+        gpu_vram_free_mib=5000,
+        cpu_percent=92.0,
+        ready=False,
+        reason="High CPU usage: 92.0% busy",
+    )
+    _patch_settings(monkeypatch, tmp_path, resource_monitor=resource_monitor)
+
+    recording_path = settings.recording_dir / "20260620_120000.flac"
+    recording_path.write_text("audio", encoding="utf-8")
+
+    plan = collect_daily_workload()
+
+    assert plan.counts.recordings_pending == 1
+    assert plan.vrc_running is False
+    assert plan.resource_ready is False
+    assert plan.can_autorun_recording_flow is False
+    assert plan.resource_reason == "High CPU usage: 92.0% busy"
+    assert "recording_flow=paused" in render_daily_workload(plan)

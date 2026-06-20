@@ -139,13 +139,32 @@ def _cmd_summarize_logic(args: argparse.Namespace) -> None:
 
 
 def cmd_daily(args: argparse.Namespace) -> None:
-    _harness_run("daily", TaskWeight.HEAVY, _cmd_daily_logic, args)
+    _harness_run("daily", TaskWeight.LIGHT, _cmd_daily_logic, args)
 
 
 def _cmd_daily_logic(args: argparse.Namespace) -> None:
     plan = collect_daily_workload()
     print(render_daily_workload(plan))
-    _cmd_pending_logic(args, sync=False)
+
+    if plan.counts.recordings_pending > 0:
+        if not plan.can_autorun_recording_flow:
+            print("  recording_flow=paused waiting for VRChat/GPU/CPU headroom")
+            return
+        _harness_run(
+            "daily_recording_flow",
+            TaskWeight.HEAVY,
+            _cmd_pending_logic,
+            args,
+            sync=False,
+        )
+    else:
+        _harness_run(
+            "daily_recording_flow",
+            TaskWeight.HEAVY,
+            _cmd_pending_logic,
+            args,
+            sync=False,
+        )
 
     from src.use_cases.evaluate import EvaluateDailyContentUseCase
 

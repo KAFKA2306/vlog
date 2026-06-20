@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from src.infrastructure.settings import settings
+from src.infrastructure.system import ProcessMonitor, SystemResourceMonitor
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 COGNEE_QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
@@ -55,13 +56,32 @@ class DailyWorkloadCounts:
 @dataclass(frozen=True)
 class DailyWorkloadPlan:
     counts: DailyWorkloadCounts
+    vrc_running: bool
+    gpu_vram_free_mib: int | None
+    cpu_percent: float | None
+    resource_ready: bool
+    resource_reason: str | None
     next_action: str
     next_action_target: int
     next_action_limit: int | None
 
+    @property
+    def can_autorun_recording_flow(self) -> bool:
+        return (
+            self.counts.recordings_pending > 0
+            and not self.vrc_running
+            and self.resource_ready
+        )
+
     def to_dict(self) -> dict:
         return {
             "counts": self.counts.to_dict(),
+            "vrc_running": self.vrc_running,
+            "gpu_vram_free_mib": self.gpu_vram_free_mib,
+            "cpu_percent": self.cpu_percent,
+            "resource_ready": self.resource_ready,
+            "resource_reason": self.resource_reason,
+            "can_autorun_recording_flow": self.can_autorun_recording_flow,
             "next_action": self.next_action,
             "next_action_target": self.next_action_target,
             "next_action_limit": self.next_action_limit,
@@ -69,6 +89,32 @@ class DailyWorkloadPlan:
 
     def format_lines(self) -> list[str]:
         counts = self.counts
+        gpu_vram_text = (
+            str(self.gpu_vram_free_mib)
+            if self.gpu_vram_free_mib is not None
+            else "unknown"
+        )
+        if self.cpu_percent is not None:
+            resource_line = (
+                "  resources ready="
+                f"{'yes' if self.resource_ready else 'no'} "
+                f"gpu_vram_free_mib={gpu_vram_text} "
+                f"cpu_percent={self.cpu_percent:.1f}"
+            )
+        else:
+            resource_line = (
+                "  resources ready=no gpu_vram_free_mib=unknown cpu_percent=unknown"
+            )
+        vrc_line = f"  vrc_running={'yes' if self.vrc_running else 'no'}"
+        recording_flow_line = (
+            "  recording_flow="
+            f"{'enabled' if self.can_autorun_recording_flow else 'paused'}"
+            + (
+                f" reason={self.resource_reason}"
+                if self.resource_reason and not self.can_autorun_recording_flow
+                else ""
+            )
+        )
         lines = [
             "Daily workload plan",
             (
@@ -89,6 +135,9 @@ class DailyWorkloadPlan:
                 f"batch_size={counts.cognee_batch_size} "
                 f"batches_remaining={counts.cognee_batches_remaining}"
             ),
+            vrc_line,
+            resource_line,
+            recording_flow_line,
             f"  workload_score={counts.workload_score}",
             (
                 "  next_action="
@@ -108,6 +157,12 @@ class DailyWorkloadPlan:
 
 class DailyWorkloadPlanner:
     def collect(self) -> DailyWorkloadPlan:
+        vrc_running = ProcessMonitor().is_running()
+        resource_monitor = SystemResourceMonitor()
+        resource_snapshot = resource_monitor.snapshot()
+        resource_ready, resource_reason, _ = resource_monitor.is_idle_for_heavy_work(
+            snapshot=resource_snapshot
+        )
         recordings_pending = self._count_pending_recordings()
         transcript_dates = self._extract_dates(settings.transcript_dir.glob("*.txt"))
         summary_dates = self._extract_dates(settings.summary_dir.glob("*_summary.txt"))
@@ -135,6 +190,11 @@ class DailyWorkloadPlanner:
         next_action, next_target, next_limit = self._next_action(counts)
         return DailyWorkloadPlan(
             counts=counts,
+            vrc_running=vrc_running,
+            gpu_vram_free_mib=resource_snapshot.gpu_vram_free_mib,
+            cpu_percent=resource_snapshot.cpu_percent,
+            resource_ready=resource_ready,
+            resource_reason=resource_reason,
             next_action=next_action,
             next_action_target=next_target,
             next_action_limit=next_limit,
