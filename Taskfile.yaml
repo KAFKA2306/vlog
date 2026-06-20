@@ -127,7 +127,6 @@ tasks:
     cmds:
       - |
         TODAY=$(date +%Y%m%d)
-        rm -f data/summaries/${TODAY}_summary.txt
         for f in data/recordings/${TODAY}*.wav data/recordings/${TODAY}*.flac; do
           [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
         done || true
@@ -138,7 +137,6 @@ tasks:
     cmds:
       - |
         YESTERDAY=$(date -d "yesterday" +%Y%m%d)
-        rm -f data/summaries/${YESTERDAY}_summary.txt
         for f in data/recordings/${YESTERDAY}*.wav data/recordings/${YESTERDAY}*.flac; do
           [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
         done || true

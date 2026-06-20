@@ -14,6 +14,7 @@ from src.domain.interfaces import (
     TranscriptPreprocessorProtocol,
 )
 from src.infrastructure.settings import settings
+from src.use_cases.daily_artifacts import DailyArtifactManager
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
@@ -29,6 +30,7 @@ class ProcessRecordingUseCase:
         file_repository: FileRepositoryProtocol,
         novelizer: NovelizerProtocol | None = None,
         image_generator: ImageGeneratorProtocol | None = None,
+        daily_artifacts: DailyArtifactManager | None = None,
     ):
         self._transcriber = transcriber
         self._preprocessor = preprocessor
@@ -37,6 +39,7 @@ class ProcessRecordingUseCase:
         self._files = file_repository
         self._novelizer = novelizer
         self._image_generator = image_generator
+        self._daily_artifacts = daily_artifacts or DailyArtifactManager()
 
     def execute(self, audio_path: str, sync: bool = True) -> bool:
         if not self._files.exists(audio_path):
@@ -117,24 +120,15 @@ class ProcessRecordingUseCase:
 
     def _save_summary(self, transcript: str, session: RecordingSession) -> str | None:
         target_date = session.start_time.strftime("%Y%m%d")
-        summary_path = settings.summary_dir / f"{target_date}_summary.txt"
-        summary_path.parent.mkdir(parents=True, exist_ok=True)
-
-        if summary_path.exists():
-            print(f"Summary already exists for {target_date}, skipping.")
-            return summary_path.read_text(encoding="utf-8")
-
-        pattern = f"cleaned_{target_date}_*.txt"
-        daily_files = sorted(settings.transcript_dir.glob(pattern))
-        combined_transcript = (
-            "\n\n".join(f.read_text(encoding="utf-8") for f in daily_files)
-            if daily_files
-            else transcript
+        source_paths = self._daily_artifacts.summary_sources_for_date(target_date)
+        return self._daily_artifacts.refresh_summary(
+            target_date,
+            self._summarizer,
+            self._files,
+            source_paths=source_paths if source_paths else None,
+            session=session,
+            fallback_text=transcript,
         )
-
-        summary_text = self._summarizer.summarize(combined_transcript, session)
-        self._files.save_text(str(summary_path), summary_text)
-        return summary_text
 
     def _update_memory(self, summary_text: str, session: RecordingSession) -> None:
         target_date = session.start_time.strftime("%Y%m%d")
@@ -162,26 +156,12 @@ class ProcessRecordingUseCase:
             return
 
         target_date = session.start_time.strftime("%Y%m%d")
-        summary_path = settings.summary_dir / f"{target_date}_summary.txt"
-
-        if not summary_path.exists():
-            return
-
-        novel_path = settings.novel_out_dir / f"{target_date}.md"
-        photo_path = settings.photo_dir / f"{target_date}.png"
-
-        novel_files = sorted(list(settings.novel_out_dir.glob("*.md")))
-        prev_files = [f for f in novel_files if f.name < f"{target_date}.md"]
-        novel_so_far = prev_files[-1].read_text(encoding="utf-8") if prev_files else ""
-
-        today_summary = summary_path.read_text(encoding="utf-8")
-        chapter = self._novelizer.generate_chapter(today_summary, novel_so_far)
-
-        novel_path.parent.mkdir(parents=True, exist_ok=True)
-        novel_path.write_text(chapter, encoding="utf-8")
-
-        photo_path.parent.mkdir(parents=True, exist_ok=True)
-        self._image_generator.generate_from_novel(chapter, photo_path)
+        self._daily_artifacts.refresh_novel(
+            target_date,
+            self._novelizer,
+            self._image_generator,
+            None,
+        )
 
     def _finalize(self, audio_path: str) -> None:
         self._files.archive(audio_path)

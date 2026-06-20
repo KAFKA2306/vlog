@@ -2,6 +2,8 @@ from datetime import datetime
 from pathlib import Path
 
 from src.domain.entities import RecordingSession
+from src.infrastructure.daily_state import DailyStateStore
+from src.use_cases.daily_artifacts import DailyArtifactManager
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
 TRANSCRIPT_PATH = "data/transcripts/20260412_120000.txt"
@@ -81,6 +83,7 @@ class StubImageGenerator:
 def _make_usecase(
     transcript_text: str = "",
     preprocessed: str | None = None,
+    state_path: Path | None = None,
 ) -> tuple[
     ProcessRecordingUseCase,
     StubSummarizer,
@@ -92,6 +95,9 @@ def _make_usecase(
     summarizer = StubSummarizer()
     storage = StubStorage()
     files = StubFileRepository()
+    daily_artifacts = DailyArtifactManager(
+        DailyStateStore(state_path) if state_path else None
+    )
 
     uc = ProcessRecordingUseCase(
         transcriber=transcriber,
@@ -99,6 +105,7 @@ def _make_usecase(
         summarizer=summarizer,
         storage=storage,
         file_repository=files,
+        daily_artifacts=daily_artifacts,
     )
     return uc, summarizer, files, storage
 
@@ -106,8 +113,10 @@ def _make_usecase(
 class TestTranscriptSizeGate:
     AUDIO_PATH = "data/recordings/20260412_120000.flac"
 
-    def test_execute_skips_when_cleaned_text_too_short(self):
-        uc, summarizer, files, storage = _make_usecase(preprocessed="あ")
+    def test_execute_skips_when_cleaned_text_too_short(self, tmp_path):
+        uc, summarizer, files, storage = _make_usecase(
+            preprocessed="あ", state_path=tmp_path / "daily_state.json"
+        )
         result = uc.execute(self.AUDIO_PATH, sync=False)
 
         assert result is False
@@ -115,43 +124,53 @@ class TestTranscriptSizeGate:
         assert self.AUDIO_PATH in files.archived
         assert not any("cleaned_" in k for k in files.saved)
 
-    def test_execute_skips_when_cleaned_text_empty(self):
-        uc, summarizer, files, storage = _make_usecase(preprocessed="")
+    def test_execute_skips_when_cleaned_text_empty(self, tmp_path):
+        uc, summarizer, files, storage = _make_usecase(
+            preprocessed="", state_path=tmp_path / "daily_state.json"
+        )
         result = uc.execute(self.AUDIO_PATH, sync=False)
 
         assert result is False
         assert not summarizer.called
         assert self.AUDIO_PATH in files.archived
 
-    def test_execute_proceeds_when_cleaned_text_sufficient(self):
+    def test_execute_proceeds_when_cleaned_text_sufficient(self, tmp_path):
         long_text = (
             "今日はVRChatでフレンドと一緒にワールド巡りをした。とても楽しい時間だった。"
         )
-        uc, summarizer, files, storage = _make_usecase(preprocessed=long_text)
+        uc, summarizer, files, storage = _make_usecase(
+            preprocessed=long_text, state_path=tmp_path / "daily_state.json"
+        )
         result = uc.execute(self.AUDIO_PATH, sync=False)
 
         assert result is True
         assert any("cleaned_" in k for k in files.saved)
 
-    def test_execute_does_not_sync_on_skip(self):
-        uc, summarizer, files, storage = _make_usecase(preprocessed="")
+    def test_execute_does_not_sync_on_skip(self, tmp_path):
+        uc, summarizer, files, storage = _make_usecase(
+            preprocessed="", state_path=tmp_path / "daily_state.json"
+        )
         uc.execute(self.AUDIO_PATH, sync=True)
 
         assert not storage.synced
 
-    def test_execute_boundary_exactly_50_bytes(self):
+    def test_execute_boundary_exactly_50_bytes(self, tmp_path):
         text_50b = "あ" * 16 + "ab"
         assert len(text_50b.encode("utf-8")) == 50
-        uc, summarizer, files, _ = _make_usecase(preprocessed=text_50b)
+        uc, summarizer, files, _ = _make_usecase(
+            preprocessed=text_50b, state_path=tmp_path / "daily_state.json"
+        )
         result = uc.execute(self.AUDIO_PATH, sync=False)
 
         assert result is False
         assert not summarizer.called
 
-    def test_execute_boundary_51_bytes_proceeds(self):
+    def test_execute_boundary_51_bytes_proceeds(self, tmp_path):
         text_51b = "あ" * 16 + "abc"
         assert len(text_51b.encode("utf-8")) == 51
-        uc, summarizer, files, _ = _make_usecase(preprocessed=text_51b)
+        uc, summarizer, files, _ = _make_usecase(
+            preprocessed=text_51b, state_path=tmp_path / "daily_state.json"
+        )
         result = uc.execute(self.AUDIO_PATH, sync=False)
 
         assert result is True
@@ -165,9 +184,11 @@ class TestSessionTranscriptSizeGate:
             end_time=datetime(2026, 4, 12, 13, 0, 0),
         )
 
-    def test_execute_session_skips_when_cleaned_text_too_short(self):
+    def test_execute_session_skips_when_cleaned_text_too_short(self, tmp_path):
         audio = "data/recordings/20260412_120000.flac"
-        uc, summarizer, files, _ = _make_usecase(preprocessed="あ")
+        uc, summarizer, files, _ = _make_usecase(
+            preprocessed="あ", state_path=tmp_path / "daily_state.json"
+        )
         session = self._make_session(audio)
         uc.execute_session(session)
 
@@ -175,12 +196,14 @@ class TestSessionTranscriptSizeGate:
         assert audio in files.archived
         assert not any("cleaned_" in k for k in files.saved)
 
-    def test_execute_session_proceeds_when_sufficient(self):
+    def test_execute_session_proceeds_when_sufficient(self, tmp_path):
         audio = "data/recordings/20260412_120000.flac"
         long_text = (
             "今日はVRChatでフレンドと一緒にワールド巡りをした。とても楽しい時間だった。"
         )
-        uc, summarizer, files, _ = _make_usecase(preprocessed=long_text)
+        uc, summarizer, files, _ = _make_usecase(
+            preprocessed=long_text, state_path=tmp_path / "daily_state.json"
+        )
         session = self._make_session(audio)
         uc.execute_session(session)
 

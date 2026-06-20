@@ -9,6 +9,7 @@ from src.domain.audit import AuditState
 from src.domain.harness import TaskWeight
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
 from src.infrastructure.audit import StrictAuditor
+from src.infrastructure.daily_state import DailyStateStore
 from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.harness import ZeroTrustHarness
 from src.infrastructure.repositories import (
@@ -22,6 +23,7 @@ from src.infrastructure.system import (
     TranscriptPreprocessor,
 )
 from src.use_cases.build_novel import BuildNovelUseCase
+from src.use_cases.daily_artifacts import DailyArtifactManager
 from src.use_cases.extract_graph import ExtractGraphUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
@@ -117,24 +119,22 @@ def cmd_summarize(args: argparse.Namespace) -> None:
 def _cmd_summarize_logic(args: argparse.Namespace) -> None:
     file_repo = FileRepository()
     summarizer = Summarizer()
+    manager = DailyArtifactManager(DailyStateStore())
     if getattr(args, "date", None):
-        transcript_dir = Path("data/transcripts")
-        files = sorted(
-            list(transcript_dir.glob(f"cleaned_{args.date}_*.txt"))
-        ) or sorted(list(transcript_dir.glob(f"{args.date}_*.txt")))
-        combined_text = "".join(
-            [f"\n\n--- {f.name} ---\n{file_repo.read(str(f))}" for f in files]
-        )
-        summary = summarizer.summarize(combined_text, date_str=args.date)
-        file_repo.save_summary(summary, args.date)
+        files = manager.summary_sources_for_date(args.date)
+        manager.refresh_summary(args.date, summarizer, file_repo, source_paths=files)
     elif args.file:
         input_path = Path(args.file)
-        transcript_text = file_repo.read(str(input_path))
         stem = input_path.stem
         match = re.search(r"(\d{8})", stem)
         date_str = match.group(1) if match else stem.split("_")[0]
-        summary = summarizer.summarize(transcript_text, date_str=date_str)
-        file_repo.save_summary(summary, date_str)
+        manager.refresh_summary(
+            date_str,
+            summarizer,
+            file_repo,
+            source_paths=(input_path,),
+            fallback_text=file_repo.read(str(input_path)),
+        )
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
@@ -144,9 +144,9 @@ def cmd_pending(args: argparse.Namespace) -> None:
 def _cmd_pending_logic(args: argparse.Namespace) -> None:
     transcript_dir = Path("data/transcripts")
     summary_dir = Path("data/summaries")
-    novel_dir = Path("data/novels")
     recording_dir = Path("data/recordings")
     file_repo = FileRepository()
+    manager = DailyArtifactManager(DailyStateStore())
     pending_transcription = [
         f
         for f in recording_dir.glob("*")
@@ -175,15 +175,9 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
         }
     )
     summarizer = Summarizer()
-    for d in [dt for dt in dates if not (summary_dir / f"{dt}_summary.txt").exists()]:
-        files = sorted(list(transcript_dir.glob(f"cleaned_{d}_*.txt"))) or sorted(
-            list(transcript_dir.glob(f"{d}_*.txt"))
-        )
-        summary = summarizer.summarize(
-            "".join([f"\n\n- {f.name} -\n{file_repo.read(str(f))}" for f in files]),
-            date_str=d,
-        )
-        file_repo.save_summary(summary, d)
+    for d in dates:
+        files = manager.summary_sources_for_date(d)
+        manager.refresh_summary(d, summarizer, file_repo, source_paths=files)
     import time
 
     graph_storage = GraphStorage(Path("data/graph.jsonl"))
@@ -195,13 +189,9 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
                 time.sleep(4)  # Avoid rate limit (15 RPM)
 
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
-    for d in [
-        dt
-        for dt in dates
-        if not (novel_dir / f"{dt}.md").exists()
-        and (summary_dir / f"{dt}_summary.txt").exists()
-    ]:
-        use_case.execute(d)
+    for d in dates:
+        if (summary_dir / f"{d}_summary.txt").exists():
+            use_case.execute(d)
     SupabaseRepository().sync()
 
 
