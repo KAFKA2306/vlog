@@ -147,10 +147,6 @@ tasks:
     cmds:
       - uv run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
       - uv run python -m src.cli daily
-      - task cognee:init || true
-      - task cognee:ingest || true
-      - task sync || echo "⚠️  Supabase sync failed (paused?). Continuing anyway."
-      - 'uv run python -m src.cli notify --message "✅ 日次処理が完了しました（$(date +''%Y-%m-%d %H:%M:%S'')）\n🌐 Reader: https://kaflog.vercel.app"'
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)

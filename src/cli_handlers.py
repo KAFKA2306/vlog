@@ -1,7 +1,9 @@
 import argparse
+import asyncio
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -149,14 +151,14 @@ def _cmd_daily_logic(args: argparse.Namespace) -> None:
     if plan.counts.recordings_pending > 0:
         if not plan.can_autorun_recording_flow:
             print("  recording_flow=paused waiting for VRChat/GPU/CPU headroom")
-            return
-        _harness_run(
-            "daily_recording_flow",
-            TaskWeight.HEAVY,
-            _cmd_pending_logic,
-            args,
-            sync=False,
-        )
+        else:
+            _harness_run(
+                "daily_recording_flow",
+                TaskWeight.HEAVY,
+                _cmd_pending_logic,
+                args,
+                sync=False,
+            )
     else:
         _harness_run(
             "daily_recording_flow",
@@ -175,6 +177,8 @@ def _cmd_daily_logic(args: argparse.Namespace) -> None:
         evaluator = EvaluateDailyContentUseCase()
         for date_str in pending_evaluations:
             evaluator.execute(date_str, sync=False)
+
+    _run_daily_postprocessing()
 
 
 def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
@@ -273,6 +277,43 @@ def cmd_notify(args: argparse.Namespace) -> None:
     from src.infrastructure.discord import DiscordClient
 
     DiscordClient().send_message(args.message)
+
+
+def _run_daily_postprocessing() -> None:
+    _best_effort("cognee:init", _run_cognee_init)
+    _best_effort("cognee:ingest", _run_cognee_ingest)
+    _best_effort("sync", SupabaseRepository().sync)
+    _best_effort("notify", _send_daily_notification)
+
+
+def _run_cognee_init() -> None:
+    from scripts.init_cognee_queue import main as init_cognee_queue_main
+
+    init_cognee_queue_main()
+
+
+def _run_cognee_ingest() -> None:
+    from scripts.ingest_to_cognee import main as ingest_to_cognee_main
+
+    asyncio.run(ingest_to_cognee_main())
+
+
+def _send_daily_notification() -> None:
+    from src.infrastructure.discord import DiscordClient
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    DiscordClient().send_message(
+        "✅ 日次処理が完了しました（"
+        f"{timestamp}）\n"
+        "🌐 Reader: https://kaflog.vercel.app"
+    )
+
+
+def _best_effort(label: str, func: Any, *args: Any, **kwargs: Any) -> None:
+    try:
+        func(*args, **kwargs)
+    except Exception as exc:
+        print(f"⚠️ {label} failed ({exc}). Continuing anyway.")
 
 
 def cmd_manga(args: argparse.Namespace) -> None:
