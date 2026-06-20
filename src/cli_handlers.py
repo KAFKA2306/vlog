@@ -2,7 +2,6 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +24,7 @@ from src.infrastructure.system import (
 )
 from src.use_cases.build_novel import BuildNovelUseCase
 from src.use_cases.daily_artifacts import DailyArtifactManager
+from src.use_cases.daily_workload import collect_daily_workload, render_daily_workload
 from src.use_cases.extract_graph import ExtractGraphUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
@@ -143,12 +143,44 @@ def cmd_daily(args: argparse.Namespace) -> None:
 
 
 def _cmd_daily_logic(args: argparse.Namespace) -> None:
+    plan = collect_daily_workload()
+    print(render_daily_workload(plan))
     _cmd_pending_logic(args, sync=False)
 
     from src.use_cases.evaluate import EvaluateDailyContentUseCase
 
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
-    EvaluateDailyContentUseCase().execute(yesterday, sync=False)
+    if plan.counts.novel_days_pending > 0:
+        pending_evaluations = _collect_pending_evaluation_dates(
+            limit=plan.next_action_limit
+        )
+        evaluator = EvaluateDailyContentUseCase()
+        for date_str in pending_evaluations:
+            evaluator.execute(date_str, sync=False)
+
+
+def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
+    summary_dir = Path("data/summaries")
+    novel_dir = Path("data/novels")
+    evaluation_dir = summary_dir.parent / "evaluations"
+
+    summary_dates = {
+        re.search(r"(\d{8})", f.stem).group(1)
+        for f in summary_dir.glob("*_summary.txt")
+        if re.search(r"(\d{8})", f.stem)
+    }
+    novel_dates = {
+        re.search(r"(\d{8})", f.stem).group(1)
+        for f in novel_dir.glob("*.md")
+        if re.search(r"(\d{8})", f.stem)
+    }
+    evaluation_dates = {
+        re.search(r"(\d{8})", f.stem).group(1)
+        for f in evaluation_dir.glob("*.json")
+        if re.search(r"(\d{8})", f.stem)
+    }
+
+    pending_dates = sorted((summary_dates & novel_dates) - evaluation_dates)
+    return pending_dates[:limit] if limit is not None else pending_dates
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
