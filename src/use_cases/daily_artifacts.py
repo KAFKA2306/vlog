@@ -118,11 +118,17 @@ class DailyArtifactManager:
         state_entry = self._state.get(date_str)
         novel_path = settings.novel_out_dir / f"{date_str}.md"
         photo_path = settings.photo_dir / f"{date_str}.png"
+        past_memories = (
+            self._fetch_memories(graph_storage, summary_text) if graph_storage else ""
+        )
+        context = f"Past Memories:\n{past_memories}\n\n" if past_memories else ""
+        context_hash = fingerprint_text(context)
 
         if (
             novel_path.exists()
             and photo_path.exists()
             and state_entry.get("novel_summary_hash") == summary_hash
+            and state_entry.get("novel_context_hash") == context_hash
         ):
             return novel_path
 
@@ -130,10 +136,12 @@ class DailyArtifactManager:
             novel_path.exists()
             and photo_path.exists()
             and not state_entry.get("novel_summary_hash")
+            and not context
         ):
             self._state.record_novel(
                 date_str,
                 summary_hash=summary_hash,
+                context_hash=context_hash,
                 chapter_text=novel_path.read_text(encoding="utf-8"),
                 novel_path=novel_path,
                 photo_path=photo_path,
@@ -144,11 +152,6 @@ class DailyArtifactManager:
             novel_so_far = novel_path.read_text(encoding="utf-8")
         else:
             novel_so_far = ""
-
-        past_memories = (
-            self._fetch_memories(graph_storage, summary_text) if graph_storage else ""
-        )
-        context = f"Past Memories:\n{past_memories}\n\n" if past_memories else ""
         chapter = novelizer.generate_chapter(summary_text, novel_so_far, context)
 
         novel_path.parent.mkdir(parents=True, exist_ok=True)
@@ -160,6 +163,7 @@ class DailyArtifactManager:
         self._state.record_novel(
             date_str,
             summary_hash=summary_hash,
+            context_hash=context_hash,
             chapter_text=chapter,
             novel_path=novel_path,
             photo_path=photo_path,

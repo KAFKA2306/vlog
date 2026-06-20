@@ -51,6 +51,17 @@ class StubGraphStorage:
         return ""
 
 
+class MutableGraphStorage:
+    def __init__(self, context_text: str):
+        self.context_text = context_text
+
+    def search(self, query: str, limit: int = 5):
+        return ["memory"]
+
+    def get_context_string(self, results) -> str:
+        return self.context_text
+
+
 def _patch_settings(monkeypatch, tmp_path):
     transcript_dir = tmp_path / "transcripts"
     summary_dir = tmp_path / "summaries"
@@ -177,3 +188,33 @@ def test_refresh_novel_skips_empty_summary(monkeypatch, tmp_path):
 
     assert result is None
     assert len(novelizer.calls) == 0
+
+
+def test_refresh_novel_rebuilds_when_context_changes(monkeypatch, tmp_path):
+    _patch_settings(monkeypatch, tmp_path)
+    state = DailyStateStore(tmp_path / "daily_state.json")
+    manager = DailyArtifactManager(state)
+    novelizer = StubNovelizer()
+    image_generator = StubImageGenerator()
+    graph_storage = MutableGraphStorage("Past Memories:\nalpha\n\n")
+
+    summary_path = settings.summary_dir / "20260620_summary.txt"
+    summary_path.write_text("summary body", encoding="utf-8")
+
+    first = manager.refresh_novel(
+        "20260620",
+        novelizer,
+        image_generator,
+        graph_storage,
+    )
+    graph_storage.context_text = "Past Memories:\nbeta\n\n"
+    second = manager.refresh_novel(
+        "20260620",
+        novelizer,
+        image_generator,
+        graph_storage,
+    )
+
+    assert first == settings.novel_out_dir / "20260620.md"
+    assert second == settings.novel_out_dir / "20260620.md"
+    assert len(novelizer.calls) == 2

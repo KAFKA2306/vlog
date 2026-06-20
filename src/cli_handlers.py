@@ -2,6 +2,7 @@ import argparse
 import json
 import re
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -137,11 +138,24 @@ def _cmd_summarize_logic(args: argparse.Namespace) -> None:
         )
 
 
+def cmd_daily(args: argparse.Namespace) -> None:
+    _harness_run("daily", TaskWeight.HEAVY, _cmd_daily_logic, args)
+
+
+def _cmd_daily_logic(args: argparse.Namespace) -> None:
+    _cmd_pending_logic(args, sync=False)
+
+    from src.use_cases.evaluate import EvaluateDailyContentUseCase
+
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
+    EvaluateDailyContentUseCase().execute(yesterday, sync=False)
+
+
 def cmd_pending(args: argparse.Namespace) -> None:
     _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args)
 
 
-def _cmd_pending_logic(args: argparse.Namespace) -> None:
+def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
     transcript_dir = Path("data/transcripts")
     summary_dir = Path("data/summaries")
     recording_dir = Path("data/recordings")
@@ -192,7 +206,8 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
     for d in dates:
         if (summary_dir / f"{d}_summary.txt").exists():
             use_case.execute(d)
-    SupabaseRepository().sync()
+    if sync:
+        SupabaseRepository().sync()
 
 
 def cmd_curator(args: argparse.Namespace) -> None:

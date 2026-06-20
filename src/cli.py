@@ -14,6 +14,7 @@ def main() -> None:
         cmd_audit,
         cmd_check_vrc,
         cmd_curator,
+        cmd_daily,
         cmd_image_generate,
         cmd_jules,
         cmd_manga,
@@ -51,6 +52,7 @@ def main() -> None:
     p_summarize.add_argument("--file")
     p_summarize.add_argument("--date")
 
+    subparsers.add_parser("daily", help="Run daily pipeline")
     subparsers.add_parser("pending", help="Process pending")
 
     p_jules = subparsers.add_parser("jules", help="Manage tasks")
@@ -95,6 +97,8 @@ def main() -> None:
         cmd_transcribe(args)
     elif args.command == "summarize":
         cmd_summarize(args)
+    elif args.command == "daily":
+        cmd_daily(args)
     elif args.command == "pending":
         cmd_pending(args)
     elif args.command == "notify":

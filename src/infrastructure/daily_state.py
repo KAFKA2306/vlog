@@ -107,6 +107,7 @@ class DailyStateStore:
         date_str: str,
         *,
         summary_hash: str,
+        context_hash: str,
         chapter_text: str,
         novel_path: Path,
         photo_path: Path,
@@ -121,6 +122,7 @@ class DailyStateStore:
                 "photo_path": str(photo_path),
                 "novel_hash": fingerprint_text(chapter_text),
                 "novel_summary_hash": summary_hash,
+                "novel_context_hash": context_hash,
                 "novel_updated_at": _utc_now(),
             }
         )

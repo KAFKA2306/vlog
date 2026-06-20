@@ -146,15 +146,7 @@ tasks:
     desc: 日次処理（昨日＋今日）
     cmds:
       - uv run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
-      - task process:yesterday
-      - task process:today
-      - YESTERDAY=$(date -d "yesterday" +%Y%m%d); uv run python -m src.cli summarize --date $YESTERDAY || true
-      - TODAY=$(date +%Y%m%d); uv run python -m src.cli summarize --date $TODAY || true
-      - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task novel:build date=$YESTERDAY || true
-      - TODAY=$(date +%Y%m%d); task novel:build date=$TODAY || true
-      - task process:pending
-      - YESTERDAY=$(date -d "yesterday" +%Y%m%d); task curator:eval date=$YESTERDAY || true
-      - task graph:ingest
+      - uv run python -m src.cli daily
       - task cognee:init || true
       - task cognee:ingest || true
       - task sync || echo "⚠️  Supabase sync failed (paused?). Continuing anyway."
