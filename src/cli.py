@@ -8,34 +8,29 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Subparsers for commands (simplified)
-    # Full command implementation moved to src/cli_handlers.py for simplicity & brevity
     from src.cli_handlers import (
-        cmd_audit,
         cmd_check_vrc,
         cmd_curator,
         cmd_image_generate,
         cmd_jules,
         cmd_manga,
-        cmd_notify,
-        cmd_novel,
         cmd_pending,
         cmd_process,
         cmd_summarize,
-        cmd_sync,
         cmd_transcribe,
     )
+    from src.secure_handlers import cmd_audit, cmd_notify, cmd_novel, cmd_sync
 
     p_process = subparsers.add_parser("process", help="Process audio file")
-    p_process.add_argument("--file", help="Path to audio file")
+    p_process.add_argument("--file", required=True, help="Path to audio file")
     p_process.add_argument("--sync", action="store_true", default=True)
     p_process.add_argument("--no-sync", dest="sync", action="store_false")
 
     p_novel = subparsers.add_parser("novel", help="Generate novel chapter")
-    p_novel.add_argument("--date", help="Target date (YYYYMMDD)")
+    p_novel.add_argument("--date", required=True, help="Target date (YYYYMMDD)")
     p_novel.add_argument("--out", help="Output filename")
 
-    subparsers.add_parser("sync", help="Sync data to Supabase")
+    subparsers.add_parser("sync", help="Strictly sync data to Supabase")
 
     p_image_generate = subparsers.add_parser("image-generate", help="Generate image")
     p_image_generate.add_argument("--novel-file", required=True)
@@ -51,7 +46,7 @@ def main() -> None:
     p_summarize.add_argument("--file")
     p_summarize.add_argument("--date")
 
-    subparsers.add_parser("pending", help="Process pending")
+    subparsers.add_parser("pending", help="Process pending and verify sync")
 
     p_jules = subparsers.add_parser("jules", help="Manage tasks")
     p_jules.add_argument("action", choices=["add", "list", "done"])
@@ -66,12 +61,13 @@ def main() -> None:
 
     subparsers.add_parser("check-vrc", help="Check if VRChat is running")
 
-    p_audit = subparsers.add_parser("audit", help="Run strict evidence-based audit")
-    p_audit.add_argument("--recent", type=int, default=100)
-    p_audit.add_argument("--trace-window-minutes", type=int, default=30)
+    p_audit = subparsers.add_parser("audit", help="Audit one correlated run")
+    p_audit.add_argument("--run-id")
     p_audit.add_argument("--json", action="store_true")
     p_audit.add_argument("--strict", action="store_true", default=True)
     p_audit.add_argument("--no-strict", dest="strict", action="store_false")
+    p_audit.add_argument("--recent", type=int, default=100)
+    p_audit.add_argument("--trace-window-minutes", type=int, default=30)
 
     args = parser.parse_args()
 
@@ -82,7 +78,11 @@ def main() -> None:
     elif args.command == "curator":
         cmd_curator(args)
     elif args.command == "process":
+        requested_sync = args.sync
+        args.sync = False
         cmd_process(args)
+        if requested_sync:
+            cmd_sync(args)
     elif args.command == "novel":
         cmd_novel(args)
     elif args.command == "sync":
@@ -97,6 +97,7 @@ def main() -> None:
         cmd_summarize(args)
     elif args.command == "pending":
         cmd_pending(args)
+        cmd_sync(args)
     elif args.command == "notify":
         cmd_notify(args)
     elif args.command == "check-vrc":
