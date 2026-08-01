@@ -45,9 +45,10 @@ def cmd_audit(args: argparse.Namespace) -> None:
 
 
 def cmd_notify(args: argparse.Namespace) -> None:
-    if args.message.startswith("✅ 日次処理") and os.environ.get(
-        "VLOG_DAILY_VERIFIED"
-    ) != "1":
+    if (
+        args.message.startswith("✅ 日次処理")
+        and os.environ.get("VLOG_DAILY_VERIFIED") != "1"
+    ):
         raise RuntimeError("Daily success notification requires a verified run")
     from src.infrastructure.discord import DiscordClient
 
