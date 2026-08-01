@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from supabase import create_client
 
 from src.infrastructure.image_optimizer import ImageOptimizer
 from src.infrastructure.settings import settings
+from supabase import create_client
 
 
 @dataclass(frozen=True)
