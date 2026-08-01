@@ -17,6 +17,8 @@ def prepare_contract(tmp_path: Path, monkeypatch, run_id: str) -> None:
     monkeypatch.chdir(tmp_path)
     (tmp_path / "supabase").mkdir()
     (tmp_path / "supabase/schema.sql").write_text(
+        "revoke all on table public.daily_entries "
+        "from public, anon, authenticated;\n"
         "grant select on table public.daily_entries to anon, authenticated;\n"
         "grant select on table public.novels to anon, authenticated;\n"
         "create policy p on daily_entries for select to anon, authenticated "
