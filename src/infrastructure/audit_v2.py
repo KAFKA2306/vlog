@@ -244,6 +244,7 @@ class StrictRunAuditor:
         secure = (
             "to anon, authenticated" in sql
             and "using (is_public = true)" in sql
+            and "from public, anon, authenticated" in sql
             and "grant select on table public.daily_entries" in sql
             and "grant select on table public.novels" in sql
         )
