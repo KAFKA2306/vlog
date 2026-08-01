@@ -38,7 +38,7 @@ class DailyPipeline:
             print("VRChat is running; daily processing skipped without success notice.")
             return None
 
-        run_id = os.environ.get("VLOG_RUN_ID") or str(uuid4())
+        run_id = str(uuid4())
         env = dict(os.environ)
         env["VLOG_RUN_ID"] = run_id
         env["VLOG_DAILY_VERIFIED"] = "0"
