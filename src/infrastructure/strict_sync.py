@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from dotenv import load_dotenv
 
@@ -41,9 +42,7 @@ class SyncReport:
 class StrictSupabaseSync:
     def __init__(self, client: Any | None = None) -> None:
         load_dotenv()
-        self.run_id = os.environ.get("VLOG_RUN_ID") or datetime.now().strftime(
-            "%Y%m%dT%H%M%S"
-        )
+        self.run_id = os.environ.get("VLOG_RUN_ID") or str(uuid4())
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
         self.client = client
