@@ -1,20 +1,21 @@
 [Unit]
 Description=VRChat Vlog Daily Processing
 OnFailure=vlog-daily-failure.service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
 WorkingDirectory=%h/projects/vlog
 EnvironmentFile=%h/projects/vlog/.env
-ExecStart=/usr/bin/bash -c "/snap/bin/task process:daily"
+ExecStart=%h/.local/bin/uv run python -m src.daily
 Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-# Security Hardening
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/projects/vlog/data %h/projects/vlog/data/archives %h/projects/vlog/data/summaries %h/projects/vlog/data/transcripts %h/projects/vlog/data/logs
+ReadWritePaths=%h/projects/vlog/data
 ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
 
 [Install]
