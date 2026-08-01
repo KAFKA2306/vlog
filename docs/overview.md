@@ -663,6 +663,7 @@ novel_path = use_case.execute(date="20251204")
 | `date` | date | 日付 |
 | `title` | text | タイトル |
 | `content` | text | 要約テキスト |
+| `image_url` | text | 生成画像URL |
 | `tags` | text[] | タグ配列 |
 | `is_public` | boolean | 公開フラグ |
 | `created_at` | timestamptz | 作成日時 |

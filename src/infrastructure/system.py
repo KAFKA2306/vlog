@@ -148,7 +148,7 @@ class AudioRecorder:
 
 class Transcriber:
     def __init__(self) -> None:
-        self._model: "WhisperModel" | None = None
+        self._model: "WhisperModel | None" = None
 
     @property
     def model(self) -> "WhisperModel":
@@ -248,13 +248,13 @@ class TranscriptPreprocessor:
         r"ん",
     ]
 
-    def process(self, txt: str) -> str:
-        txt = self._normalize_text(txt)
-        txt = self._remove_repetition(txt)
-        txt = self._remove_fillers(txt)
-        txt = self._dedupe_words(txt)
-        txt = self._merge_lines(txt)
-        return txt
+    def process(self, text: str) -> str:
+        text = self._normalize_text(text)
+        text = self._remove_repetition(text)
+        text = self._remove_fillers(text)
+        text = self._dedupe_words(text)
+        text = self._merge_lines(text)
+        return text
 
     def _normalize_text(self, txt: str) -> str:
         txt = txt.replace("…", " ")

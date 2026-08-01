@@ -3,11 +3,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from src.domain.entities import RecordingSession
 from src.domain.interfaces import (
+    DailySummarizerProtocol,
     FileRepositoryProtocol,
+    GraphStorageProtocol,
     ImageGeneratorProtocol,
     NovelizerProtocol,
-    SummarizerProtocol,
 )
 from src.infrastructure.daily_state import (
     DailySourceBundle,
@@ -16,7 +18,6 @@ from src.infrastructure.daily_state import (
     fingerprint_paths,
     fingerprint_text,
 )
-from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.settings import settings
 
 
@@ -30,11 +31,11 @@ class DailyArtifactManager:
     def refresh_summary(
         self,
         date_str: str,
-        summarizer: SummarizerProtocol,
+        summarizer: DailySummarizerProtocol,
         file_repository: FileRepositoryProtocol,
         *,
         source_paths: tuple[Path, ...] | None = None,
-        session=None,
+        session: RecordingSession | None = None,
         fallback_text: str | None = None,
     ) -> str | None:
         summary_path = settings.summary_dir / f"{date_str}_summary.txt"
@@ -43,7 +44,7 @@ class DailyArtifactManager:
 
         has_text_input = bool(source_bundle.combined_text.strip())
 
-        if not source_bundle.paths and not has_text_input:
+        if not has_text_input:
             if summary_path.exists():
                 existing = summary_path.read_text(encoding="utf-8")
                 if existing.strip():
@@ -56,7 +57,12 @@ class DailyArtifactManager:
                     )
                     return existing
 
-            self._state.record_empty(date_str, "no transcript sources")
+            self._state.record_empty(
+                date_str,
+                "no transcript sources"
+                if not source_bundle.paths
+                else "empty transcript sources",
+            )
             return None
 
         if (
@@ -103,7 +109,7 @@ class DailyArtifactManager:
         date_str: str,
         novelizer: NovelizerProtocol,
         image_generator: ImageGeneratorProtocol,
-        graph_storage: GraphStorage | None = None,
+        graph_storage: GraphStorageProtocol | None = None,
     ) -> Path | None:
         summary_path = settings.summary_dir / f"{date_str}_summary.txt"
         if not summary_path.exists():
@@ -124,28 +130,16 @@ class DailyArtifactManager:
         context = f"Past Memories:\n{past_memories}\n\n" if past_memories else ""
         context_hash = fingerprint_text(context)
 
-        if (
-            novel_path.exists()
-            and photo_path.exists()
-            and state_entry.get("novel_summary_hash") == summary_hash
-            and state_entry.get("novel_context_hash") == context_hash
-        ):
-            return novel_path
-
-        if (
-            novel_path.exists()
-            and photo_path.exists()
-            and not state_entry.get("novel_summary_hash")
-            and not context
-        ):
-            self._state.record_novel(
-                date_str,
-                summary_hash=summary_hash,
-                context_hash=context_hash,
-                chapter_text=novel_path.read_text(encoding="utf-8"),
-                novel_path=novel_path,
-                photo_path=photo_path,
-            )
+        if novel_path.exists() and photo_path.exists():
+            if not state_entry.get("novel_summary_hash"):
+                self._state.record_novel(
+                    date_str,
+                    summary_hash=summary_hash,
+                    context_hash=context_hash,
+                    chapter_text=novel_path.read_text(encoding="utf-8"),
+                    novel_path=novel_path,
+                    photo_path=photo_path,
+                )
             return novel_path
 
         if novel_path.exists():
@@ -224,17 +218,17 @@ class DailyArtifactManager:
 
     def _summarize_transcript(
         self,
-        summarizer: SummarizerProtocol,
+        summarizer: DailySummarizerProtocol,
         transcript: str,
         date_str: str,
         *,
-        session=None,
+        session: RecordingSession | None = None,
     ) -> str:
         if session is not None:
             return summarizer.summarize(transcript, session)
         return summarizer.summarize(transcript, date_str=date_str)
 
-    def _fetch_memories(self, graph_storage: GraphStorage, summary: str) -> str:
+    def _fetch_memories(self, graph_storage: GraphStorageProtocol, summary: str) -> str:
         query = self._build_search_query(summary)
         results = graph_storage.search(query, limit=5)
         return graph_storage.get_context_string(results)

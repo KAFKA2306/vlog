@@ -1,4 +1,5 @@
 -- Add image_url to novels if not exists
+alter table daily_entries add column if not exists image_url text;
 alter table novels add column if not exists image_url text;
 
 -- Create bucket if not exists

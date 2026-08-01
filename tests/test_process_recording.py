@@ -34,7 +34,14 @@ class StubSummarizer:
     def __init__(self):
         self.called = False
 
-    def summarize(self, transcript: str, session: RecordingSession) -> str:
+    def summarize(
+        self,
+        transcript: str,
+        session: RecordingSession | None = None,
+        date_str: str | None = None,
+        start_time_str: str | None = None,
+        end_time_str: str | None = None,
+    ) -> str:
         self.called = True
         return "summary"
 

@@ -47,7 +47,7 @@ class StubGraphStorage:
     def search(self, query: str, limit: int = 5):
         return []
 
-    def get_context_string(self, results) -> str:
+    def get_context_string(self, triples) -> str:
         return ""
 
 
@@ -153,9 +153,9 @@ def test_refresh_novel_skips_when_summary_unchanged(monkeypatch, tmp_path):
     assert first == settings.novel_out_dir / "20260620.md"
     assert second == settings.novel_out_dir / "20260620.md"
     assert len(novelizer.calls) == 1
-    assert (
-        settings.novel_out_dir / "20260620.md"
-    ).read_text(encoding="utf-8") == "chapter-1"
+    assert (settings.novel_out_dir / "20260620.md").read_text(
+        encoding="utf-8"
+    ) == "chapter-1"
 
 
 def test_refresh_novel_skips_empty_summary(monkeypatch, tmp_path):

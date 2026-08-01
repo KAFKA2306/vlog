@@ -144,7 +144,7 @@ def cmd_daily(args: argparse.Namespace) -> None:
     _harness_run("daily", TaskWeight.LIGHT, _cmd_daily_logic, args)
 
 
-def _cmd_daily_logic(args: argparse.Namespace) -> None:
+def _cmd_daily_logic(args: object) -> None:
     plan = collect_daily_workload()
     print(render_daily_workload(plan))
 
@@ -187,19 +187,19 @@ def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
     evaluation_dir = summary_dir.parent / "evaluations"
 
     summary_dates = {
-        re.search(r"(\d{8})", f.stem).group(1)
+        match.group(1)
         for f in summary_dir.glob("*_summary.txt")
-        if re.search(r"(\d{8})", f.stem)
+        if (match := re.search(r"(\d{8})", f.stem))
     }
     novel_dates = {
-        re.search(r"(\d{8})", f.stem).group(1)
+        match.group(1)
         for f in novel_dir.glob("*.md")
-        if re.search(r"(\d{8})", f.stem)
+        if (match := re.search(r"(\d{8})", f.stem))
     }
     evaluation_dates = {
-        re.search(r"(\d{8})", f.stem).group(1)
+        match.group(1)
         for f in evaluation_dir.glob("*.json")
-        if re.search(r"(\d{8})", f.stem)
+        if (match := re.search(r"(\d{8})", f.stem))
     }
 
     pending_dates = sorted((summary_dates & novel_dates) - evaluation_dates)
@@ -233,14 +233,14 @@ def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
         transcriber.unload()
     dates = sorted(
         {
-            re.search(r"(\d{8})", f.stem).group(1)
+            match.group(1)
             for f in transcript_dir.glob("*.txt")
-            if re.search(r"(\d{8})", f.stem)
+            if (match := re.search(r"(\d{8})", f.stem))
         }
         | {
-            re.search(r"(\d{8})", f.stem).group(1)
+            match.group(1)
             for f in summary_dir.glob("*_summary.txt")
-            if re.search(r"(\d{8})", f.stem)
+            if (match := re.search(r"(\d{8})", f.stem))
         }
     )
     summarizer = Summarizer()

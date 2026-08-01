@@ -5,11 +5,11 @@ import yaml
 
 from src.domain.entities import RecordingSession
 from src.domain.interfaces import (
+    DailySummarizerProtocol,
     FileRepositoryProtocol,
     ImageGeneratorProtocol,
     NovelizerProtocol,
     StorageProtocol,
-    SummarizerProtocol,
     TranscriberProtocol,
     TranscriptPreprocessorProtocol,
 )
@@ -25,7 +25,7 @@ class ProcessRecordingUseCase:
         self,
         transcriber: TranscriberProtocol,
         preprocessor: TranscriptPreprocessorProtocol,
-        summarizer: SummarizerProtocol,
+        summarizer: DailySummarizerProtocol,
         storage: StorageProtocol,
         file_repository: FileRepositoryProtocol,
         novelizer: NovelizerProtocol | None = None,

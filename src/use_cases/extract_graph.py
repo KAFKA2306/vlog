@@ -24,8 +24,8 @@ class ExtractGraphUseCase:
         content = summary_path.read_text(encoding="utf-8")
         triples = self._extract_with_llm(content)
 
+        self.storage.add_triples(triples, source=summary_path.name)
         if triples:
-            self.storage.add_triples(triples, source=summary_path.name)
             print(f"  -> Extracted {len(triples)} triples")
             return len(triples)
         return 0
