@@ -1,52 +1,47 @@
--- Add image_url to novels if not exists
-alter table novels add column if not exists image_url text;
+-- VLog Supabase security contract.
+-- Anonymous and authenticated clients may only read rows explicitly marked public.
+-- All writes are performed with the service role, which bypasses RLS in Supabase.
 
--- Create bucket if not exists
+alter table public.daily_entries add column if not exists image_url text;
+alter table public.novels add column if not exists image_url text;
+
 insert into storage.buckets (id, name, public)
 values ('vlog-photos', 'vlog-photos', true)
-on conflict (id) do nothing;
+on conflict (id) do update set public = excluded.public;
 
--- Enable Row Level Security (idempotent)
-alter table daily_entries enable row level security;
-alter table novels enable row level security;
+alter table public.daily_entries enable row level security;
+alter table public.novels enable row level security;
 
--- Policies
-do $$
-begin
-  -- Daily Entries Policies
-  if not exists (select 1 from pg_policies where tablename = 'daily_entries' and policyname = 'Public entries are viewable by everyone') then
-    create policy "Public entries are viewable by everyone" on daily_entries for select using (is_public = true);
-  end if;
+revoke all on table public.daily_entries from anon, authenticated;
+revoke all on table public.novels from anon, authenticated;
+grant select on table public.daily_entries to anon, authenticated;
+grant select on table public.novels to anon, authenticated;
 
-  if not exists (select 1 from pg_policies where tablename = 'daily_entries' and policyname = 'Service role can do everything on daily_entries') then
-    create policy "Service role can do everything on daily_entries" on daily_entries for all using (true) with check (true);
-  end if;
+drop policy if exists "Public entries are viewable by everyone" on public.daily_entries;
+drop policy if exists "Service role can do everything on daily_entries" on public.daily_entries;
+create policy "Public entries are viewable by everyone"
+on public.daily_entries
+for select
+to anon, authenticated
+using (is_public = true);
 
-  -- Novels Policies
-  if not exists (select 1 from pg_policies where tablename = 'novels' and policyname = 'Public novels are viewable by everyone') then
-    create policy "Public novels are viewable by everyone" on novels for select using (is_public = true);
-  end if;
+drop policy if exists "Public novels are viewable by everyone" on public.novels;
+drop policy if exists "Service role can do everything on novels" on public.novels;
+create policy "Public novels are viewable by everyone"
+on public.novels
+for select
+to anon, authenticated
+using (is_public = true);
 
-  if not exists (select 1 from pg_policies where tablename = 'novels' and policyname = 'Service role can do everything on novels') then
-    create policy "Service role can do everything on novels" on novels for all using (true) with check (true);
-  end if;
+drop policy if exists "Photos are viewable by everyone" on storage.objects;
+drop policy if exists "Service role can upload photos" on storage.objects;
+drop policy if exists "Service role can update photos" on storage.objects;
+create policy "Photos are viewable by everyone"
+on storage.objects
+for select
+to anon, authenticated
+using (bucket_id = 'vlog-photos');
 
-  -- Storage Policies
-  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'Photos are viewable by everyone') then
-    create policy "Photos are viewable by everyone" on storage.objects for select using (bucket_id = 'vlog-photos');
-  end if;
-  
-  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'Service role can upload photos') then
-    create policy "Service role can upload photos" on storage.objects for insert with check (bucket_id = 'vlog-photos');
-  end if;
-  
-  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'Service role can update photos') then
-    create policy "Service role can update photos" on storage.objects for update using (bucket_id = 'vlog-photos');
-  end if;
-end
-$$;
-
--- Evaluations Table
 create table if not exists public.evaluations (
   id uuid primary key default gen_random_uuid(),
   date date not null,
@@ -57,12 +52,6 @@ create table if not exists public.evaluations (
   unique(date, target_type)
 );
 
--- RLS for Evaluations
 alter table public.evaluations enable row level security;
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename = 'evaluations' and policyname = 'Service role can do everything on evaluations') then
-    create policy "Service role can do everything on evaluations" on evaluations for all using (true) with check (true);
-  end if;
-end
-$$;
+revoke all on table public.evaluations from anon, authenticated;
+drop policy if exists "Service role can do everything on evaluations" on public.evaluations;
