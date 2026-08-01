@@ -101,9 +101,7 @@ class StrictRunAuditor:
         records: list[Record],
         traces: list[Record],
     ) -> AuditFinding:
-        started = next(
-            (r for r in records if r.payload.get("status") == "try"), None
-        )
+        started = next((r for r in records if r.payload.get("status") == "try"), None)
         terminal = next(
             (
                 r
