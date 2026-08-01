@@ -13,7 +13,11 @@ def test_failure_prevents_success_notification(tmp_path: Path) -> None:
         if "sync" in command:
             raise RuntimeError("sync failed")
 
-    pipeline = DailyPipeline(runner=runner, monitor=lambda: False, project_root=tmp_path)
+    pipeline = DailyPipeline(
+        runner=runner,
+        monitor=lambda: False,
+        project_root=tmp_path,
+    )
     with pytest.raises(RuntimeError, match="sync failed"):
         pipeline.run()
     assert not any("notify" in command for command, _, _ in calls)
