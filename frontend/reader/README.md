@@ -1,67 +1,37 @@
 # VRChat Auto-Diary Reader
 
-Next.jsベースのWebリーダー。`data/summaries/` のローカルファイルを読み込んで表示。
+data/summaries の日次要約を読みやすく表示する Next.js リーダー。
+
+## 依存関係
+
+プロジェクトルートから Bun の固定ロックを同期する。
+
+    task web:setup
+
+依存関係を意図的に更新する場合だけ次を実行し、bun.lock をコミットする。
+
+    task web:lock
 
 ## 開発
 
-### インストール
+    task web:dev
 
-```bash
-cd frontend/reader
-npm install
-```
+ブラウザで http://localhost:3000 を開く。
 
-### 開発サーバー
+## 検証
 
-```bash
-npm run dev -- --hostname 0.0.0.0 --port 3000
-# または
-task web:dev  # プロジェクトルートから
-```
+    task web:build
 
-ブラウザで`http://localhost:3000`を開く。
+型検査、ESLint、本番ビルドを順番に実行する。
 
-### 本番ビルド
+## 本番確認
 
-```bash
-npm run build
-npm run start  # ビルド後のプレビュー
-```
+    task web:start
+
+ブラウザで http://localhost:4000 を開く。
 
 ## デプロイ
 
-### Vercel（推奨）
+    task web:deploy
 
-```bash
-npx vercel --prod
-# または
-task web:deploy  # プロジェクトルートから
-```
-
-プロジェクト名：`kaflog`
-
-### 本番URL
-
-<https://kaflog.vercel.app>
-
-## プロジェクト構成
-
-```
-frontend/reader/
-├── app/              Next.js App Router
-│   ├── page.tsx      メインページ
-│   └── layout.tsx    レイアウト
-├── lib/              ユーティリティ
-│   └── entries.ts    ローカル要約読み込み
-└── public/           静的ファイル
-```
-
-## トラブルシューティング
-
-### ビルドエラー
-
-```bash
-rm -rf .next node_modules
-npm install
-npm run build
-```
+本番 URL は https://kaflog.vercel.app である。

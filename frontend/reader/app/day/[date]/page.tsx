@@ -25,24 +25,28 @@ export default async function DayPage({ params }: Props) {
   return (
     <main className="page">
       <div className="wrap narrow">
-        <h1 className="site-title">{formatDateOnly(date)}</h1>
-        <p className="day-url">/day/{date}</p>
         <Link className="back-link" href="/">
-          Home
+          ← 日記一覧
         </Link>
 
         {entry === null ? (
           <div className="empty-state">
-            <p>No local content found for this day.</p>
-            <Link className="back-link" href="/">
-              Home
-            </Link>
+            <h1>日記が見つかりません</h1>
+            <p>{formatDateOnly(date)} のローカルデータはありません。</p>
           </div>
         ) : (
-          <article className="entry-copy">
-            <h2>{entry.title}</h2>
-            <p className="entry-preview">{entry.content}</p>
-          </article>
+          <>
+            <header className="day-header">
+              <p className="eyebrow">VRCHAT DIARY</p>
+              <h1 className="day-title">{entry.title}</h1>
+              <time className="day-date" dateTime={date}>
+                {formatDateOnly(date)}
+              </time>
+            </header>
+            <article className="entry-copy">
+              <p className="entry-body">{entry.content}</p>
+            </article>
+          </>
         )}
       </div>
     </main>

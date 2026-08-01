@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'VRChat Auto Diary',
-  description: 'VRChat Auto Diary',
+  description: 'VRChatで過ごした時間を読み返す日記',
 }
 
 export default function RootLayout({
