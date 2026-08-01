@@ -12,8 +12,8 @@ on conflict (id) do update set public = excluded.public;
 alter table public.daily_entries enable row level security;
 alter table public.novels enable row level security;
 
-revoke all on table public.daily_entries from anon, authenticated;
-revoke all on table public.novels from anon, authenticated;
+revoke all on table public.daily_entries from public, anon, authenticated;
+revoke all on table public.novels from public, anon, authenticated;
 grant select on table public.daily_entries to anon, authenticated;
 grant select on table public.novels to anon, authenticated;
 
@@ -53,5 +53,5 @@ create table if not exists public.evaluations (
 );
 
 alter table public.evaluations enable row level security;
-revoke all on table public.evaluations from anon, authenticated;
+revoke all on table public.evaluations from public, anon, authenticated;
 drop policy if exists "Service role can do everything on evaluations" on public.evaluations;
