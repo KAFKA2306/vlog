@@ -6,8 +6,19 @@ set "UV_LINK_MODE=copy"
 set "UV_PYTHON=3.12"
 set "PYTHONIOENCODING=utf-8"
 
-for /f "delims=" %%i in ('uv run python -c "import nvidia.cudnn; import os; print(os.path.join(os.path.dirname(nvidia.cudnn.__file__), 'bin'))" 2^>nul') do set "CUDNN_BIN=%%i"
-if defined CUDNN_BIN set "PATH=%CUDNN_BIN%;%PATH%"
+set "NVIDIA_BIN=%CD%\.venv-win\Lib\site-packages\nvidia"
+set "CUDNN_BIN=%NVIDIA_BIN%\cudnn\bin"
+set "CUBLAS_BIN=%NVIDIA_BIN%\cublas\bin"
+set "PATH=%CUDNN_BIN%;%CUBLAS_BIN%;%PATH%"
 
-uv run python -m src.main
-pause
+if not exist "data\logs" mkdir "data\logs"
+set "BOOTSTRAP_LOG=data\logs\windows-bootstrap.log"
+> "%BOOTSTRAP_LOG%" echo timestamp=%DATE% %TIME%
+>> "%BOOTSTRAP_LOG%" echo resolved_path=%CD%
+>> "%BOOTSTRAP_LOG%" echo working_dir=%CD%
+
+uv run --frozen python -m src.main >> "%BOOTSTRAP_LOG%" 2>&1
+set "EXIT_CODE=%ERRORLEVEL%"
+>> "%BOOTSTRAP_LOG%" echo exit_code=%EXIT_CODE%
+popd
+exit /b %EXIT_CODE%

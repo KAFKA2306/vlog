@@ -5,4 +5,4 @@ Description=VRChat Vlog Daily Processing Failure Notification
 Type=oneshot
 WorkingDirectory=%h/projects/vlog
 EnvironmentFile=%h/projects/vlog/.env
-ExecStart=%h/.local/bin/uv run python -m src.cli notify --message "❌ 日次処理が失敗しました（$(date +'%%Y-%%m-%%d %%H:%%M:%%S')）"
+ExecStart=/usr/bin/task notify:daily-failure

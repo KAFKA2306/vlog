@@ -6,7 +6,7 @@ OnFailure=vlog-daily-failure.service
 Type=oneshot
 WorkingDirectory=%h/projects/vlog
 EnvironmentFile=%h/projects/vlog/.env
-ExecStart=/usr/bin/bash -c "/snap/bin/task process:daily"
+ExecStart=/usr/bin/task process:daily
 Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Security Hardening

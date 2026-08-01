@@ -1,6 +1,9 @@
 version: "3"
 
 env:
+  UV: "{{.HOME}}/.local/bin/uv"
+  BUN: "{{.HOME}}/.bun/bin/bun"
+  BUNX: "{{.HOME}}/.bun/bin/bunx"
   LD_LIBRARY_PATH: "{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cudnn/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cublas/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/nccl/lib"
 
 tasks:
@@ -66,55 +69,59 @@ tasks:
   # ────────────────────────────────────────
   setup:
     desc: 依存同期
-    cmd: uv sync
+    cmd: $UV sync --frozen
+
+  lock:
+    desc: Python依存ロック更新
+    cmd: $UV lock
 
   # ────────────────────────────────────────
   # 開発・実行
   # ────────────────────────────────────────
   dev:
     desc: アプリ実行
-    cmd: uv run python -m src.main
+    cmd: $UV run python -m src.main
 
   up:
-    desc: systemd起動
+    desc: systemd日次タイマー起動
     cmds:
-      - systemctl --user enable --now "$(pwd)/vlog.service"
-      - systemctl --user link "$(pwd)/vlog-daily.service" || true
-      - systemctl --user enable --now "$(pwd)/vlog-daily.timer"
+      - systemctl --user link --force "$(pwd)/vlog.service" "$(pwd)/vlog-daily.service" "$(pwd)/vlog-daily-failure.service" "$(pwd)/vlog-daily.timer"
+      - systemctl --user daemon-reload
+      - systemctl --user disable --now vlog.service
+      - systemctl --user enable --now vlog-daily.timer
 
   down:
-    desc: systemd停止
+    desc: systemd日次タイマー停止
     cmds:
-      - systemctl --user disable --now vlog.service
-      - systemctl --user disable --now vlog-daily.timer
+      - systemctl --user disable --now vlog.service vlog-daily.timer
 
   restart:
-    desc: systemd再起動
-    cmd: systemctl --user restart vlog
+    desc: systemd日次タイマー再起動
+    cmd: systemctl --user restart vlog-daily.timer
 
   status:
-    desc: 全体状態確認（service + log）
+    desc: Windows・systemd・日次タイマー・ログの状態確認
     cmds:
-      - echo "■ systemd 状態"
-      - systemctl --user status vlog --no-pager --lines=10 || true
-      - echo ""
-      - echo "■ ログ解析"
+      - powershell.exe -NoProfile -Command "Get-ScheduledTask -TaskName VlogAutoDiary | Select-Object TaskName,State | Format-Table -AutoSize"
+      - systemctl --user show vlog.service vlog-daily.timer -p Id -p LoadState -p ActiveState -p SubState -p UnitFileState
+      - systemctl --user list-timers vlog-daily.timer --all --no-pager
+      - journalctl --user -u vlog.service -u vlog-daily.service --no-pager -n 20
 
   logs:
     desc: ログ追尾（リアルタイム）
-    cmd: journalctl --user -u vlog -f
+    cmd: journalctl --user -u vlog-daily.service -f
 
   # ────────────────────────────────────────
   # 録音・処理
   # ────────────────────────────────────────
   record:
     desc: 手動録音開始
-    cmd: uv run python -m src.cli record
+    cmd: $UV run python -m src.cli record
 
   process:
     desc: 録音→要約（単一ファイル）
     deps: [require_file]
-    cmds: ["uv run python -m src.cli process --file {{.FILE}} {{.EXTRA}}"]
+    cmds: ["$UV run python -m src.cli process --file {{.FILE}} {{.EXTRA}}"]
 
   process:all:
     desc: 録音→要約（全ファイル一括）
@@ -145,17 +152,17 @@ tasks:
   process:daily:
     desc: 日次処理（昨日＋今日）
     cmds:
-      - uv run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
-      - uv run python -m src.cli daily
+      - $UV run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
+      - $UV run python -m src.cli daily
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)
     cmds:
-      - uv run python -m src.cli curator eval --date {{.date}}
+      - $UV run python -m src.cli curator eval --date {{.date}}
 
   process:pending:
     desc: 未処理データを検出して一括処理
-    cmd: uv run python -m src.cli pending
+    cmd: $UV run python -m src.cli pending
 
   transcribe:all:
     desc: 文字起こしのみ（全ファイル）
@@ -167,7 +174,7 @@ tasks:
   # ────────────────────────────────────────
   sync:
     desc: Supabase同期
-    cmd: uv run python -m src.cli sync
+    cmd: $UV run python -m src.cli sync
 
   sync:full:
     desc: 全件強制同期
@@ -178,23 +185,38 @@ tasks:
   # ────────────────────────────────────────
   # Web UI
   # ────────────────────────────────────────
+  web:lock:
+    desc: フロントエンド依存ロック更新
+    cmd: cd frontend/reader && $BUN install
+
+  web:setup:
+    desc: フロントエンド依存同期
+    cmd: cd frontend/reader && $BUN ci
+
   web:dev:
     desc: 開発サーバー
-    cmd: cd frontend/reader && npm run dev -- --hostname 0.0.0.0 --port 3000
+    deps: [web:setup]
+    cmd: cd frontend/reader && $BUN run dev -- --hostname 0.0.0.0 --port 3000
 
   web:build:
-    desc: ビルド
-    cmd: cd frontend/reader && npm run build
+    desc: 型・Lint・本番ビルド
+    deps: [web:setup]
+    cmds:
+      - cd frontend/reader && $BUN run typecheck
+      - cd frontend/reader && $BUN run lint
+      - cd frontend/reader && $BUN run build
 
   web:start:
     desc: 本番起動（ポート4000）
-    cmd: cd frontend/reader && npm run start -- --hostname 0.0.0.0 --port 4000
+    deps: [web:setup]
+    cmd: cd frontend/reader && $BUN run start -- --hostname 0.0.0.0 --port 4000
 
   web:deploy:
     desc: Vercelデプロイ
+    deps: [web:build]
     cmds:
-      - cd frontend/reader && npx vercel link --project kaflog --yes
-      - cd frontend/reader && npx vercel --prod --yes
+      - cd frontend/reader && $BUNX vercel link --project kaflog --yes
+      - cd frontend/reader && $BUNX vercel --prod --yes
 
   web:env:
     desc: 環境変数抽出
@@ -212,7 +234,23 @@ tasks:
   # ────────────────────────────────────────
   lint:
     desc: コード品質チェック
-    cmds: ["uv run ruff check src && uv run ruff format src"]
+    cmds: ["$UV run ruff check src tests && $UV run ruff format src tests"]
+
+  test:
+    desc: テスト実行
+    cmd: $UV run pytest tests
+
+  systemd:verify:
+    desc: systemdユニット検証
+    cmd: systemd-analyze --user verify vlog.service vlog-daily.service vlog-daily-failure.service vlog-daily.timer
+
+  notify:daily-failure:
+    desc: 日次処理失敗通知
+    cmd: $UV run python -m src.cli notify --message "❌ 日次処理が失敗しました（$(date '+%Y-%m-%d %H:%M:%S')）"
+
+  typecheck:
+    desc: Python型検査
+    cmd: $UV run ty check src tests
 
   clean:
     desc: キャッシュ削除
@@ -230,7 +268,7 @@ tasks:
   # ────────────────────────────────────────
   vault:sync:
     desc: Prompt Vault から Kafka の最新アイデンティティを同期
-    cmd: uv run python scripts/sync_vault_prompts.py
+    cmd: $UV run python scripts/sync_vault_prompts.py
 
   # ────────────────────────────────────────
   # 自律的メンテナンス (VAMS)
@@ -259,14 +297,14 @@ tasks:
   audit:
     desc: 厳格な証拠監査を実行
     cmds:
-      - uv run python -m src.cli audit --strict --recent 100 --trace-window-minutes 30
+      - $UV run python -m src.cli audit --strict --recent 100 --trace-window-minutes 30
 
   # ────────────────────────────────────────
   # Graph Scribe (シンプルグラフ)
   # ────────────────────────────────────────
   graph:ingest:
     desc: 全要約からグラフデータを抽出
-    cmd: uv run python -m src.cli pending
+    cmd: $UV run python -m src.cli pending
     # cmd_pending がグラフ抽出を含むようになったため、pending を呼ぶだけでOK
     # 明示的に呼びたい場合は専用のCLIコマンドを作るが、今はpendingに統合。
 
@@ -275,18 +313,18 @@ tasks:
   # ────────────────────────────────────────
   cognee:init:
     desc: Cognee キュー初期化
-    cmd: uv run python scripts/init_cognee_queue.py
+    cmd: $UV run python scripts/init_cognee_queue.py
 
   cognee:ingest:
     desc: Cognee キューから次のバッチを処理
     env:
       COGNEE_SKIP_CONNECTION_TEST: "true"
-    cmd: uv run python scripts/ingest_to_cognee.py
+    cmd: $UV run python scripts/ingest_to_cognee.py
 
   cognee:status:
     desc: Cognee キュー状況表示
     cmd: |
-      uv run python -c "
+      $UV run python -c "
       import yaml
       q = yaml.safe_load(open('data/cognee_queue.yaml'))
       files = q['files']
@@ -308,18 +346,18 @@ tasks:
   # デバッグ用
   # ────────────────────────────────────────
   service:status:
-    desc: systemd状態のみ
-    cmd: systemctl --user status vlog
+    desc: systemd日次タイマー状態のみ
+    cmd: systemctl --user status vlog-daily.timer vlog-daily.service
 
   transcribe:
     desc: 文字起こしのみ
     deps: [require_file]
-    cmds: ["uv run python -m src.cli transcribe --file {{.FILE}}"]
+    cmds: ["$UV run python -m src.cli transcribe --file {{.FILE}}"]
 
   summarize:
     desc: 要約のみ
     deps: [require_file]
-    cmds: ["uv run python -m src.cli summarize --file {{.FILE}}"]
+    cmds: ["$UV run python -m src.cli summarize --file {{.FILE}}"]
 
   # ────────────────────────────────────────
   # 小説生成
@@ -327,12 +365,12 @@ tasks:
   novel:build:
     desc: 小説の章を生成
     cmds:
-      - uv run python -m src.cli novel {{if .date}}--date {{.date}}{{end}}
+      - $UV run python -m src.cli novel {{if .date}}--date {{.date}}{{end}}
 
   photo:
     desc: 小説から画像を生成
     cmds:
-      - uv run python -m src.cli image-generate --novel-file {{.novel}} --output-file data/photos/$(basename {{.novel}} .md).png
+      - $UV run python -m src.cli image-generate --novel-file {{.novel}} --output-file data/photos/$(basename {{.novel}} .md).png
     preconditions:
       - sh: test -n "{{.novel}}"
         msg: novel=data/novels/YYYYMMDD.mdを指定してください
@@ -345,7 +383,7 @@ tasks:
   manga:
     desc: 小説から4コマ漫画を生成
     cmds:
-      - uv run python -m src.cli manga --novel-file {{.novel}}
+      - $UV run python -m src.cli manga --novel-file {{.novel}}
     preconditions:
       - sh: test -n "{{.novel}}"
         msg: novel=data/novels/YYYYMMDD.mdを指定してください
@@ -425,4 +463,4 @@ tasks:
   # ────────────────────────────────────────
   dot-skill:distill:
     desc: 要約データからユーザーペルソナを蒸留
-    cmd: export PYTHONPATH=$PYTHONPATH:. && uv run python scripts/distill_user_persona.py
+    cmd: export PYTHONPATH=$PYTHONPATH:. && $UV run python scripts/distill_user_persona.py

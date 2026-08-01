@@ -33,6 +33,7 @@ VRChatの活動を自動監視・録音し、Geminiで要約・小説化して�
 - **コーディング規約**: [.claude/rules/python_coding.md](file:///home/kafka/projects/vlog/.claude/rules/python_coding.md) / [.claude/rules/general.md](file:///home/kafka/projects/vlog/.claude/rules/general.md)
 - **コマンド・手順**: [.claude/rules/commands.md](file:///home/kafka/projects/vlog/.claude/rules/commands.md) / [Taskfile.yaml](file:///home/kafka/projects/vlog/Taskfile.yaml)
 - **アーキテクチャ定義**: [docs/architecture.md](file:///home/kafka/projects/vlog/docs/architecture.md)
+- **パイプライン契約**: [docs/daily_pipeline_contract.md](file:///home/kafka/projects/vlog/docs/daily_pipeline_contract.md)
 - **意思決定履歴**: [docs/adr/](file:///home/kafka/projects/vlog/docs/adr/)
 - **モデル名保護**: [.claude/rules/model_protection.md](file:///home/kafka/projects/vlog/.claude/rules/model_protection.md)
 
