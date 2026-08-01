@@ -186,8 +186,7 @@ class DailyPipeline:
     def _has_transcript(self, date_str: str) -> bool:
         transcript_dir = self.project_root / "data/transcripts"
         return any(
-            self._nonempty(path)
-            for path in transcript_dir.glob(f"*{date_str}*.txt")
+            self._nonempty(path) for path in transcript_dir.glob(f"*{date_str}*.txt")
         )
 
     @staticmethod
