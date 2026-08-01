@@ -74,9 +74,7 @@ class StrictSupabaseSync:
         if not rows:
             return 0
         response = (
-            self.client.table(table)
-            .upsert(rows, on_conflict=on_conflict)
-            .execute()
+            self.client.table(table).upsert(rows, on_conflict=on_conflict).execute()
         )
         data = getattr(response, "data", None)
         if not isinstance(data, list) or len(data) != len(rows):
@@ -173,9 +171,7 @@ class StrictSupabaseSync:
                     "reasoning": json.dumps(data, ensure_ascii=False),
                 }
             )
-        return self._verified_upsert(
-            "evaluations", rows, "date,target_type"
-        )
+        return self._verified_upsert("evaluations", rows, "date,target_type")
 
     def _write_report(self, report: SyncReport) -> None:
         report_dir = Path("data/sync_reports")
