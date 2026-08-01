@@ -15,7 +15,11 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          
+
       - run: uv sync --only-group dev
       - run: uv run ruff check src
-      - run: uv run ruff format --check src
+      - name: Print Ruff formatting diff
+        run: |
+          uv run ruff format src
+          git diff -- src
+          exit 1
