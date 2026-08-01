@@ -1,0 +1,21 @@
+name: Test and Security Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_API_KEY: test-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv
+      - run: uv pip install pytest pydantic-settings pyyaml python-dotenv supabase pillow
+      - run: uv run --no-sync python -m compileall -q src tests
+      - run: uvx ruff check src tests
+      - run: uv run --no-sync pytest -q
