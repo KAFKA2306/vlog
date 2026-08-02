@@ -1,23 +1,34 @@
 [Unit]
 Description=VRChat Auto-Diary Service
-After=network.target
+After=network-online.target
+Wants=network-online.target
 OnFailure=vlog-monitor-failure.service
 StartLimitIntervalSec=300
 StartLimitBurst=5
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
+WatchdogSec=120s
+TimeoutStartSec=30s
+TimeoutStopSec=60s
 WorkingDirectory=%h/projects/vlog
 EnvironmentFile=-%h/projects/vlog/.env
-ExecStart=%h/.local/bin/uv run python -m src.main
-Restart=always
-RestartSec=10
 Environment=PYTHONUNBUFFERED=1
+Environment=VLOG_SERVICE_NAME=vlog-monitor
+ExecStart=%h/.local/bin/uv run python -m src.main
+Restart=on-failure
+RestartSec=10s
+UMask=0077
 
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
 ReadWritePaths=%h/projects/vlog/data
 ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
 
