@@ -9,10 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 import psutil
-import sounddevice as sd
-import soundfile as sf
 
 from src.infrastructure.settings import settings
 
@@ -166,6 +163,11 @@ class AudioRecorder:
             return path
 
     def _record_loop(self) -> None:
+        # PortAudio and NumPy are only required when recording actually starts.
+        import numpy as np
+        import sounddevice as sd
+        import soundfile as sf
+
         try:
             path = self._current_file
             if path is None:
