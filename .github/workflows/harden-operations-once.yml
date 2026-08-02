@@ -1,0 +1,252 @@
+name: Harden operations once
+
+on:
+  push:
+    branches:
+      - agent/harden-vlog-operations
+    paths:
+      - .github/workflows/harden-operations-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/harden-vlog-operations
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Patch lifecycle edge cases
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          observability = Path("src/infrastructure/observability.py")
+          text = observability.read_text(encoding="utf-8")
+          pattern = re.compile(
+              r"    def _latest_open_failure\(.*?\n    def iter_events\(",
+              re.DOTALL,
+          )
+          replacement = '''    def _latest_open_failure(
+              self,
+              *,
+              category: str,
+              component: str,
+              operation: str,
+              resource_id: str | None,
+          ) -> dict[str, Any] | None:
+              open_failures: dict[tuple[str, str | None], dict[str, Any]] = {}
+              for event in self.iter_events():
+                  event_resource = (
+                      str(event.get("resource_id"))
+                      if event.get("resource_id") is not None
+                      else None
+                  )
+                  if (
+                      event.get("status") == EventStatus.FAILED
+                      and event.get("category") == category
+                      and event.get("component") == component
+                      and event.get("operation") == operation
+                      and event_resource == resource_id
+                  ):
+                      key = (str(event.get("fingerprint") or ""), event_resource)
+                      open_failures[key] = event
+                  elif (
+                      event.get("status") == EventStatus.RECOVERED
+                      and event.get("resolves_fingerprint")
+                  ):
+                      key = (str(event["resolves_fingerprint"]), event_resource)
+                      open_failures.pop(key, None)
+              return next(reversed(open_failures.values()), None)
+
+          def iter_events('''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit("failed to patch _latest_open_failure")
+          observability.write_text(text, encoding="utf-8")
+
+          operations = Path("src/operations.py")
+          text = operations.read_text(encoding="utf-8")
+          text = text.replace(
+              '                event.setdefault("resolves_fingerprint", event.get("fingerprint"))',
+              '                if not event.get("resolves_fingerprint"):\n                    event["resolves_fingerprint"] = event.get("fingerprint")',
+          )
+          pattern = re.compile(
+              r"def build_report\(events: list\[dict\[str, Any\]\], days: int\) -> OperationsReport:.*?\n\ndef _fmt_time",
+              re.DOTALL,
+          )
+          replacement = '''def build_report(events: list[dict[str, Any]], days: int) -> OperationsReport:
+              failures_by_key: dict[tuple[str, str | None], list[dict[str, Any]]] = defaultdict(
+                  list
+              )
+              latest_failure_index: dict[tuple[str, str | None], int] = {}
+              latest_recovery_index: dict[tuple[str, str | None], int] = {}
+
+              for index, event in enumerate(events):
+                  resource_id = (
+                      str(event.get("resource_id"))
+                      if event.get("resource_id") is not None
+                      else None
+                  )
+                  if event.get("status") in STATUS_FAILURE:
+                      key = (str(event.get("fingerprint") or ""), resource_id)
+                      failures_by_key[key].append(event)
+                      latest_failure_index[key] = index
+                  elif (
+                      event.get("status") == EventStatus.RECOVERED
+                      and event.get("resolves_fingerprint")
+                  ):
+                      key = (str(event["resolves_fingerprint"]), resource_id)
+                      latest_recovery_index[key] = index
+
+              incidents: list[Incident] = []
+              for key, failures in failures_by_key.items():
+                  failures.sort(key=OperationsLoader._timestamp)
+                  first_failure = failures[0]
+                  last_failure = failures[-1]
+                  severity = max(
+                      (
+                          str(
+                              event.get("severity_text")
+                              or event.get("severity")
+                              or "error"
+                          )
+                          for event in failures
+                      ),
+                      key=lambda value: SEVERITY_RANK.get(value, 2),
+                  )
+                  fingerprint, resource_id = key
+                  incidents.append(
+                      Incident(
+                          key=key,
+                          category=str(last_failure.get("category") or "infrastructure"),
+                          component=str(last_failure.get("component") or "unknown"),
+                          operation=str(last_failure.get("operation") or "unknown"),
+                          severity=severity,
+                          code=str(last_failure.get("code") or "failure"),
+                          count=len(failures),
+                          first_seen=OperationsLoader._timestamp(first_failure),
+                          last_seen=OperationsLoader._timestamp(last_failure),
+                          message=str(last_failure.get("message") or ""),
+                          fingerprint=fingerprint,
+                          resource_id=resource_id,
+                          is_open=latest_failure_index[key]
+                          > latest_recovery_index.get(key, -1),
+                          context=dict(last_failure.get("context") or {}),
+                      )
+                  )
+              incidents.sort(
+                  key=lambda incident: (
+                      incident.is_open,
+                      SEVERITY_RANK.get(incident.severity, 2),
+                      incident.count,
+                      incident.last_seen,
+                  ),
+                  reverse=True,
+              )
+              return OperationsReport(
+                  generated_at=datetime.now(timezone.utc),
+                  days=days,
+                  events=tuple(events),
+                  incidents=tuple(incidents),
+              )
+
+
+          def _fmt_time'''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit("failed to patch build_report")
+          operations.write_text(text, encoding="utf-8")
+
+          system = Path("src/infrastructure/system.py")
+          text = system.read_text(encoding="utf-8")
+          old = '''        if not self._started_event.wait(_RECORD_START_TIMEOUT_SECONDS):
+              self._stop_event.set()
+              raise TimeoutError("Audio input stream did not open within 10 seconds")
+          '''
+          new = '''        if not self._started_event.wait(_RECORD_START_TIMEOUT_SECONDS):
+              self._stop_event.set()
+              thread = self._thread
+              if thread is not None:
+                  thread.join(timeout=1.0)
+              self._cleanup_state(remove_empty=True)
+              raise TimeoutError("Audio input stream did not open within 10 seconds")
+          '''
+          if old not in text:
+              raise SystemExit("failed to locate recorder timeout block")
+          system.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          installer = Path("scripts/install_systemd_units.sh")
+          text = installer.read_text(encoding="utf-8")
+          text = text.replace("  --resource-id vlog-daily.service \\\n", "")
+          installer.write_text(text, encoding="utf-8")
+
+          tests = Path("tests/test_operations.py")
+          text = tests.read_text(encoding="utf-8")
+          text += '''
+
+          def test_failure_recurrence_after_recovery_reopens_incident(
+              tmp_path: Path, monkeypatch
+          ):
+              monkeypatch.chdir(tmp_path)
+              log = OperationalEventLog(tmp_path / "data/error_events.jsonl")
+              first = log.emit(
+                  category="recording",
+                  component="audio-recorder",
+                  operation="start",
+                  status=EventStatus.FAILED,
+                  severity=Severity.CRITICAL,
+                  message="input unavailable",
+                  code="recording_start_failed",
+                  resource_id="audio-input:default",
+              )
+              recovery = log.recover_latest(
+                  category="recording",
+                  component="audio-recorder",
+                  operation="start",
+                  resource_id="audio-input:default",
+                  message="input recovered",
+              )
+              assert recovery is not None
+              second = log.emit(
+                  category="recording",
+                  component="audio-recorder",
+                  operation="start",
+                  status=EventStatus.FAILED,
+                  severity=Severity.CRITICAL,
+                  message="input unavailable",
+                  code="recording_start_failed",
+                  resource_id="audio-input:default",
+              )
+              assert first["fingerprint"] == second["fingerprint"]
+              report = build_report(OperationsLoader(tmp_path).load(90), 90)
+              assert report.open_incidents == 1
+              assert report.incidents[0].count == 2
+          '''
+          tests.write_text(text, encoding="utf-8")
+
+      - name: Install formatter
+        run: python -m pip install ruff==0.14.9
+
+      - name: Format and lint-fix
+        run: |
+          ruff format src tests
+          ruff check --fix src tests
+          python -m compileall -q src tests
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/harden-operations-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: close remaining operations reliability gaps"
+          git push origin HEAD:agent/harden-vlog-operations
