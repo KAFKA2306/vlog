@@ -13,7 +13,7 @@ bootstrap.bat は次を実行する。
 1. .env.example から .env を作成する。
 2. data/recordings、data/transcripts、data/summaries、data/archives、data/logs を作成する。
 3. .venv-win に uv.lock 固定の依存関係を同期する。
-4. VlogAutoDiary をログオン時タスクとして登録する。
+4. VlogAutoDiary をローカル cmd.exe 経由のログオン時タスクとして登録する。
 5. 異常終了時は 1 分後に再起動するよう設定する。
 6. 登録したタスクを起動する。
 
@@ -23,7 +23,7 @@ bootstrap.bat は次を実行する。
 
     windows/run.bat
 
-run.bat は UNC パスを一時ドライブへ割り当て、.venv-win と Python 3.12 を使って src.main を実行する。依存関係は uv.lock から変更しない。
+run.bat は UNC パスを一時ドライブへ割り当て、.venv-win と Python 3.12 を使って src.main を実行する。相対パスは必ずプロジェクトルート基準で解決される。依存関係は uv.lock から変更しない。
 
 ## 状態確認
 
@@ -77,4 +77,4 @@ uv.lock と pyproject.toml を同期した状態で再実行する。
 
 ### UNC パスで起動できない
 
-run.bat と bootstrap.bat は冒頭の pushd "%~dp0.." で UNC パスを一時ドライブへ変換する。タスクの実行パスには必ずリポジトリ内の windows/run.bat を指定する。
+bootstrap.bat を管理者権限で再実行する。タスクはローカルの cmd.exe を起動し、run.bat 内の pushd が UNC を一時ドライブへ変換する。タスクの直接実行先に UNC 上の run.bat を指定しない。

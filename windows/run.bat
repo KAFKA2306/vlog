@@ -1,5 +1,6 @@
 @echo off
-pushd "%~dp0.."
+set "PROJECT_ROOT=%~dp0.."
+pushd "%PROJECT_ROOT%"
 
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"

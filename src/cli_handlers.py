@@ -8,10 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from src.domain.audit import AuditState
+from src.domain.error_events import ErrorEvent, ErrorKind, ErrorStage
 from src.domain.harness import TaskWeight
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
 from src.infrastructure.audit import StrictAuditor
 from src.infrastructure.daily_state import DailyStateStore
+from src.infrastructure.error_log import ErrorLogRepository
 from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.harness import ZeroTrustHarness
 from src.infrastructure.repositories import (
@@ -340,6 +342,32 @@ def cmd_audit(args: argparse.Namespace) -> None:
 
     if args.strict and report.has_blockers:
         sys.exit(1)
+
+
+def cmd_error(args: argparse.Namespace) -> None:
+    repository = ErrorLogRepository()
+    if args.action == "record":
+        repository.append(
+            ErrorEvent(
+                timestamp=datetime.now(),
+                stage=ErrorStage(args.stage),
+                kind=ErrorKind(args.kind),
+                task_name=args.task_name,
+                reason=args.reason,
+                recording_path=args.recording_path,
+            )
+        )
+        return
+
+    events = repository.recent(args.days)
+    print(f"error_events={len(events)} days={args.days}")
+    for event in events:
+        recording = f" recording={event.recording_path}" if event.recording_path else ""
+        print(
+            f"{event.timestamp.isoformat()} stage={event.stage.value} "
+            f"kind={event.kind.value} task={event.task_name} "
+            f"reason={event.reason}{recording}"
+        )
 
 
 def _print_audit_report(report) -> None:

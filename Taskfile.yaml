@@ -246,7 +246,15 @@ tasks:
 
   notify:daily-failure:
     desc: 日次処理失敗通知
-    cmd: $UV run python -m src.cli notify --message "❌ 日次処理が失敗しました（$(date '+%Y-%m-%d %H:%M:%S')）"
+    cmds:
+      - $UV run python -m src.cli error record --stage scheduler --kind daily_pipeline_failed --task-name daily_pipeline --reason "vlog-daily.service failed"
+      - $UV run python -m src.cli notify --message "❌ 日次処理が失敗しました（$(date '+%Y-%m-%d %H:%M:%S')）"
+
+  log:errors:
+    desc: 構造化エラーログを表示
+    vars:
+      DAYS: '{{.DAYS | default "30"}}'
+    cmd: $UV run python -m src.cli error report --days {{.DAYS}}
 
   typecheck:
     desc: Python型検査

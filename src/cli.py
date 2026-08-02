@@ -15,6 +15,7 @@ def main() -> None:
         cmd_check_vrc,
         cmd_curator,
         cmd_daily,
+        cmd_error,
         cmd_image_generate,
         cmd_jules,
         cmd_manga,
@@ -75,6 +76,15 @@ def main() -> None:
     p_audit.add_argument("--strict", action="store_true", default=True)
     p_audit.add_argument("--no-strict", dest="strict", action="store_false")
 
+    p_error = subparsers.add_parser("error", help="Manage structured error logs")
+    p_error.add_argument("action", choices=["report", "record"])
+    p_error.add_argument("--days", type=int, default=30)
+    p_error.add_argument("--stage")
+    p_error.add_argument("--kind")
+    p_error.add_argument("--reason")
+    p_error.add_argument("--task-name", default="manual")
+    p_error.add_argument("--recording-path")
+
     args = parser.parse_args()
 
     if args.command == "jules":
@@ -107,6 +117,8 @@ def main() -> None:
         cmd_check_vrc(args)
     elif args.command == "audit":
         cmd_audit(args)
+    elif args.command == "error":
+        cmd_error(args)
 
 
 if __name__ == "__main__":

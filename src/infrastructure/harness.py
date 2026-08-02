@@ -3,7 +3,9 @@ import shutil
 from datetime import datetime
 from typing import Any, Callable
 
+from src.domain.error_events import event_for_failure, event_for_skip
 from src.domain.harness import Incident, IncidentType, TaskWeight
+from src.infrastructure.error_log import ErrorLogRepository
 from src.infrastructure.settings import settings
 from src.infrastructure.system import ProcessMonitor, SystemResourceMonitor
 
@@ -53,6 +55,7 @@ class GuardDog:
 class ZeroTrustHarness:
     def __init__(self) -> None:
         self.logger = IncidentLogger()
+        self.error_log = ErrorLogRepository()
         self.guard = GuardDog()
 
     def run(
@@ -73,6 +76,7 @@ class ZeroTrustHarness:
                     datetime.now(), task_name, weight, IncidentType.SKIPPED, reason
                 )
             )
+            self.error_log.append(event_for_skip(task_name, reason or "unsafe state"))
             return None
 
         try:
@@ -81,6 +85,7 @@ class ZeroTrustHarness:
             self.logger.log(
                 Incident(datetime.now(), task_name, weight, IncidentType.FAILED, str(e))
             )
+            self.error_log.append(event_for_failure(task_name, str(e)))
             raise
 
         if verify and not verify(result):

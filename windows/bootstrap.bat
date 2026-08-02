@@ -25,8 +25,7 @@ if not exist "data\summaries" mkdir "data\summaries"
 if not exist "data\archives" mkdir "data\archives"
 if not exist "data\logs" mkdir "data\logs"
 uv sync --frozen || exit /b %ERRORLEVEL%
-schtasks /Create /TN "VlogAutoDiary" /TR "\"%~dp0run.bat\"" /SC ONLOGON /RL HIGHEST /F /DELAY 0000:30 /RU "%USERNAME%"
-powershell.exe -NoProfile -Command "$task = Get-ScheduledTask -TaskName 'VlogAutoDiary'; $task.Settings.RestartCount = 999; $task.Settings.RestartInterval = 'PT1M'; $task.Settings.ExecutionTimeLimit = 'PT0S'; $task.Settings.DisallowStartIfOnBatteries = $false; $task.Settings.StopIfGoingOnBatteries = $false; Set-ScheduledTask -InputObject $task"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0register_task.ps1" -RunScript "%~dp0run.bat" || exit /b %ERRORLEVEL%
 
 echo Bootstrap complete. Task scheduled.
 schtasks /Run /TN "VlogAutoDiary"
