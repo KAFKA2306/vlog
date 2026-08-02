@@ -8,7 +8,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import webbrowser
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -42,7 +41,7 @@ STATUS_FAILURE = {"failed"}
 
 @dataclass(frozen=True)
 class Incident:
-    key: tuple[str, str, str]
+    key: tuple[str, str | None]
     category: str
     component: str
     operation: str
@@ -53,6 +52,7 @@ class Incident:
     last_seen: datetime
     message: str
     fingerprint: str
+    resource_id: str | None
     is_open: bool
     context: Mapping[str, Any]
 
@@ -97,7 +97,17 @@ class OperationsLoader:
     def load(self, days: int) -> list[dict[str, Any]]:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         events: list[dict[str, Any]] = []
-        events.extend(self._load_jsonl(self.root / "data/error_events.jsonl"))
+        event_path = self.root / "data/error_events.jsonl"
+        rotated = sorted(
+            event_path.parent.glob(event_path.name + ".*"),
+            key=self._rotation_index,
+            reverse=True,
+        )
+        for path in rotated:
+            if path.suffix == ".lock":
+                continue
+            events.extend(self._load_jsonl(path))
+        events.extend(self._load_jsonl(event_path))
         events.extend(self._load_incidents(self.root / "data/incidents.jsonl"))
         events.extend(self._load_daily_runs(self.root / "data/daily_runs.jsonl"))
         events.extend(self._load_legacy_log(self.root / "data/logs/vlog.log"))
@@ -105,8 +115,15 @@ class OperationsLoader:
         filtered.sort(key=self._timestamp)
         return self._dedupe(filtered)
 
+    @staticmethod
+    def _rotation_index(path: Path) -> int:
+        try:
+            return int(path.name.rsplit(".", 1)[-1])
+        except ValueError:
+            return -1
+
     def _load_jsonl(self, path: Path) -> list[dict[str, Any]]:
-        if not path.exists():
+        if not path.exists() or not path.is_file():
             return []
         events: list[dict[str, Any]] = []
         with path.open("r", encoding="utf-8", errors="replace") as handle:
@@ -122,25 +139,25 @@ class OperationsLoader:
                         "component": "event-log",
                         "operation": "parse",
                         "status": "failed",
-                        "severity": "warning",
+                        "severity_text": "warning",
                         "code": "invalid_jsonl",
                         "message": f"Invalid JSONL at {path.name}:{line_no}",
                         "context": {"line": raw[:160]},
                         "source": str(path),
+                        "resource_id": path.name,
                     }
                 events.append(self._canonical(payload, source=str(path)))
         return events
 
     def _load_incidents(self, path: Path) -> list[dict[str, Any]]:
         events = self._load_jsonl(path)
-        normalized: list[dict[str, Any]] = []
         for event in events:
             if event.get("status") in {"open", "active", "error"}:
                 event["status"] = "failed"
             elif event.get("status") in {"closed", "resolved"}:
                 event["status"] = "recovered"
-            normalized.append(event)
-        return normalized
+                event.setdefault("resolves_fingerprint", event.get("fingerprint"))
+        return events
 
     def _load_daily_runs(self, path: Path) -> list[dict[str, Any]]:
         if not path.exists():
@@ -170,10 +187,11 @@ class OperationsLoader:
                         "component": "daily-pipeline",
                         "operation": task,
                         "status": status,
-                        "severity": "error" if status == "failed" else "info",
+                        "severity_text": "error" if status == "failed" else "info",
                         "code": f"daily_{prefix}_{status}",
                         "message": str(error or f"Daily stage {task}: {status}"),
                         "run_id": payload.get("run_id"),
+                        "resource_id": task,
                         "context": {
                             "expected_components": payload.get("expected_components"),
                             "verification": payload.get("verification"),
@@ -211,8 +229,14 @@ class OperationsLoader:
                 severity = (
                     "error"
                     if any(
-                        t in lower
-                        for t in ("error", "failed", "exception", "traceback", "429")
+                        token in lower
+                        for token in (
+                            "error",
+                            "failed",
+                            "exception",
+                            "traceback",
+                            "429",
+                        )
                     )
                     else "warning"
                 )
@@ -224,7 +248,7 @@ class OperationsLoader:
                             "component": component,
                             "operation": operation,
                             "status": "failed",
-                            "severity": severity,
+                            "severity_text": severity,
                             "code": code,
                             "message": raw.strip()[:800],
                             "context": {"line_no": line_no},
@@ -272,9 +296,11 @@ class OperationsLoader:
         event.setdefault("component", "unknown")
         event.setdefault("operation", "unknown")
         event.setdefault("status", "failed")
-        event.setdefault("severity", "error")
+        event.setdefault("severity_text", event.get("severity", "error"))
         event.setdefault("code", str(event.get("operation")))
         event.setdefault("message", str(event.get("error") or event.get("code")))
+        event.setdefault("resource_id", None)
+        event.setdefault("resolves_fingerprint", None)
         event.setdefault("context", {})
         event.setdefault("source", source)
         event["context"] = sanitize(event.get("context") or {})
@@ -303,64 +329,83 @@ class OperationsLoader:
         return parsed.astimezone(timezone.utc)
 
     def _dedupe(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        seen: set[tuple[str, str, str, str, str]] = set()
+        seen_ids: set[str] = set()
+        seen_legacy: set[tuple[str, str, str, str, str]] = set()
         output: list[dict[str, Any]] = []
         for event in events:
-            key = (
-                self._timestamp(event).isoformat(),
-                str(event.get("component")),
-                str(event.get("operation")),
-                str(event.get("status")),
-                str(event.get("message"))[:200],
-            )
-            if key in seen:
-                continue
-            seen.add(key)
+            event_id = str(event.get("event_id") or "")
+            if event_id:
+                if event_id in seen_ids:
+                    continue
+                seen_ids.add(event_id)
+            else:
+                key = (
+                    self._timestamp(event).isoformat(),
+                    str(event.get("component")),
+                    str(event.get("operation")),
+                    str(event.get("status")),
+                    str(event.get("message"))[:200],
+                )
+                if key in seen_legacy:
+                    continue
+                seen_legacy.add(key)
             output.append(event)
         return output
 
 
 def build_report(events: list[dict[str, Any]], days: int) -> OperationsReport:
-    by_key: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    failures_by_key: dict[tuple[str, str | None], list[dict[str, Any]]] = defaultdict(
+        list
+    )
+    resolved_fingerprints = {
+        str(event.get("resolves_fingerprint"))
+        for event in events
+        if event.get("status") == EventStatus.RECOVERED
+        and event.get("resolves_fingerprint")
+    }
     for event in events:
-        key = (
-            str(event.get("category")),
-            str(event.get("component")),
-            str(event.get("operation")),
+        if event.get("status") not in STATUS_FAILURE:
+            continue
+        fingerprint = str(event.get("fingerprint") or "")
+        resource_id = (
+            str(event.get("resource_id"))
+            if event.get("resource_id") is not None
+            else None
         )
-        by_key[key].append(event)
+        failures_by_key[(fingerprint, resource_id)].append(event)
 
     incidents: list[Incident] = []
-    for key, grouped in by_key.items():
-        failures = [e for e in grouped if e.get("status") in STATUS_FAILURE]
-        if not failures:
-            continue
+    for key, failures in failures_by_key.items():
         failures.sort(key=OperationsLoader._timestamp)
+        first_failure = failures[0]
         last_failure = failures[-1]
-        later_success = any(
-            e.get("status") in STATUS_SUCCESS
-            and OperationsLoader._timestamp(e)
-            > OperationsLoader._timestamp(last_failure)
-            for e in grouped
-        )
-        highest = max(
-            (str(e.get("severity") or "error") for e in failures),
+        severity = max(
+            (
+                str(
+                    event.get("severity_text")
+                    or event.get("severity")
+                    or "error"
+                )
+                for event in failures
+            ),
             key=lambda value: SEVERITY_RANK.get(value, 2),
         )
+        fingerprint, resource_id = key
         incidents.append(
             Incident(
                 key=key,
-                category=key[0],
-                component=key[1],
-                operation=key[2],
-                severity=highest,
+                category=str(last_failure.get("category") or "infrastructure"),
+                component=str(last_failure.get("component") or "unknown"),
+                operation=str(last_failure.get("operation") or "unknown"),
+                severity=severity,
                 code=str(last_failure.get("code") or "failure"),
                 count=len(failures),
-                first_seen=OperationsLoader._timestamp(failures[0]),
+                first_seen=OperationsLoader._timestamp(first_failure),
                 last_seen=OperationsLoader._timestamp(last_failure),
                 message=str(last_failure.get("message") or ""),
-                fingerprint=str(last_failure.get("fingerprint") or ""),
-                is_open=not later_success,
+                fingerprint=fingerprint,
+                resource_id=resource_id,
+                is_open=fingerprint not in resolved_fingerprints,
                 context=dict(last_failure.get("context") or {}),
             )
         )
@@ -386,8 +431,7 @@ def _fmt_time(value: datetime) -> str:
 
 
 def print_report(report: OperationsReport) -> None:
-    state = report.state.upper()
-    print(f"VLOG OPERATIONS  {state}  window={report.days}d")
+    print(f"VLOG OPERATIONS  {report.state.upper()}  window={report.days}d")
     print(
         f"reliability={report.reliability:.1f}%  failures={report.failures}  "
         f"open_incidents={report.open_incidents}  events={len(report.events)}"
@@ -396,13 +440,14 @@ def print_report(report: OperationsReport) -> None:
     if not report.incidents:
         print("No incidents found in the selected window.")
         return
-    print(f"{'STATE':8} {'SEV':8} {'COUNT':5} {'LAST':16} {'CATEGORY':14} ISSUE")
+    print(f"{'STATE':8} {'SEV':8} {'COUNT':5} {'LAST':16} {'RESOURCE':18} ISSUE")
     for incident in report.incidents[:30]:
         state_text = "OPEN" if incident.is_open else "RESOLVED"
         issue = f"{incident.component}/{incident.operation}: {incident.message}"
         print(
             f"{state_text:8} {incident.severity.upper():8} {incident.count:5d} "
-            f"{_fmt_time(incident.last_seen):16} {incident.category:14} {issue[:100]}"
+            f"{_fmt_time(incident.last_seen):16} "
+            f"{(incident.resource_id or '-'):18.18} {issue[:100]}"
         )
 
 
@@ -418,20 +463,21 @@ def report_to_dict(report: OperationsReport) -> dict[str, Any]:
         "events": list(report.events),
         "incidents": [
             {
-                "category": i.category,
-                "component": i.component,
-                "operation": i.operation,
-                "severity": i.severity,
-                "code": i.code,
-                "count": i.count,
-                "first_seen": i.first_seen.isoformat(),
-                "last_seen": i.last_seen.isoformat(),
-                "message": i.message,
-                "fingerprint": i.fingerprint,
-                "is_open": i.is_open,
-                "context": i.context,
+                "category": incident.category,
+                "component": incident.component,
+                "operation": incident.operation,
+                "severity": incident.severity,
+                "code": incident.code,
+                "count": incident.count,
+                "first_seen": incident.first_seen.isoformat(),
+                "last_seen": incident.last_seen.isoformat(),
+                "message": incident.message,
+                "fingerprint": incident.fingerprint,
+                "resource_id": incident.resource_id,
+                "is_open": incident.is_open,
+                "context": incident.context,
             }
-            for i in report.incidents
+            for incident in report.incidents
         ],
     }
 
@@ -441,7 +487,7 @@ def render_html(report: OperationsReport) -> str:
     category_failures = Counter(
         str(event.get("category"))
         for event in report.events
-        if event.get("status") == "failed"
+        if event.get("status") == EventStatus.FAILED
     )
     max_count = max(category_counts.values(), default=1)
     state_label = {"healthy": "正常", "degraded": "要確認", "critical": "重大障害"}[
@@ -459,17 +505,19 @@ def render_html(report: OperationsReport) -> str:
         )
 
     incident_rows = []
-    for incident in report.incidents[:50]:
+    for incident in report.incidents[:80]:
         state = "未解消" if incident.is_open else "解消済み"
         context = html.escape(
             json.dumps(incident.context, ensure_ascii=False, indent=2)
         )
+        resource = html.escape(incident.resource_id or "-")
         incident_rows.append(
             "<tr>"
             f"<td><span class='pill {'open' if incident.is_open else 'resolved'}'>{state}</span></td>"
             f"<td><span class='severity {html.escape(incident.severity)}'>{html.escape(incident.severity)}</span></td>"
             f"<td>{html.escape(incident.category)}</td>"
             f"<td><strong>{html.escape(incident.component)}</strong><br><small>{html.escape(incident.operation)}</small></td>"
+            f"<td><code>{resource}</code></td>"
             f"<td class='count'>{incident.count}</td>"
             f"<td>{html.escape(_fmt_time(incident.last_seen))}</td>"
             f"<td><details><summary>{html.escape(incident.message[:180])}</summary><pre>{context}</pre>"
@@ -478,11 +526,11 @@ def render_html(report: OperationsReport) -> str:
         )
     if not incident_rows:
         incident_rows.append(
-            "<tr><td colspan='7' class='empty'>選択期間に障害はありません。</td></tr>"
+            "<tr><td colspan='8' class='empty'>選択期間に障害はありません。</td></tr>"
         )
 
     timeline_rows = []
-    for event in reversed(report.events[-120:]):
+    for event in reversed(report.events[-160:]):
         timestamp = OperationsLoader._timestamp(event)
         context = html.escape(
             json.dumps(event.get("context") or {}, ensure_ascii=False, indent=2)
@@ -492,13 +540,14 @@ def render_html(report: OperationsReport) -> str:
             f"<td>{html.escape(_fmt_time(timestamp))}</td>"
             f"<td>{html.escape(str(event.get('category')))}</td>"
             f"<td>{html.escape(str(event.get('component')))}</td>"
+            f"<td>{html.escape(str(event.get('resource_id') or '-'))}</td>"
             f"<td><span class='pill event-{html.escape(str(event.get('status')))}'>{html.escape(str(event.get('status')))}</span></td>"
             f"<td><details><summary>{html.escape(str(event.get('message') or '')[:180])}</summary><pre>{context}</pre></details></td>"
             "</tr>"
         )
     if not timeline_rows:
         timeline_rows.append(
-            "<tr><td colspan='5' class='empty'>イベントがありません。</td></tr>"
+            "<tr><td colspan='6' class='empty'>イベントがありません。</td></tr>"
         )
 
     bars = []
@@ -508,7 +557,8 @@ def render_html(report: OperationsReport) -> str:
         width = int(total / max_count * 100) if total else 0
         bars.append(
             "<div class='bar-row'>"
-            f"<span>{html.escape(category)}</span><div class='bar-track'><i style='width:{width}%'></i></div>"
+            f"<span>{html.escape(category)}</span>"
+            f"<div class='bar-track'><i style='width:{width}%'></i></div>"
             f"<b>{total}</b><em>{failed} fail</em></div>"
         )
 
@@ -520,31 +570,21 @@ def render_html(report: OperationsReport) -> str:
 <title>VLog Operations</title>
 <style>
 :root{{--bg:#fbfaf7;--surface:#fff;--text:#243653;--muted:#69778f;--line:#e7e9ef;--blue:#8fb5ec;--lav:#b9a8e6;--rose:#efb4c1;--mint:#b7dbc8;--apricot:#f3cfaa;--shadow:0 18px 50px rgba(76,91,125,.09)}}
-*{{box-sizing:border-box}} body{{margin:0;background:linear-gradient(145deg,#fbfaf7 0%,#f6f8fc 55%,#faf6fb 100%);color:var(--text);font:14px/1.55 Inter,"Noto Sans JP",system-ui,sans-serif}}
-main{{max-width:1500px;margin:auto;padding:32px}} header{{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:24px}} h1{{font-size:34px;margin:0;letter-spacing:-.04em}} h2{{margin:0 0 14px;font-size:19px}} p{{margin:4px 0;color:var(--muted)}} .state{{padding:10px 16px;border-radius:999px;font-weight:800;background:var(--mint)}} .state.degraded{{background:var(--apricot)}} .state.critical{{background:var(--rose)}}
-.grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}} .metric,.panel{{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}} .metric{{padding:18px}} .metric small{{display:block;color:var(--muted);font-weight:700}} .metric strong{{display:block;font-size:30px;letter-spacing:-.04em;margin-top:5px}} .metric:nth-child(1){{border-top:5px solid var(--mint)}} .metric:nth-child(2){{border-top:5px solid var(--rose)}} .metric:nth-child(3){{border-top:5px solid var(--apricot)}} .metric:nth-child(4){{border-top:5px solid var(--blue)}}
-.panel{{padding:20px;margin-top:16px;overflow:hidden}} .stages{{display:grid;grid-template-columns:repeat(9,minmax(110px,1fr));gap:10px;overflow:auto;padding-bottom:4px}} .stage{{padding:14px;border-radius:16px;background:#f4f6fa;border:1px solid var(--line);min-width:120px}} .stage span,.stage small{{display:block;color:var(--muted)}} .stage strong{{font-size:24px}} .stage.healthy{{background:#f2faf6;border-color:#d8eee2}} .stage.critical{{background:#fff4f6;border-color:#f4d4da}} .stage.quiet{{opacity:.65}}
-.table-wrap{{overflow:auto;border:1px solid var(--line);border-radius:16px}} table{{width:100%;border-collapse:collapse;min-width:1000px;background:#fff}} th{{position:sticky;top:0;background:#f6f8fb;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}} th,td{{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}} tbody tr:hover{{background:#fbfcff}} .count{{font-size:18px;font-weight:800}} .pill,.severity{{display:inline-flex;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase}} .pill.open,.event-failed,.severity.critical,.severity.error{{background:#fde8ec;color:#9d2943}} .pill.resolved,.event-succeeded,.event-recovered{{background:#e6f4eb;color:#236a43}} .event-started,.event-heartbeat{{background:#e9f1fb;color:#315f91}} .event-skipped,.severity.warning{{background:#fff0d8;color:#8a5a16}} .severity.info{{background:#eef0f5;color:#536078}}
-summary{{cursor:pointer;max-width:580px}} pre{{white-space:pre-wrap;background:#f7f8fb;padding:12px;border-radius:12px;max-width:680px;overflow:auto}} code{{display:block;margin-top:7px;color:var(--muted);font-size:11px}} .empty{{text-align:center;padding:28px;color:var(--muted)}}
-.two{{display:grid;grid-template-columns:1fr 1fr;gap:16px}} .bar-row{{display:grid;grid-template-columns:110px 1fr 42px 64px;gap:10px;align-items:center;margin:10px 0}} .bar-track{{height:10px;background:#edf0f5;border-radius:999px;overflow:hidden}} .bar-track i{{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--lav));border-radius:999px}} .bar-row em{{font-style:normal;color:var(--muted);font-size:12px}} footer{{padding:28px 4px;color:var(--muted)}}
-@media(max-width:900px){{main{{padding:18px}} header{{display:block}} .state{{display:inline-flex;margin-top:12px}} .grid{{grid-template-columns:1fr 1fr}} .two{{grid-template-columns:1fr}}}}
-@media(max-width:520px){{.grid{{grid-template-columns:1fr}} h1{{font-size:28px}}}}
+*{{box-sizing:border-box}}body{{margin:0;background:linear-gradient(145deg,#fbfaf7 0%,#f6f8fc 55%,#faf6fb 100%);color:var(--text);font:14px/1.55 Inter,"Noto Sans JP",system-ui,sans-serif}}
+main{{max-width:1560px;margin:auto;padding:32px}}header{{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:24px}}h1{{font-size:34px;margin:0;letter-spacing:-.04em}}h2{{margin:0 0 14px;font-size:19px}}p{{margin:4px 0;color:var(--muted)}}.state{{padding:10px 16px;border-radius:999px;font-weight:800;background:var(--mint)}}.state.degraded{{background:var(--apricot)}}.state.critical{{background:var(--rose)}}
+.grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}}.metric,.panel{{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}}.metric{{padding:18px}}.metric small{{display:block;color:var(--muted);font-weight:700}}.metric strong{{display:block;font-size:30px;letter-spacing:-.04em;margin-top:5px}}.metric:nth-child(1){{border-top:5px solid var(--mint)}}.metric:nth-child(2){{border-top:5px solid var(--rose)}}.metric:nth-child(3){{border-top:5px solid var(--apricot)}}.metric:nth-child(4){{border-top:5px solid var(--blue)}}
+.panel{{padding:20px;margin-top:16px;overflow:hidden}}.stages{{display:grid;grid-template-columns:repeat(9,minmax(110px,1fr));gap:10px;overflow:auto;padding-bottom:4px}}.stage{{padding:14px;border-radius:16px;background:#f4f6fa;border:1px solid var(--line);min-width:120px}}.stage span,.stage small{{display:block;color:var(--muted)}}.stage strong{{font-size:24px}}.stage.healthy{{background:#f2faf6;border-color:#d8eee2}}.stage.critical{{background:#fff4f6;border-color:#f4d4da}}.stage.quiet{{opacity:.65}}
+.table-wrap{{overflow:auto;border:1px solid var(--line);border-radius:16px}}table{{width:100%;border-collapse:collapse;min-width:1120px;background:#fff}}th{{position:sticky;top:0;background:#f6f8fb;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}}th,td{{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}}tbody tr:hover{{background:#fbfcff}}.count{{font-size:18px;font-weight:800}}.pill,.severity{{display:inline-flex;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase}}.pill.open,.event-failed,.severity.critical,.severity.error{{background:#fde8ec;color:#9d2943}}.pill.resolved,.event-succeeded,.event-recovered{{background:#e6f4eb;color:#236a43}}.event-started,.event-heartbeat{{background:#e9f1fb;color:#315f91}}.event-skipped,.severity.warning{{background:#fff0d8;color:#8a5a16}}.severity.info{{background:#eef0f5;color:#536078}}
+summary{{cursor:pointer;max-width:580px}}pre{{white-space:pre-wrap;background:#f7f8fb;padding:12px;border-radius:12px;max-width:680px;overflow:auto}}code{{display:block;margin-top:7px;color:var(--muted);font-size:11px}}.empty{{text-align:center;padding:28px;color:var(--muted)}}.two{{display:grid;grid-template-columns:1fr 1fr;gap:16px}}.bar-row{{display:grid;grid-template-columns:110px 1fr 42px 64px;gap:10px;align-items:center;margin:10px 0}}.bar-track{{height:10px;background:#edf0f5;border-radius:999px;overflow:hidden}}.bar-track i{{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--lav));border-radius:999px}}.bar-row em{{font-style:normal;color:var(--muted);font-size:12px}}footer{{padding:28px 4px;color:var(--muted)}}
+@media(max-width:900px){{main{{padding:18px}}header{{display:block}}.state{{display:inline-flex;margin-top:12px}}.grid{{grid-template-columns:1fr 1fr}}.two{{grid-template-columns:1fr}}}}@media(max-width:520px){{.grid{{grid-template-columns:1fr}}h1{{font-size:28px}}}}
 </style></head>
 <body><main>
-<header><div><h1>VLog Operations</h1><p>録音から同期・通知までを、障害の再発単位で監査するローカル運用コックピット。</p><p>生成: {html.escape(_fmt_time(report.generated_at))} · 監査期間: {report.days}日</p></div><span class='state {report.state}'>{state_label}</span></header>
-<section class='grid'>
-<div class='metric'><small>実行信頼度</small><strong>{report.reliability:.1f}%</strong></div>
-<div class='metric'><small>失敗イベント</small><strong>{report.failures}</strong></div>
-<div class='metric'><small>未解消インシデント</small><strong>{report.open_incidents}</strong></div>
-<div class='metric'><small>観測イベント</small><strong>{len(report.events)}</strong></div>
-</section>
+<header><div><h1>VLog Operations</h1><p>録音から同期・通知までを、障害フィンガープリントと対象リソース単位で監査するローカル運用コックピット。</p><p>生成: {html.escape(_fmt_time(report.generated_at))} · 監査期間: {report.days}日</p></div><span class='state {report.state}'>{state_label}</span></header>
+<section class='grid'><div class='metric'><small>実行信頼度</small><strong>{report.reliability:.1f}%</strong></div><div class='metric'><small>失敗イベント</small><strong>{report.failures}</strong></div><div class='metric'><small>未解消インシデント</small><strong>{report.open_incidents}</strong></div><div class='metric'><small>観測イベント</small><strong>{len(report.events)}</strong></div></section>
 <section class='panel'><h2>パイプライン監視</h2><div class='stages'>{"".join(stage_cards)}</div></section>
-<section class='panel'><h2>対応が必要な障害</h2><div class='table-wrap'><table><thead><tr><th>状態</th><th>重大度</th><th>分類</th><th>箇所</th><th>回数</th><th>最終発生</th><th>詳細</th></tr></thead><tbody>{"".join(incident_rows)}</tbody></table></div></section>
-<section class='two'>
-<div class='panel'><h2>カテゴリ別イベント量</h2>{"".join(bars)}</div>
-<div class='panel'><h2>運用原則</h2><p><strong>成功通知は証跡監査後のみ。</strong></p><p>録音スレッド停止、空録音、処理スレッド例外、同期失敗、スケジューラ起動失敗を同一スキーマへ集約します。</p><p>同じ component / operation の後続成功を検出するとインシデントを自動的に「解消済み」と判定します。</p><p>秘密値・Webhook・APIキー・ホームディレクトリは保存前にマスクします。</p></div>
-</section>
-<section class='panel'><h2>最新イベント</h2><div class='table-wrap'><table><thead><tr><th>時刻</th><th>分類</th><th>コンポーネント</th><th>状態</th><th>内容</th></tr></thead><tbody>{"".join(timeline_rows)}</tbody></table></div></section>
+<section class='panel'><h2>対応が必要な障害</h2><div class='table-wrap'><table><thead><tr><th>状態</th><th>重大度</th><th>分類</th><th>箇所</th><th>対象</th><th>回数</th><th>最終発生</th><th>詳細</th></tr></thead><tbody>{"".join(incident_rows)}</tbody></table></div></section>
+<section class='two'><div class='panel'><h2>カテゴリ別イベント量</h2>{"".join(bars)}</div><div class='panel'><h2>運用原則</h2><p><strong>通常の成功では障害を閉じません。</strong></p><p>同じフィンガープリントを明示的に参照する recovered イベントだけが解消の証跡になります。</p><p>ログはプロセス間排他、サイズローテーション、90日保持、秘密値マスクを適用します。</p><p>systemd watchdogとWindows側監視を併用し、WSL内外の停止を分離して検知します。</p></div></section>
+<section class='panel'><h2>最新イベント</h2><div class='table-wrap'><table><thead><tr><th>時刻</th><th>分類</th><th>コンポーネント</th><th>対象</th><th>状態</th><th>内容</th></tr></thead><tbody>{"".join(timeline_rows)}</tbody></table></div></section>
 <footer>VLog Operations · local-only report · raw logs are not published.</footer>
 </main></body></html>"""
 
@@ -564,13 +604,8 @@ def write_report_files(
 def run_doctor(root: Path) -> int:
     log = OperationalEventLog(root / "data/error_events.jsonl")
     checks: list[tuple[str, bool, str]] = []
-    checks.append(
-        (
-            "uv executable",
-            shutil.which("uv") is not None,
-            shutil.which("uv") or "not found",
-        )
-    )
+    uv_path = shutil.which("uv")
+    checks.append(("uv executable", uv_path is not None, uv_path or "not found"))
     checks.append(
         (
             "project data writable",
@@ -588,38 +623,52 @@ def run_doctor(root: Path) -> int:
                 "configured" if os.environ.get(key) else "missing",
             )
         )
-    service_path = root / "vlog-daily.service"
-    service_text = (
-        service_path.read_text(encoding="utf-8") if service_path.exists() else ""
+    daily_path = root / "vlog-daily.service"
+    monitor_path = root / "vlog.service"
+    daily_text = daily_path.read_text(encoding="utf-8") if daily_path.exists() else ""
+    monitor_text = (
+        monitor_path.read_text(encoding="utf-8") if monitor_path.exists() else ""
     )
-    checks.append(
-        (
-            "daily ExecStart",
-            "uv run python -m src.daily" in service_text,
-            "repo-relative uv daily runner",
-        )
-    )
-    checks.append(
-        (
-            "no stale /snap/bin/task",
-            "/snap/bin/task" not in service_text,
-            "legacy scheduler path absent",
-        )
+    checks.extend(
+        [
+            (
+                "daily ExecStart",
+                "uv run python -m src.daily" in daily_text,
+                "repo-relative uv daily runner",
+            ),
+            (
+                "no stale /snap/bin/task",
+                "/snap/bin/task" not in daily_text,
+                "legacy scheduler path absent",
+            ),
+            (
+                "systemd watchdog",
+                "WatchdogSec=" in monitor_text and "Type=notify" in monitor_text,
+                "notify watchdog enabled",
+            ),
+            (
+                "event log retention",
+                log.max_bytes > 0 and log.backups > 0 and log.retention_days > 0,
+                f"{log.max_bytes} bytes / {log.backups} backups / "
+                f"{log.retention_days} days",
+            ),
+        ]
     )
 
     failed = 0
     for name, ok, detail in checks:
         print(f"{'PASS' if ok else 'FAIL':4}  {name:28} {detail}")
         log.emit(
-            category="infrastructure"
-            if "ExecStart" not in name and "task" not in name
-            else "scheduler",
+            category="scheduler"
+            if "ExecStart" in name or "task" in name or "watchdog" in name
+            else "infrastructure",
             component="doctor",
             operation=name.lower().replace(" ", "_"),
             status=EventStatus.SUCCEEDED if ok else EventStatus.FAILED,
             severity=Severity.INFO if ok else Severity.ERROR,
             message=f"{name}: {detail}",
             code="doctor_check",
+            resource_id=name,
             retryable=False,
             context={"detail": detail},
             source="doctor",
@@ -681,6 +730,7 @@ def record_service_failure(unit: str, root: Path) -> int:
         severity=Severity.CRITICAL,
         message=f"systemd unit failed: {unit}",
         code="systemd_unit_failed",
+        resource_id=unit,
         retryable=True,
         context=context,
         source="systemd-onfailure",
@@ -708,9 +758,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     emit_parser.add_argument("--severity", default="error")
     emit_parser.add_argument("--code", default="manual_event")
     emit_parser.add_argument("--message", required=True)
+    emit_parser.add_argument("--resource-id")
+    emit_parser.add_argument("--resolves-fingerprint")
     emit_parser.add_argument("--retryable", action="store_true")
 
-    doctor_parser = sub.add_parser("doctor", help="Validate operational prerequisites")
+    recover_parser = sub.add_parser(
+        "recover-latest", help="Explicitly recover the latest matching open failure"
+    )
+    recover_parser.add_argument("--category", required=True)
+    recover_parser.add_argument("--component", required=True)
+    recover_parser.add_argument("--operation", required=True)
+    recover_parser.add_argument("--resource-id")
+    recover_parser.add_argument("--code", default="manual_recovery")
+    recover_parser.add_argument("--message", required=True)
+
+    doctor_parser = sub.add_parser(
+        "doctor", help="Validate operational prerequisites"
+    )
     doctor_parser.add_argument("--root", default=".")
 
     failure_parser = sub.add_parser(
@@ -740,9 +804,26 @@ def main(argv: list[str] | None = None) -> int:
             severity=args.severity,
             code=args.code,
             message=args.message,
+            resource_id=args.resource_id,
+            resolves_fingerprint=args.resolves_fingerprint,
             retryable=args.retryable,
             source="cli",
         )
+        return 0
+    if args.command == "recover-latest":
+        event = OperationalEventLog().recover_latest(
+            category=args.category,
+            component=args.component,
+            operation=args.operation,
+            resource_id=args.resource_id,
+            message=args.message,
+            code=args.code,
+            source="cli",
+        )
+        if event is None:
+            print("No matching open failure found.")
+            return 1
+        print(f"Recovered fingerprint {event['resolves_fingerprint']}")
         return 0
     if args.command == "doctor":
         return run_doctor(Path(args.root).resolve())
@@ -759,8 +840,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"JSON: {json_path}")
     if args.open:
         webbrowser.open(html_path.resolve().as_uri())
-    return 1 if report.state == "critical" else 0
+    return 2 if report.state == "critical" else (1 if report.state == "degraded" else 0)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
