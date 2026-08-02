@@ -23,17 +23,19 @@ done
 
 systemctl --user daemon-reload
 systemctl --user enable --now vlog-daily.timer
+systemctl --user enable vlog.service
 systemctl --user restart vlog.service
 
 uv run python -m src.operations doctor --root "$ROOT"
-uv run python -m src.operations emit \
+uv run python -m src.operations recover-latest \
   --category scheduler \
   --component systemd \
   --operation launch \
-  --status recovered \
-  --severity info \
-  --code scheduler_binary_missing \
-  --message "Repository systemd units were relinked and reloaded"
+  --resource-id vlog-daily.service \
+  --code scheduler_binary_recovered \
+  --message "Repository systemd units were relinked and verified" || true
 uv run python -m src.operations report --days 90 || true
 
+systemctl --user --no-pager status vlog.service || true
 echo "Operations report: $ROOT/data/reports/operations.html"
+echo "Optional Windows watchdog: powershell.exe -ExecutionPolicy Bypass -File scripts/windows/install-vlog-watchdog.ps1"
