@@ -4,6 +4,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 for unit in \
   vlog.service \
   vlog-monitor-failure.service \
@@ -19,6 +26,14 @@ systemctl --user enable --now vlog-daily.timer
 systemctl --user restart vlog.service
 
 uv run python -m src.operations doctor --root "$ROOT"
-uv run python -m src.operations report --days 90
+uv run python -m src.operations emit \
+  --category scheduler \
+  --component systemd \
+  --operation launch \
+  --status recovered \
+  --severity info \
+  --code scheduler_binary_missing \
+  --message "Repository systemd units were relinked and reloaded"
+uv run python -m src.operations report --days 90 || true
 
 echo "Operations report: $ROOT/data/reports/operations.html"
