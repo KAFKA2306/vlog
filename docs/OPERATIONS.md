@@ -98,3 +98,7 @@ cat data/heartbeats/vlog-service.json
 ## systemd 失敗時
 
 `vlog.service` と `vlog-daily.service` の `OnFailure` は unit の終了状態と直近 40 行の journal をローカルログへ保存し、その後に短い Discord 通知を送ります。詳細ログや秘密値は通知・公開 Readerへ転送しません。
+
+## 検証ゲート
+
+Pull Request では、Python のコンパイル、Ruff lint・format、全 pytest を必須ゲートとして実行します。障害の誤解消、復旧後の再発、複数プロセス同時書き込み、ログローテーション、秘密値マスク、破損 JSONL、systemd notify を回帰テストで固定します。
