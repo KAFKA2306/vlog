@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 import threading
@@ -16,6 +18,12 @@ if TYPE_CHECKING:
     from faster_whisper import WhisperModel
 
 SILENCE_THRESHOLD = 0.02
+_RECORD_START_TIMEOUT_SECONDS = 10.0
+_RECORD_STOP_TIMEOUT_SECONDS = 30.0
+
+
+class RecordingThreadError(RuntimeError):
+    pass
 
 
 class AudioRecorder:
@@ -23,68 +31,120 @@ class AudioRecorder:
         self._base_dir = settings.recording_dir
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
+        self._started_event = threading.Event()
         self._current_file: str | None = None
+        self._last_error: Exception | None = None
         self._lock = threading.Lock()
 
     def start(self) -> str:
         with self._lock:
-            if self._current_file:
+            if self._current_file and self.is_recording:
                 return self._current_file
             os.makedirs(self._base_dir, exist_ok=True)
             self._current_file = os.path.join(
                 self._base_dir, datetime.now().strftime("%Y%m%d_%H%M%S.flac")
             )
+            self._last_error = None
             self._stop_event.clear()
-            self._thread = threading.Thread(target=self._record_loop, daemon=True)
+            self._started_event.clear()
+            self._thread = threading.Thread(
+                target=self._record_loop,
+                name="vlog-audio-recorder",
+                daemon=True,
+            )
             self._thread.start()
-            return self._current_file
+
+        if not self._started_event.wait(_RECORD_START_TIMEOUT_SECONDS):
+            self._stop_event.set()
+            raise TimeoutError("Audio input stream did not open within 10 seconds")
+        if self._last_error is not None:
+            error = self._last_error
+            self._cleanup_state(remove_empty=True)
+            raise RecordingThreadError("Audio input stream failed to open") from error
+        if not self.is_recording or self._current_file is None:
+            self._cleanup_state(remove_empty=True)
+            raise RecordingThreadError("Audio recording thread exited during startup")
+        return self._current_file
 
     def stop(self) -> tuple[str, ...] | None:
-        if not self._thread:
+        thread = self._thread
+        if thread is None:
             return None
         self._stop_event.set()
-        self._thread.join()
-        with self._lock:
-            self._thread = None
-            path = self._current_file
-            self._current_file = None
-            if path and os.path.exists(path):
-                if os.path.getsize(path) > 100:
-                    return (path,)
-                os.unlink(path)
-            return None
+        thread.join(timeout=_RECORD_STOP_TIMEOUT_SECONDS)
+        if thread.is_alive():
+            raise TimeoutError("Audio recording thread did not stop within 30 seconds")
+
+        error = self._last_error
+        path = self._cleanup_state(remove_empty=False)
+        if error is not None:
+            raise RecordingThreadError("Audio recording thread failed") from error
+        if path and os.path.exists(path):
+            if os.path.getsize(path) > 100:
+                return (path,)
+            os.unlink(path)
+        return None
 
     @property
     def is_recording(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
 
+    @property
+    def last_error(self) -> Exception | None:
+        return self._last_error
+
+    def _cleanup_state(self, *, remove_empty: bool) -> str | None:
+        with self._lock:
+            path = self._current_file
+            self._thread = None
+            self._current_file = None
+            if remove_empty and path and os.path.exists(path):
+                try:
+                    if os.path.getsize(path) <= 100:
+                        os.unlink(path)
+                except OSError:
+                    pass
+            return path
+
     def _record_loop(self) -> None:
-        with (
-            sf.SoundFile(
-                self._current_file,
-                mode="w",
-                samplerate=settings.sample_rate,
-                channels=settings.channels,
-                subtype="PCM_16",
-                format="FLAC",
-            ) as file,
-            sd.InputStream(
-                samplerate=settings.sample_rate,
-                channels=settings.channels,
-                blocksize=settings.block_size,
-            ) as stream,
-        ):
-            while not self._stop_event.is_set():
-                data, _ = stream.read(settings.block_size)
-                rms_source = (
-                    np.frombuffer(data, dtype=np.int16)
-                    if isinstance(data, bytes)
-                    else data
-                )
-                if rms_source.size > 0:
-                    rms = np.sqrt(np.mean(np.square(rms_source)))
-                    if rms > SILENCE_THRESHOLD:
-                        file.write(data)
+        try:
+            path = self._current_file
+            if path is None:
+                raise RecordingThreadError("Recording path was not initialized")
+            with (
+                sf.SoundFile(
+                    path,
+                    mode="w",
+                    samplerate=settings.sample_rate,
+                    channels=settings.channels,
+                    subtype="PCM_16",
+                    format="FLAC",
+                ) as file,
+                sd.InputStream(
+                    samplerate=settings.sample_rate,
+                    channels=settings.channels,
+                    blocksize=settings.block_size,
+                ) as stream,
+            ):
+                self._started_event.set()
+                while not self._stop_event.is_set():
+                    data, overflowed = stream.read(settings.block_size)
+                    if overflowed:
+                        raise RecordingThreadError("Audio input overflow detected")
+                    rms_source = (
+                        np.frombuffer(data, dtype=np.int16)
+                        if isinstance(data, bytes)
+                        else data
+                    )
+                    if rms_source.size > 0:
+                        rms = float(np.sqrt(np.mean(np.square(rms_source))))
+                        if rms > SILENCE_THRESHOLD:
+                            file.write(data)
+        except Exception as exc:
+            self._last_error = exc
+            self._started_event.set()
+        finally:
+            self._started_event.set()
 
 
 class Transcriber:
