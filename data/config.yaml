@@ -10,3 +10,8 @@ whisper:
   model_size: "large-v3-turbo"
   device: "cuda"
   compute_type: "float16"
+process:
+  names: "VRChat,VRChat.exe,VRChatClient.exe"
+  check_interval: 10
+paths:
+  error_log_file: "data/error_events.jsonl"

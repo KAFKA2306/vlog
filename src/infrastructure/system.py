@@ -1,6 +1,8 @@
 import os
 import re
+import subprocess
 import threading
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -16,6 +18,63 @@ if TYPE_CHECKING:
     from faster_whisper import WhisperModel
 
 SILENCE_THRESHOLD = 0.02
+
+
+@dataclass(frozen=True)
+class ResourceSnapshot:
+    gpu_vram_free_mib: int | None
+    cpu_percent: float | None
+
+
+class SystemResourceMonitor:
+    def snapshot(self) -> ResourceSnapshot:
+        return ResourceSnapshot(
+            gpu_vram_free_mib=self._gpu_vram_free_mib(),
+            cpu_percent=float(psutil.cpu_percent(interval=0.1)),
+        )
+
+    def is_idle_for_heavy_work(
+        self,
+        *,
+        min_gpu_vram_free_mib: int = 2000,
+        max_cpu_percent: float = 75.0,
+        snapshot: ResourceSnapshot | None = None,
+    ) -> tuple[bool, str | None, ResourceSnapshot]:
+        current = snapshot or self.snapshot()
+
+        if current.gpu_vram_free_mib is None:
+            return False, "GPU VRAM unavailable", current
+        if current.gpu_vram_free_mib < min_gpu_vram_free_mib:
+            return (
+                False,
+                f"Low GPU VRAM: {current.gpu_vram_free_mib}MiB free",
+                current,
+            )
+        if current.cpu_percent is not None and current.cpu_percent > max_cpu_percent:
+            return (
+                False,
+                f"High CPU usage: {current.cpu_percent:.1f}% busy",
+                current,
+            )
+        return True, None, current
+
+    def _gpu_vram_free_mib(self) -> int | None:
+        try:
+            output = subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.free",
+                    "--format=csv,noheader,nounits",
+                ],
+                encoding="utf-8",
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError, ValueError):
+            return None
+
+        values = [int(line.strip()) for line in output.splitlines() if line.strip()]
+        if not values:
+            return None
+        return min(values)
 
 
 class AudioRecorder:
@@ -89,7 +148,7 @@ class AudioRecorder:
 
 class Transcriber:
     def __init__(self) -> None:
-        self._model: "WhisperModel" | None = None
+        self._model: "WhisperModel | None" = None
 
     @property
     def model(self) -> "WhisperModel":
@@ -189,13 +248,13 @@ class TranscriptPreprocessor:
         r"ん",
     ]
 
-    def process(self, txt: str) -> str:
-        txt = self._normalize_text(txt)
-        txt = self._remove_repetition(txt)
-        txt = self._remove_fillers(txt)
-        txt = self._dedupe_words(txt)
-        txt = self._merge_lines(txt)
-        return txt
+    def process(self, text: str) -> str:
+        text = self._normalize_text(text)
+        text = self._remove_repetition(text)
+        text = self._remove_fillers(text)
+        text = self._dedupe_words(text)
+        text = self._merge_lines(text)
+        return text
 
     def _normalize_text(self, txt: str) -> str:
         txt = txt.replace("…", " ")

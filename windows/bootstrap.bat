@@ -19,8 +19,14 @@ if not exist ".env" (
 
 
 
-schtasks /Create /TN "VlogAutoDiary" /TR "\"%~dp0run.bat\"" /SC ONLOGON /RL HIGHEST /F /DELAY 0000:30 /RU "%USERNAME%"
+if not exist "data\recordings" mkdir "data\recordings"
+if not exist "data\transcripts" mkdir "data\transcripts"
+if not exist "data\summaries" mkdir "data\summaries"
+if not exist "data\archives" mkdir "data\archives"
+if not exist "data\logs" mkdir "data\logs"
+uv sync --frozen || exit /b %ERRORLEVEL%
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0register_task.ps1" -RunScript "%~dp0run.bat" || exit /b %ERRORLEVEL%
 
 echo Bootstrap complete. Task scheduled.
-start /min "" "%~dp0run.bat"
+schtasks /Run /TN "VlogAutoDiary"
 pause

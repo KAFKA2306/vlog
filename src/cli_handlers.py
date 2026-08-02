@@ -1,14 +1,19 @@
 import argparse
+import asyncio
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from src.domain.audit import AuditState
+from src.domain.error_events import ErrorEvent, ErrorKind, ErrorStage
 from src.domain.harness import TaskWeight
 from src.infrastructure.ai import ImageGenerator, JulesClient, Novelizer, Summarizer
 from src.infrastructure.audit import StrictAuditor
+from src.infrastructure.daily_state import DailyStateStore
+from src.infrastructure.error_log import ErrorLogRepository
 from src.infrastructure.graph_storage import GraphStorage
 from src.infrastructure.harness import ZeroTrustHarness
 from src.infrastructure.repositories import (
@@ -22,6 +27,8 @@ from src.infrastructure.system import (
     TranscriptPreprocessor,
 )
 from src.use_cases.build_novel import BuildNovelUseCase
+from src.use_cases.daily_artifacts import DailyArtifactManager
+from src.use_cases.daily_workload import collect_daily_workload, render_daily_workload
 from src.use_cases.extract_graph import ExtractGraphUseCase
 from src.use_cases.process_recording import ProcessRecordingUseCase
 
@@ -117,36 +124,100 @@ def cmd_summarize(args: argparse.Namespace) -> None:
 def _cmd_summarize_logic(args: argparse.Namespace) -> None:
     file_repo = FileRepository()
     summarizer = Summarizer()
+    manager = DailyArtifactManager(DailyStateStore())
     if getattr(args, "date", None):
-        transcript_dir = Path("data/transcripts")
-        files = sorted(
-            list(transcript_dir.glob(f"cleaned_{args.date}_*.txt"))
-        ) or sorted(list(transcript_dir.glob(f"{args.date}_*.txt")))
-        combined_text = "".join(
-            [f"\n\n--- {f.name} ---\n{file_repo.read(str(f))}" for f in files]
-        )
-        summary = summarizer.summarize(combined_text, date_str=args.date)
-        file_repo.save_summary(summary, args.date)
+        files = manager.summary_sources_for_date(args.date)
+        manager.refresh_summary(args.date, summarizer, file_repo, source_paths=files)
     elif args.file:
         input_path = Path(args.file)
-        transcript_text = file_repo.read(str(input_path))
         stem = input_path.stem
         match = re.search(r"(\d{8})", stem)
         date_str = match.group(1) if match else stem.split("_")[0]
-        summary = summarizer.summarize(transcript_text, date_str=date_str)
-        file_repo.save_summary(summary, date_str)
+        manager.refresh_summary(
+            date_str,
+            summarizer,
+            file_repo,
+            source_paths=(input_path,),
+            fallback_text=file_repo.read(str(input_path)),
+        )
+
+
+def cmd_daily(args: argparse.Namespace) -> None:
+    _harness_run("daily", TaskWeight.LIGHT, _cmd_daily_logic, args)
+
+
+def _cmd_daily_logic(args: object) -> None:
+    plan = collect_daily_workload()
+    print(render_daily_workload(plan))
+
+    if plan.counts.recordings_pending > 0:
+        if not plan.can_autorun_recording_flow:
+            print("  recording_flow=paused waiting for VRChat/GPU/CPU headroom")
+        else:
+            _harness_run(
+                "daily_recording_flow",
+                TaskWeight.HEAVY,
+                _cmd_pending_logic,
+                args,
+                sync=False,
+            )
+    else:
+        _harness_run(
+            "daily_recording_flow",
+            TaskWeight.HEAVY,
+            _cmd_pending_logic,
+            args,
+            sync=False,
+        )
+
+    from src.use_cases.evaluate import EvaluateDailyContentUseCase
+
+    if plan.counts.novel_days_pending > 0:
+        pending_evaluations = _collect_pending_evaluation_dates(
+            limit=plan.next_action_limit
+        )
+        evaluator = EvaluateDailyContentUseCase()
+        for date_str in pending_evaluations:
+            evaluator.execute(date_str, sync=False)
+
+    _run_daily_postprocessing()
+
+
+def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
+    summary_dir = Path("data/summaries")
+    novel_dir = Path("data/novels")
+    evaluation_dir = summary_dir.parent / "evaluations"
+
+    summary_dates = {
+        match.group(1)
+        for f in summary_dir.glob("*_summary.txt")
+        if (match := re.search(r"(\d{8})", f.stem))
+    }
+    novel_dates = {
+        match.group(1)
+        for f in novel_dir.glob("*.md")
+        if (match := re.search(r"(\d{8})", f.stem))
+    }
+    evaluation_dates = {
+        match.group(1)
+        for f in evaluation_dir.glob("*.json")
+        if (match := re.search(r"(\d{8})", f.stem))
+    }
+
+    pending_dates = sorted((summary_dates & novel_dates) - evaluation_dates)
+    return pending_dates[:limit] if limit is not None else pending_dates
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
     _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args)
 
 
-def _cmd_pending_logic(args: argparse.Namespace) -> None:
+def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
     transcript_dir = Path("data/transcripts")
     summary_dir = Path("data/summaries")
-    novel_dir = Path("data/novels")
     recording_dir = Path("data/recordings")
     file_repo = FileRepository()
+    manager = DailyArtifactManager(DailyStateStore())
     pending_transcription = [
         f
         for f in recording_dir.glob("*")
@@ -164,26 +235,20 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
         transcriber.unload()
     dates = sorted(
         {
-            re.search(r"(\d{8})", f.stem).group(1)
+            match.group(1)
             for f in transcript_dir.glob("*.txt")
-            if re.search(r"(\d{8})", f.stem)
+            if (match := re.search(r"(\d{8})", f.stem))
         }
         | {
-            re.search(r"(\d{8})", f.stem).group(1)
+            match.group(1)
             for f in summary_dir.glob("*_summary.txt")
-            if re.search(r"(\d{8})", f.stem)
+            if (match := re.search(r"(\d{8})", f.stem))
         }
     )
     summarizer = Summarizer()
-    for d in [dt for dt in dates if not (summary_dir / f"{dt}_summary.txt").exists()]:
-        files = sorted(list(transcript_dir.glob(f"cleaned_{d}_*.txt"))) or sorted(
-            list(transcript_dir.glob(f"{d}_*.txt"))
-        )
-        summary = summarizer.summarize(
-            "".join([f"\n\n- {f.name} -\n{file_repo.read(str(f))}" for f in files]),
-            date_str=d,
-        )
-        file_repo.save_summary(summary, d)
+    for d in dates:
+        files = manager.summary_sources_for_date(d)
+        manager.refresh_summary(d, summarizer, file_repo, source_paths=files)
     import time
 
     graph_storage = GraphStorage(Path("data/graph.jsonl"))
@@ -195,14 +260,11 @@ def _cmd_pending_logic(args: argparse.Namespace) -> None:
                 time.sleep(4)  # Avoid rate limit (15 RPM)
 
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
-    for d in [
-        dt
-        for dt in dates
-        if not (novel_dir / f"{dt}.md").exists()
-        and (summary_dir / f"{dt}_summary.txt").exists()
-    ]:
-        use_case.execute(d)
-    SupabaseRepository().sync()
+    for d in dates:
+        if (summary_dir / f"{d}_summary.txt").exists():
+            use_case.execute(d)
+    if sync:
+        SupabaseRepository().sync()
 
 
 def cmd_curator(args: argparse.Namespace) -> None:
@@ -217,6 +279,43 @@ def cmd_notify(args: argparse.Namespace) -> None:
     from src.infrastructure.discord import DiscordClient
 
     DiscordClient().send_message(args.message)
+
+
+def _run_daily_postprocessing() -> None:
+    _best_effort("cognee:init", _run_cognee_init)
+    _best_effort("cognee:ingest", _run_cognee_ingest)
+    _best_effort("sync", SupabaseRepository().sync)
+    _best_effort("notify", _send_daily_notification)
+
+
+def _run_cognee_init() -> None:
+    from scripts.init_cognee_queue import main as init_cognee_queue_main
+
+    init_cognee_queue_main()
+
+
+def _run_cognee_ingest() -> None:
+    from scripts.ingest_to_cognee import main as ingest_to_cognee_main
+
+    asyncio.run(ingest_to_cognee_main())
+
+
+def _send_daily_notification() -> None:
+    from src.infrastructure.discord import DiscordClient
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    DiscordClient().send_message(
+        "✅ 日次処理が完了しました（"
+        f"{timestamp}）\n"
+        "🌐 Reader: https://kaflog.vercel.app"
+    )
+
+
+def _best_effort(label: str, func: Any, *args: Any, **kwargs: Any) -> None:
+    try:
+        func(*args, **kwargs)
+    except Exception as exc:
+        print(f"⚠️ {label} failed ({exc}). Continuing anyway.")
 
 
 def cmd_manga(args: argparse.Namespace) -> None:
@@ -243,6 +342,32 @@ def cmd_audit(args: argparse.Namespace) -> None:
 
     if args.strict and report.has_blockers:
         sys.exit(1)
+
+
+def cmd_error(args: argparse.Namespace) -> None:
+    repository = ErrorLogRepository()
+    if args.action == "record":
+        repository.append(
+            ErrorEvent(
+                timestamp=datetime.now(),
+                stage=ErrorStage(args.stage),
+                kind=ErrorKind(args.kind),
+                task_name=args.task_name,
+                reason=args.reason,
+                recording_path=args.recording_path,
+            )
+        )
+        return
+
+    events = repository.recent(args.days)
+    print(f"error_events={len(events)} days={args.days}")
+    for event in events:
+        recording = f" recording={event.recording_path}" if event.recording_path else ""
+        print(
+            f"{event.timestamp.isoformat()} stage={event.stage.value} "
+            f"kind={event.kind.value} task={event.task_name} "
+            f"reason={event.reason}{recording}"
+        )
 
 
 def _print_audit_report(report) -> None:

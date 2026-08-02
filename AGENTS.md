@@ -1,5 +1,25 @@
 # AGENTS.md
 
+## Antigravity Audit Rule
+
+Before searching for `.agy`, always verify whether Antigravity CLI (`agy`) is installed.
+
+Mandatory checks:
+
+1. `which agy`
+2. `agy --version`
+3. `agy --help`
+4. `agy /usage`
+5. Search Taskfile, systemd services, tmux launchers, shell scripts, and cron jobs for `agy`
+
+Never infer that Antigravity is absent merely because `.agy` does not exist.
+
+The canonical runtime identifier is `agy`, not `.agy`.
+
+If `.agy` is not found but `agy` exists, continue investigation using the installed CLI and its integrations.
+
+Failure to check `agy` before concluding Antigravity is absent is considered an audit failure.
+
 VRChat Auto-Diary (vlog) 開発用エントリーポインタ。
 
 ## 🎯 プロジェクト概要
@@ -13,6 +33,7 @@ VRChatの活動を自動監視・録音し、Geminiで要約・小説化して�
 - **コーディング規約**: [.claude/rules/python_coding.md](file:///home/kafka/projects/vlog/.claude/rules/python_coding.md) / [.claude/rules/general.md](file:///home/kafka/projects/vlog/.claude/rules/general.md)
 - **コマンド・手順**: [.claude/rules/commands.md](file:///home/kafka/projects/vlog/.claude/rules/commands.md) / [Taskfile.yaml](file:///home/kafka/projects/vlog/Taskfile.yaml)
 - **アーキテクチャ定義**: [docs/architecture.md](file:///home/kafka/projects/vlog/docs/architecture.md)
+- **パイプライン契約**: [docs/daily_pipeline_contract.md](file:///home/kafka/projects/vlog/docs/daily_pipeline_contract.md)
 - **意思決定履歴**: [docs/adr/](file:///home/kafka/projects/vlog/docs/adr/)
 - **モデル名保護**: [.claude/rules/model_protection.md](file:///home/kafka/projects/vlog/.claude/rules/model_protection.md)
 

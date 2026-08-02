@@ -1,12 +1,13 @@
 import json
 import shutil
-import subprocess
 from datetime import datetime
 from typing import Any, Callable
 
+from src.domain.error_events import event_for_failure, event_for_skip
 from src.domain.harness import Incident, IncidentType, TaskWeight
+from src.infrastructure.error_log import ErrorLogRepository
 from src.infrastructure.settings import settings
-from src.infrastructure.system import ProcessMonitor
+from src.infrastructure.system import ProcessMonitor, SystemResourceMonitor
 
 
 class IncidentLogger:
@@ -29,6 +30,7 @@ class IncidentLogger:
 class GuardDog:
     def __init__(self) -> None:
         self.monitor = ProcessMonitor()
+        self.resources = SystemResourceMonitor()
 
     def check_safety(self, weight: TaskWeight) -> tuple[bool, str | None]:
         if weight == TaskWeight.LIGHT:
@@ -37,19 +39,9 @@ class GuardDog:
         if self.monitor.is_running():
             return False, "VRChat is running"
 
-        # Check GPU VRAM (requires 2GB free for HEAVY)
-        vram_free = int(
-            subprocess.check_output(
-                [
-                    "nvidia-smi",
-                    "--query-gpu=memory.free",
-                    "--format=csv,noheader,nounits",
-                ],
-                encoding="utf-8",
-            ).strip()
-        )
-        if vram_free < 2000:
-            return False, f"Low GPU VRAM: {vram_free}MiB free"
+        safe, reason, _ = self.resources.is_idle_for_heavy_work()
+        if not safe:
+            return False, reason
 
         # Check Disk Space (requires 1GB free)
         usage = shutil.disk_usage(".")
@@ -63,6 +55,7 @@ class GuardDog:
 class ZeroTrustHarness:
     def __init__(self) -> None:
         self.logger = IncidentLogger()
+        self.error_log = ErrorLogRepository()
         self.guard = GuardDog()
 
     def run(
@@ -83,6 +76,7 @@ class ZeroTrustHarness:
                     datetime.now(), task_name, weight, IncidentType.SKIPPED, reason
                 )
             )
+            self.error_log.append(event_for_skip(task_name, reason or "unsafe state"))
             return None
 
         try:
@@ -91,6 +85,7 @@ class ZeroTrustHarness:
             self.logger.log(
                 Incident(datetime.now(), task_name, weight, IncidentType.FAILED, str(e))
             )
+            self.error_log.append(event_for_failure(task_name, str(e)))
             raise
 
         if verify and not verify(result):

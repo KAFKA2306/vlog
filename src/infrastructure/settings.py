@@ -1,5 +1,5 @@
 import platform
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Dict, List, Set
 
 import yaml
@@ -9,6 +9,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 def _get_project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
+
+
+def resolve_project_path(value: Path) -> Path:
+    raw_value = str(value)
+    windows_path = PureWindowsPath(raw_value)
+    if platform.system() == "Linux" and windows_path.is_absolute():
+        raise ValueError(f"Windows path is not valid in WSL: {value}")
+    if value.is_absolute():
+        return value
+    return _get_project_root() / value
 
 
 def load_config() -> Dict[str, Any]:
@@ -174,6 +184,12 @@ class Settings(BaseSettings):
         ),
         alias="VLOG_INCIDENT_FILE",
     )
+    error_log_file: Path = Field(
+        default_factory=lambda: Path(
+            _config.get("paths", {}).get("error_log_file", "data/error_events.jsonl")
+        ),
+        alias="VLOG_ERROR_LOG_FILE",
+    )
 
     prompts: Dict[str, Any] = _prompts
 
@@ -182,37 +198,19 @@ class Settings(BaseSettings):
         "transcript_dir",
         "summary_dir",
         "novel_out_dir",
+        "manga_out_dir",
         "photo_prompt_dir",
         "photo_dir",
         "archive_dir",
+        "trace_file",
+        "profile_path",
+        "incident_file",
+        "error_log_file",
         mode="after",
     )
     @classmethod
-    def validate_linux_paths(cls, v: Path, info) -> Path:
-        if platform.system() != "Linux":
-            return v
-
-        # Check for Windows-style absolute paths (Drive letter or backslashes)
-        s_path = str(v)
-        if s_path.startswith("Z:") or "\\" in s_path:
-            # Map fields to their default backup values (matches default_factory)
-            defaults = {
-                "recording_dir": "data/recordings",
-                "transcript_dir": "data/transcripts",
-                "summary_dir": "data/summaries",
-                "novel_out_dir": "data/novels",
-                "photo_prompt_dir": "data/photos_prompts",
-                "photo_dir": "data/photos",
-                "archive_dir": "data/archives",
-            }
-            field_name = info.field_name
-            # Try to get from config first, else hardcoded default
-            default_val = _config.get("paths", {}).get(
-                field_name, defaults.get(field_name)
-            )
-            if default_val:
-                return Path(default_val)
-        return v
+    def normalize_project_path(cls, v: Path) -> Path:
+        return resolve_project_path(v)
 
 
 settings = Settings()

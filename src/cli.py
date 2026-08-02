@@ -11,6 +11,8 @@ def main() -> None:
     from src.cli_handlers import (
         cmd_check_vrc,
         cmd_curator,
+        cmd_daily,
+        cmd_error,
         cmd_image_generate,
         cmd_jules,
         cmd_manga,
@@ -46,6 +48,7 @@ def main() -> None:
     p_summarize.add_argument("--file")
     p_summarize.add_argument("--date")
 
+    subparsers.add_parser("daily", help="Run daily pipeline")
     subparsers.add_parser("pending", help="Process pending and verify sync")
 
     p_jules = subparsers.add_parser("jules", help="Manage tasks")
@@ -68,6 +71,15 @@ def main() -> None:
     p_audit.add_argument("--no-strict", dest="strict", action="store_false")
     p_audit.add_argument("--recent", type=int, default=100)
     p_audit.add_argument("--trace-window-minutes", type=int, default=30)
+
+    p_error = subparsers.add_parser("error", help="Manage structured error logs")
+    p_error.add_argument("action", choices=["report", "record"])
+    p_error.add_argument("--days", type=int, default=30)
+    p_error.add_argument("--stage")
+    p_error.add_argument("--kind")
+    p_error.add_argument("--reason")
+    p_error.add_argument("--task-name", default="manual")
+    p_error.add_argument("--recording-path")
 
     args = parser.parse_args()
 
@@ -95,6 +107,8 @@ def main() -> None:
         cmd_transcribe(args)
     elif args.command == "summarize":
         cmd_summarize(args)
+    elif args.command == "daily":
+        cmd_daily(args)
     elif args.command == "pending":
         cmd_pending(args)
         cmd_sync(args)
@@ -104,6 +118,8 @@ def main() -> None:
         cmd_check_vrc(args)
     elif args.command == "audit":
         cmd_audit(args)
+    elif args.command == "error":
+        cmd_error(args)
 
 
 if __name__ == "__main__":

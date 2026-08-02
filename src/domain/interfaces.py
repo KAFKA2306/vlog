@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Protocol
+from typing import Mapping, Protocol, Sequence
 
 from src.domain.entities import RecordingSession
 
@@ -15,6 +15,23 @@ class TranscriptPreprocessorProtocol(Protocol):
 
 class SummarizerProtocol(Protocol):
     def summarize(self, transcript: str, session: RecordingSession) -> str: ...
+
+
+class DailySummarizerProtocol(Protocol):
+    def summarize(
+        self,
+        transcript: str,
+        session: RecordingSession | None = None,
+        date_str: str | None = None,
+        start_time_str: str | None = None,
+        end_time_str: str | None = None,
+    ) -> str: ...
+
+
+class GraphStorageProtocol(Protocol):
+    def search(self, query: str, limit: int = 10) -> Sequence[Mapping[str, object]]: ...
+
+    def get_context_string(self, triples: Sequence[Mapping[str, object]]) -> str: ...
 
 
 class StorageProtocol(Protocol):

@@ -14,6 +14,8 @@ from src.infrastructure.image_optimizer import ImageOptimizer
 from src.infrastructure.settings import settings
 from supabase import create_client
 
+load_dotenv()
+
 
 @dataclass(frozen=True)
 class SyncReport:
@@ -41,11 +43,10 @@ class SyncReport:
 
 class StrictSupabaseSync:
     def __init__(self, client: Any | None = None) -> None:
-        load_dotenv()
         self.run_id = os.environ.get("VLOG_RUN_ID") or str(uuid4())
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-        self.client = client
+        self.client: Any = client
         if self.client is None:
             if not url or not key:
                 raise RuntimeError(

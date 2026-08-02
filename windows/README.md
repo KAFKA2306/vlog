@@ -1,122 +1,80 @@
-# Windows環境ガイド
+# Windows 環境ガイド
 
-Windows環境でVLog Auto Diaryを実行するためのスクリプトとガイド。
+Windows は VRChat プロセスの検知と録音を担当し、WSL は日次処理と成果物生成を担当する。Windows と WSL は同じリポジトリの data ディレクトリを共有する。
 
-## ファイル構成
+## 初回セットアップ
 
-### `bootstrap.bat`
+管理者権限のコマンドプロンプトでプロジェクトルートから実行する。
 
-初回セットアップ用スクリプト（管理者権限で実行）：
+    windows/bootstrap.bat
 
-- `.env`ファイルの作成（`.env.example`からコピー）
-- 必要なディレクトリ作成（`data/recordings`, `data/transcripts`, `data/summaries`, `data/archives`, `logs`）
-- Windows用Python仮想環境（`.venv-win`）のセットアップ
-- タスクスケジューラへの登録（ログイン時に自動起動）
-- 初回起動
+bootstrap.bat は次を実行する。
 
-### `run.bat`
+1. .env.example から .env を作成する。
+2. data/recordings、data/transcripts、data/summaries、data/archives、data/logs を作成する。
+3. .venv-win に uv.lock 固定の依存関係を同期する。
+4. VlogAutoDiary をローカル cmd.exe 経由のログオン時タスクとして登録する。
+5. 異常終了時は 1 分後に再起動するよう設定する。
+6. 登録したタスクを起動する。
 
-アプリケーション起動スクリプト：
+.env には実値を設定してから起動する。
 
-- `.venv-win`の仮想環境を使用
-- `python -m src.main` でアプリケーション起動
-- ログは`logs/vlog.log`に出力
+## 手動起動
 
-## 使い方
+    windows/run.bat
 
-### 初回セットアップ
+run.bat は UNC パスを一時ドライブへ割り当て、.venv-win と Python 3.12 を使って src.main を実行する。相対パスは必ずプロジェクトルート基準で解決される。依存関係は uv.lock から変更しない。
 
-1. 管理者権限でコマンドプロンプトを開く
-2. プロジェクトディレクトリに移動
-3. `windows\bootstrap.bat` を実行
+## 状態確認
 
-これにより、次回ログイン時から自動的にバックグラウンドで起動するようになります。
+Windows タスクの状態を確認する。
 
-### 手動起動
+    schtasks /Query /TN VlogAutoDiary /V /FO LIST
 
-`run.bat` をダブルクリック、またはコマンドプロンプトから実行：
+WSL 側から全体状態を確認する。
 
-```cmd
-windows\run.bat
-```
+    task status
 
-### 停止方法
+正常時は次を満たす。
 
-タスクマネージャーでPythonプロセスを終了、または：
+- VlogAutoDiary が Running である。
+- Windows に uv.exe と .venv-win/Scripts/python.exe のプロセスが存在する。
+- VRChat 起動後に data/recordings へ 44 バイトを超える FLAC が作成される。
+- data/logs/windows-bootstrap.log に起動パスが記録される。
+- data/logs/vlog.log に Application started と録音開始・停止が記録される。
 
-```cmd
-taskkill /IM python.exe /F
-```
+## ログ
+
+    Get-Content data/logs/windows-bootstrap.log -Tail 50
+    Get-Content data/logs/vlog.log -Tail 50
+
+windows-bootstrap.log は起動ごとに初期化され、起動時刻、解決済みパス、作業ディレクトリ、異常終了時の終了コードを記録する。
+
+## 停止と再起動
+
+    schtasks /End /TN VlogAutoDiary
+    schtasks /Run /TN VlogAutoDiary
+
+自動起動を無効化する場合はタスクスケジューラで VlogAutoDiary を無効化する。
 
 ## トラブルシューティング
 
-### 1. ウィンドウがすぐに閉じてしまう
+### タスクが Running なのに録音されない
 
-エラーが発生している可能性があります。`run.bat`と`bootstrap.bat`には`pause`コマンドが入っており、エラーメッセージを確認できます。
+1. data/logs/windows-bootstrap.log の exit_code を確認する。
+2. data/logs/vlog.log の最新 Application started を確認する。
+3. Get-Process VRChat で Windows 側の VRChat を確認する。
+4. data/recordings の最新 FLAC のサイズと更新時刻を確認する。
 
-手動実行で確認：
+### 依存関係が再現できない
 
-```cmd
-cd /d %~dp0..
-.venv-win\Scripts\python.exe -m src.main
-```
+uv.lock と pyproject.toml を同期した状態で再実行する。
 
-### 2. ネットワークドライブ（UNCパス）での実行
+    set UV_PROJECT_ENVIRONMENT=.venv-win
+    set UV_LINK_MODE=copy
+    set UV_PYTHON=3.12
+    uv sync --frozen
 
-`\\server\share\path` のようなネットワークパス上で実行する場合、`cd`コマンドではディレクトリ移動できません。
+### UNC パスで起動できない
 
-スクリプト内では`pushd "%~dp0.."`を使用して一時的にドライブ文字を割り当てています。
-
-推奨：ネットワークドライブを`Z:`などのドライブレターに割り当ててから実行。
-
-### 3. Python環境
-
-- Windows用の仮想環境：`.venv-win`
-- WSL（Linux）側の仮想環境：`.venv`
-
-**互換性がないため混同しないよう注意。**
-
-### 4. ログの確認
-
-実行ログは `logs/vlog.log` に出力されます。
-
-```cmd
-type logs\vlog.log
-```
-
-動作がおかしい場合は、まずこのファイルを確認してください。
-
-### 5. 自動起動の解除
-
-タスクスケジューラから手動で削除：
-
-1. タスクスケジューラを開く（`taskschd.msc`）
-2. `VLog Auto Diary` タスクを探す
-3. 削除
-
-## 環境変数
-
-`.env`ファイルに以下を設定：
-
-```env
-GOOGLE_API_KEY=your_api_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
-
-## データディレクトリ
-
-```
-data/
-├── recordings/    録音ファイル（FLAC）
-├── transcripts/   文字起こし結果（TXT）
-├── summaries/     日記形式要約（TXT）
-└── archives/      処理済み録音の移動先
-```
-
-## システム要件
-
-- Windows 10/11
-- Python 3.11以上
-- 管理者権限（初回セットアップのみ）
-
+bootstrap.bat を管理者権限で再実行する。タスクはローカルの cmd.exe を起動し、run.bat 内の pushd が UNC を一時ドライブへ変換する。タスクの直接実行先に UNC 上の run.bat を指定しない。

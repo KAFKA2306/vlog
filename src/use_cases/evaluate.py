@@ -17,7 +17,9 @@ class EvaluateDailyContentUseCase:
         self._files = file_repository or FileRepository()
         self._storage = storage or SupabaseRepository()
 
-    def execute(self, date_str: str = None) -> Dict[str, Any] | None:
+    def execute(
+        self, date_str: str | None = None, sync: bool = True
+    ) -> Dict[str, Any] | None:
         target_date = date_str or datetime.now().strftime("%Y%m%d")
 
         summary_path = settings.summary_dir / f"{target_date}_summary.txt"
@@ -41,6 +43,7 @@ class EvaluateDailyContentUseCase:
         print(f"  Quality: {result.get('quality_score')}/5")
 
         self._files.save_evaluation(result, target_date)
-        self._storage.sync()
+        if sync:
+            self._storage.sync()
 
         return result

@@ -1,15 +1,15 @@
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 from dotenv import load_dotenv
 
 from src.infrastructure.image_optimizer import ImageOptimizer
 from src.infrastructure.settings import settings
-from supabase import create_client
+from supabase import Client, create_client
 
 
 class FileRepository:
@@ -104,12 +104,13 @@ class SupabaseRepository:
     def sync(self) -> None:
         if not self.client:
             return
-        self._sync_summaries()
-        self._sync_novels()
-        self._sync_photos()
-        self._sync_evaluations()
+        client = self.client
+        self._sync_summaries(client)
+        self._sync_novels(client)
+        self._sync_photos(client)
+        self._sync_evaluations(client)
 
-    def _sync_summaries(self) -> None:
+    def _sync_summaries(self, client: Client) -> None:
         rows = []
         summary_dir = Path(settings.summary_dir)
         if not summary_dir.exists():
@@ -132,11 +133,11 @@ class SupabaseRepository:
                 }
             )
         if rows:
-            self.client.table("daily_entries").upsert(
+            client.table("daily_entries").upsert(
                 rows, on_conflict="file_path"
             ).execute()
 
-    def _sync_novels(self) -> None:
+    def _sync_novels(self, client: Client) -> None:
         rows = []
         novel_dir = Path(settings.novel_out_dir)
         if not novel_dir.exists():
@@ -157,43 +158,51 @@ class SupabaseRepository:
                 }
             )
         if rows:
-            self.client.table("novels").upsert(rows, on_conflict="file_path").execute()
+            client.table("novels").upsert(rows, on_conflict="file_path").execute()
 
-    def _sync_photos(self) -> None:
+    def _sync_photos(self, client: Client) -> None:
         photo_dir = Path(settings.photo_dir)
         if not photo_dir.exists():
             return
-        photo_paths = list(photo_dir.glob("*.png"))
+        photo_paths: List[Path] = list(photo_dir.glob("*.png"))
+        existing_files: Set[str] = {
+            item["name"]
+            for item in client.storage.from_("vlog-photos").list(
+                "photos", options={"limit": 1000}
+            )
+        }
         for path in photo_paths:
             if not path.stem.isdigit() or len(path.stem) != 8:
                 continue
-            date_str = path.stem
-            date_obj = datetime.strptime(date_str, "%Y%m%d").date()
-
-            # WebPに最適化
+            date_str: str = path.stem
+            file_name: str = f"{date_str}.webp"
+            if file_name in existing_files:
+                continue
+            date_obj: date = datetime.strptime(date_str, "%Y%m%d").date()
+            image_data: bytes
+            extension: str
             image_data, extension = ImageOptimizer.to_webp(path)
-            storage_path = f"photos/{date_str}{extension}"
-            ext_type = extension[1:] if extension.startswith(".") else extension
-            content_type = f"image/{ext_type}"
+            storage_path: str = f"photos/{file_name}"
+            ext_type: str = extension[1:] if extension.startswith(".") else extension
+            content_type: str = f"image/{ext_type}"
             if content_type == "image/jpg":
                 content_type = "image/jpeg"
-
-            self.client.storage.from_("vlog-photos").upload(
+            client.storage.from_("vlog-photos").upload(
                 storage_path,
                 image_data,
                 {"content-type": content_type, "upsert": "true"},
             )
-            image_url = self.client.storage.from_("vlog-photos").get_public_url(
+            image_url: str = client.storage.from_("vlog-photos").get_public_url(
                 storage_path
             )
-            self.client.table("novels").update({"image_url": image_url}).eq(
+            client.table("novels").update({"image_url": image_url}).eq(
                 "date", date_obj.isoformat()
             ).execute()
-            self.client.table("daily_entries").update({"image_url": image_url}).eq(
+            client.table("daily_entries").update({"image_url": image_url}).eq(
                 "date", date_obj.isoformat()
             ).execute()
 
-    def _sync_evaluations(self) -> None:
+    def _sync_evaluations(self, client: Client) -> None:
         rows = []
         eval_dir = Path(settings.summary_dir).parent / "evaluations"
         if not eval_dir.exists():
@@ -220,6 +229,6 @@ class SupabaseRepository:
                 }
             )
         if rows:
-            self.client.table("evaluations").upsert(
+            client.table("evaluations").upsert(
                 rows, on_conflict="date, target_type"
             ).execute()

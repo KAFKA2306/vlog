@@ -13,6 +13,7 @@ codd:
 # VRChat Auto-Diary システム構成図
 
 > マスタードキュメント → [docs/overview.md](file:///home/kafka/projects/vlog/docs/overview.md)  
+> パイプライン契約 → [docs/daily_pipeline_contract.md](file:///home/kafka/projects/vlog/docs/daily_pipeline_contract.md)
 > 開発ガイド → [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md)
 
 このシステムがどのように動いているかを図で説明します。

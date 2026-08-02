@@ -1,4 +1,5 @@
 import os
+from collections.abc import Sequence
 
 import cognee
 
@@ -34,7 +35,7 @@ class CogneeMemory:
     async def cognify(self) -> None:
         await cognee.cognify()
 
-    async def search(self, query: str) -> list[dict]:
+    async def search(self, query: str) -> Sequence[object]:
         return await cognee.search(query)
 
     async def remember(self, text: str, metadata: dict | None = None) -> None:

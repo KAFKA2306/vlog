@@ -2,12 +2,15 @@ import json
 import random
 import re
 import time
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Protocol, cast
 
 import google.generativeai as genai
 import torch
 from diffusers import DiffusionPipeline
+from google.generativeai.types import content_types
+from PIL import Image
 
 from src.domain.entities import RecordingSession
 from src.infrastructure.observability import TraceLogger
@@ -49,7 +52,9 @@ class JulesClient:
             text = text[3:-3]
         return json.loads(text)
 
-    def chat(self, history: List[Dict[str, str]], message: str) -> str:
+    def chat(
+        self, history: Iterable[content_types.StrictContentType], message: str
+    ) -> str:
         chat = self._model.start_chat(history=history)
         start_time = time.time()
         response = chat.send_message(message)
@@ -79,6 +84,13 @@ class JulesClient:
         return text
 
 
+class ImagePipelineOutput(Protocol):
+    images: Sequence[Image.Image]
+
+
+ImagePipeline = Callable[..., ImagePipelineOutput]
+
+
 class ImageGenerator:
     def __init__(self) -> None:
         self._pipe = None
@@ -102,7 +114,11 @@ class ImageGenerator:
         return template.format(text=text), negative_prompt
 
     def generate(
-        self, prompt: str, negative_prompt: str, output_path: Path, seed: int = None
+        self,
+        prompt: str,
+        negative_prompt: str,
+        output_path: Path,
+        seed: int | None = None,
     ) -> None:
         if not self._pipe:
             self._pipe = DiffusionPipeline.from_pretrained(
@@ -121,7 +137,7 @@ class ImageGenerator:
             encoding="utf-8",
         )
         start_time = time.time()
-        image = self._pipe(
+        image = cast(ImagePipeline, self._pipe)(
             prompt=prompt,
             negative_prompt=negative_prompt,
             height=settings.image_height,
@@ -186,10 +202,10 @@ class Summarizer:
     def summarize(
         self,
         transcript: str,
-        session: RecordingSession = None,
-        date_str: str = None,
-        start_time_str: str = None,
-        end_time_str: str = None,
+        session: RecordingSession | None = None,
+        date_str: str | None = None,
+        start_time_str: str | None = None,
+        end_time_str: str | None = None,
     ) -> str:
         if not self._model:
             genai.configure(api_key=settings.gemini_api_key)

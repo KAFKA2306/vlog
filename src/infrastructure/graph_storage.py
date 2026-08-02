@@ -1,4 +1,5 @@
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -10,9 +11,23 @@ class GraphStorage:
 
     def add_triples(self, triples: List[Dict[str, Any]], source: str) -> None:
         with open(self.storage_path, "a", encoding="utf-8") as f:
-            for triple in triples:
-                triple["_source"] = source
-                f.write(json.dumps(triple, ensure_ascii=False) + "\n")
+            if not triples:
+                f.write(
+                    json.dumps(
+                        {
+                            "subject": "",
+                            "predicate": "",
+                            "object": "",
+                            "_source": source,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+            else:
+                for triple in triples:
+                    triple["_source"] = source
+                    f.write(json.dumps(triple, ensure_ascii=False) + "\n")
 
     def search(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         if not self.storage_path.exists():
@@ -35,7 +50,7 @@ class GraphStorage:
         # Sort by relevance or just return latest (reversed)
         return list(reversed(results))[:limit]
 
-    def get_context_string(self, triples: List[Dict[str, Any]]) -> str:
+    def get_context_string(self, triples: Sequence[Mapping[str, object]]) -> str:
         if not triples:
             return ""
 
