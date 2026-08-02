@@ -8,6 +8,12 @@ from pathlib import Path
 from typing import Callable, Sequence
 from uuid import uuid4
 
+from src.infrastructure.observability import (
+    EventStatus,
+    OperationalEventLog,
+    Severity,
+)
+
 CommandRunner = Callable[[Sequence[str], dict[str, str], Path], None]
 
 
@@ -32,85 +38,170 @@ class DailyPipeline:
         self.monitor = monitor
         self.project_root = (project_root or Path.cwd()).resolve()
         self.run_log = self.project_root / "data/daily_runs.jsonl"
+        self.events = OperationalEventLog(
+            self.project_root / "data/error_events.jsonl"
+        )
 
     def run(self) -> str | None:
-        if self.monitor():
-            print("VRChat is running; daily processing skipped without success notice.")
-            return None
-
         run_id = str(uuid4())
-        env = dict(os.environ)
-        env["VLOG_RUN_ID"] = run_id
-        env["VLOG_DAILY_VERIFIED"] = "0"
-
-        today = date.today()
-        dates = [today - timedelta(days=1), today]
-        for target in dates:
-            date_str = target.strftime("%Y%m%d")
-            for audio_path in self._recordings(date_str):
-                transcript = Path("data/transcripts") / f"{audio_path.stem}.txt"
-                self._stage(
-                    run_id,
-                    f"transcribe:{audio_path.stem}",
-                    ["transcriber"],
-                    [transcript],
-                    env,
-                    "transcribe",
-                    "--file",
-                    str(audio_path),
-                )
-
-        for target in dates:
-            date_str = target.strftime("%Y%m%d")
-            if self._has_transcript(date_str):
-                summary = Path("data/summaries") / f"{date_str}_summary.txt"
-                self._stage(
-                    run_id,
-                    f"summarize:{date_str}",
-                    ["summarizer"],
-                    [summary],
-                    env,
-                    "summarize",
-                    "--date",
-                    date_str,
-                )
-            summary = self.project_root / "data/summaries" / f"{date_str}_summary.txt"
-            if self._nonempty(summary):
-                self._stage(
-                    run_id,
-                    f"novel:{date_str}",
-                    ["novelizer", "image_generator"],
-                    [
-                        Path("data/novels") / f"{date_str}.md",
-                        Path("data/photos") / f"{date_str}.png",
-                    ],
-                    env,
-                    "novel",
-                    "--date",
-                    date_str,
-                )
-
-        sync_report = Path("data/sync_reports") / f"{run_id}.json"
-        self._stage(
-            run_id,
-            "sync",
-            ["supabase"],
-            [sync_report],
-            env,
-            "sync",
+        self.events.emit(
+            category="scheduler",
+            component="daily-pipeline",
+            operation="daily_run",
+            status=EventStatus.STARTED,
+            severity=Severity.INFO,
+            message="Daily pipeline started",
+            code="daily_run",
+            run_id=run_id,
         )
+        try:
+            if self.monitor():
+                message = "VRChat is running; daily processing skipped"
+                print(message + " without success notice.")
+                self.events.emit(
+                    category="scheduler",
+                    component="daily-pipeline",
+                    operation="daily_run",
+                    status=EventStatus.SKIPPED,
+                    severity=Severity.WARNING,
+                    message=message,
+                    code="daily_skipped_vrchat_active",
+                    run_id=run_id,
+                    retryable=True,
+                )
+                return None
 
-        self._cli(env, "audit", "--strict", "--run-id", run_id)
-        env["VLOG_DAILY_VERIFIED"] = "1"
-        self._cli(
-            env,
-            "notify",
-            "--message",
-            "✅ 日次処理と証跡監査が完了しました。\n"
-            f"run_id: {run_id}\n"
-            "🌐 Reader: https://kaflog.vercel.app",
-        )
-        return run_id
+            env = dict(os.environ)
+            env["VLOG_RUN_ID"] = run_id
+            env["VLOG_DAILY_VERIFIED"] = "0"
+
+            today = date.today()
+            dates = [today - timedelta(days=1), today]
+            for target in dates:
+                date_str = target.strftime("%Y%m%d")
+                for audio_path in self._recordings(date_str):
+                    transcript = Path("data/transcripts") / f"{audio_path.stem}.txt"
+                    self._stage(
+                        run_id,
+                        f"transcribe:{audio_path.stem}",
+                        ["transcriber"],
+                        [transcript],
+                        env,
+                        "transcribe",
+                        "--file",
+                        str(audio_path),
+                    )
+
+            for target in dates:
+                date_str = target.strftime("%Y%m%d")
+                if self._has_transcript(date_str):
+                    summary = Path("data/summaries") / f"{date_str}_summary.txt"
+                    self._stage(
+                        run_id,
+                        f"summarize:{date_str}",
+                        ["summarizer"],
+                        [summary],
+                        env,
+                        "summarize",
+                        "--date",
+                        date_str,
+                    )
+                summary = (
+                    self.project_root
+                    / "data/summaries"
+                    / f"{date_str}_summary.txt"
+                )
+                if self._nonempty(summary):
+                    self._stage(
+                        run_id,
+                        f"novel:{date_str}",
+                        ["novelizer", "image_generator"],
+                        [
+                            Path("data/novels") / f"{date_str}.md",
+                            Path("data/photos") / f"{date_str}.png",
+                        ],
+                        env,
+                        "novel",
+                        "--date",
+                        date_str,
+                    )
+
+            sync_report = Path("data/sync_reports") / f"{run_id}.json"
+            self._stage(
+                run_id,
+                "sync",
+                ["supabase"],
+                [sync_report],
+                env,
+                "sync",
+            )
+
+            self.events.emit(
+                category="processing",
+                component="strict-auditor",
+                operation="audit_daily_run",
+                status=EventStatus.STARTED,
+                severity=Severity.INFO,
+                message="Strict evidence audit started",
+                code="daily_audit",
+                run_id=run_id,
+            )
+            self._cli(env, "audit", "--strict", "--run-id", run_id)
+            self.events.emit(
+                category="processing",
+                component="strict-auditor",
+                operation="audit_daily_run",
+                status=EventStatus.SUCCEEDED,
+                severity=Severity.INFO,
+                message="Strict evidence audit passed",
+                code="daily_audit",
+                run_id=run_id,
+            )
+
+            env["VLOG_DAILY_VERIFIED"] = "1"
+            self._cli(
+                env,
+                "notify",
+                "--message",
+                "✅ 日次処理と証跡監査が完了しました。\n"
+                f"run_id: {run_id}\n"
+                "🌐 Reader: https://kaflog.vercel.app",
+            )
+            self.events.emit(
+                category="notification",
+                component="discord",
+                operation="daily_success",
+                status=EventStatus.SUCCEEDED,
+                severity=Severity.INFO,
+                message="Verified daily success notification sent",
+                code="daily_success_notification",
+                run_id=run_id,
+            )
+            self.events.emit(
+                category="scheduler",
+                component="daily-pipeline",
+                operation="daily_run",
+                status=EventStatus.SUCCEEDED,
+                severity=Severity.INFO,
+                message="Daily pipeline completed and verified",
+                code="daily_run",
+                run_id=run_id,
+            )
+            return run_id
+        except Exception as exc:
+            self.events.emit(
+                category="scheduler",
+                component="daily-pipeline",
+                operation="daily_run",
+                status=EventStatus.FAILED,
+                severity=Severity.CRITICAL,
+                message="Daily pipeline failed",
+                code="daily_run_failed",
+                run_id=run_id,
+                retryable=True,
+                error=exc,
+            )
+            raise
 
     def _stage(
         self,
@@ -123,6 +214,7 @@ class DailyPipeline:
     ) -> None:
         stage_env = dict(env)
         stage_env["VLOG_TASK_NAME"] = task_name
+        category = self._category_for(task_name)
         self._log(
             {
                 "timestamp": datetime.now().isoformat(),
@@ -131,6 +223,17 @@ class DailyPipeline:
                 "status": "try",
                 "expected_components": components,
             }
+        )
+        self.events.emit(
+            category=category,
+            component="daily-pipeline",
+            operation=task_name,
+            status=EventStatus.STARTED,
+            severity=Severity.INFO,
+            message=f"Daily stage started: {task_name}",
+            code="daily_stage",
+            run_id=run_id,
+            context={"expected_components": components},
         )
         try:
             self._cli(stage_env, *command_args)
@@ -155,6 +258,17 @@ class DailyPipeline:
                     },
                 }
             )
+            self.events.emit(
+                category=category,
+                component="daily-pipeline",
+                operation=task_name,
+                status=EventStatus.SUCCEEDED,
+                severity=Severity.INFO,
+                message=f"Daily stage completed: {task_name}",
+                code="daily_stage",
+                run_id=run_id,
+                context={"artifacts": artifact_states},
+            )
         except Exception as exc:
             self._log(
                 {
@@ -165,6 +279,19 @@ class DailyPipeline:
                     "expected_components": components,
                     "error": str(exc),
                 }
+            )
+            self.events.emit(
+                category=category,
+                component="daily-pipeline",
+                operation=task_name,
+                status=EventStatus.FAILED,
+                severity=Severity.ERROR,
+                message=f"Daily stage failed: {task_name}",
+                code="daily_stage_failed",
+                run_id=run_id,
+                retryable=True,
+                error=exc,
+                context={"expected_artifacts": [str(path) for path in artifacts]},
             )
             raise
 
@@ -192,6 +319,16 @@ class DailyPipeline:
     @staticmethod
     def _nonempty(path: Path) -> bool:
         return path.is_file() and path.stat().st_size > 0
+
+    @staticmethod
+    def _category_for(task_name: str) -> str:
+        prefix = task_name.split(":", 1)[0]
+        return {
+            "transcribe": "transcription",
+            "summarize": "generation",
+            "novel": "generation",
+            "sync": "sync",
+        }.get(prefix, "processing")
 
     def _log(self, payload: dict[str, object]) -> None:
         self.run_log.parent.mkdir(parents=True, exist_ok=True)
