@@ -90,6 +90,9 @@ tasks:
       - systemctl --user disable --now vlog.service
       - systemctl --user enable --now vlog-daily.timer
 
+  systemd:install:
+    desc: systemdユニットを再リンクして反映
+    cmd: bash scripts/install_systemd_units.sh
   down:
     desc: systemd日次タイマー停止
     cmds:
@@ -306,6 +309,12 @@ tasks:
     desc: 厳格な証拠監査を実行
     cmds:
       - $UV run python -m src.cli audit --strict --recent 100 --trace-window-minutes 30
+
+  audit:publication:
+    desc: 直近3か月の公開品質を監査
+    vars:
+      DAYS: '{{.DAYS | default "92"}}'
+    cmd: $UV run python -m src.scripts.audit_publication --days {{.DAYS}}
 
   # ────────────────────────────────────────
   # Graph Scribe (シンプルグラフ)

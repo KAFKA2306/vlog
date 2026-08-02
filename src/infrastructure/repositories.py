@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Set
 from dotenv import load_dotenv
 
 from src.infrastructure.image_optimizer import ImageOptimizer
+from src.infrastructure.publication import is_publishable_summary
 from src.infrastructure.settings import settings
 from supabase import Client, create_client
 
@@ -112,6 +113,7 @@ class SupabaseRepository:
 
     def _sync_summaries(self, client: Client) -> None:
         rows = []
+        blocked_paths: list[Path] = []
         summary_dir = Path(settings.summary_dir)
         if not summary_dir.exists():
             return
@@ -121,6 +123,9 @@ class SupabaseRepository:
             ):
                 continue
             date_str = path.stem.split("_")[0]
+            if not is_publishable_summary(date_str):
+                blocked_paths.append(path)
+                continue
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             rows.append(
                 {
@@ -132,6 +137,13 @@ class SupabaseRepository:
                     "is_public": True,
                 }
             )
+        for path in blocked_paths:
+            (
+                client.table("daily_entries")
+                .update({"is_public": False})
+                .eq("file_path", path.as_posix())
+                .execute()
+            )
         if rows:
             client.table("daily_entries").upsert(
                 rows, on_conflict="file_path"
@@ -139,6 +151,7 @@ class SupabaseRepository:
 
     def _sync_novels(self, client: Client) -> None:
         rows = []
+        blocked_paths: list[Path] = []
         novel_dir = Path(settings.novel_out_dir)
         if not novel_dir.exists():
             return
@@ -146,6 +159,9 @@ class SupabaseRepository:
             if not path.stem.isdigit() or len(path.stem) != 8:
                 continue
             date_str = path.stem
+            if not is_publishable_summary(date_str):
+                blocked_paths.append(path)
+                continue
             date_obj = datetime.strptime(date_str, "%Y%m%d").date()
             rows.append(
                 {
@@ -156,6 +172,13 @@ class SupabaseRepository:
                     "tags": ["novel"],
                     "is_public": True,
                 }
+            )
+        for path in blocked_paths:
+            (
+                client.table("novels")
+                .update({"is_public": False})
+                .eq("file_path", path.as_posix())
+                .execute()
             )
         if rows:
             client.table("novels").upsert(rows, on_conflict="file_path").execute()

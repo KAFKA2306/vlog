@@ -10,6 +10,40 @@ export type Entry = {
 
 const DATA_ROOT = path.resolve(process.cwd(), '..', '..', 'data')
 const SUMMARY_DIR = path.join(DATA_ROOT, 'summaries')
+const TRANSCRIPT_DIR = path.join(DATA_ROOT, 'transcripts')
+const DAILY_STATE_FILE = path.join(DATA_ROOT, 'daily_state.json')
+const MIN_PUBLISHABLE_BYTES = 50
+
+type DailyStateEntry = {
+  summary_source_files?: string[]
+}
+
+type DailyState = {
+  dates?: Record<string, DailyStateEntry>
+}
+
+let dailyState: Promise<DailyState> | undefined
+
+const readDailyState = () => {
+  dailyState ??= readText(DAILY_STATE_FILE).then(value => JSON.parse(value) as DailyState)
+  return dailyState
+}
+
+const isPublishableSummary = async (compactDate: string) => {
+  const entry = (await readDailyState()).dates?.[compactDate]
+  const sourceFiles = entry?.summary_source_files ?? []
+  if (sourceFiles.length === 0) return false
+
+  const sourceTexts = await Promise.all(
+    sourceFiles.map(fileName =>
+      readText(path.join(TRANSCRIPT_DIR, path.basename(fileName.replaceAll('\\', '/')))),
+    ),
+  )
+  return (
+    new TextEncoder().encode(sourceTexts.join('')).byteLength >
+    MIN_PUBLISHABLE_BYTES
+  )
+}
 
 const SUMMARY_FILE = /^(\d{8})_summary\.txt$/
 
@@ -38,6 +72,7 @@ const cleanContent = (content: string) => {
 const readSummary = async (fileName: string): Promise<Entry | null> => {
   const match = fileName.match(SUMMARY_FILE)
   if (!match) return null
+  if (!(await isPublishableSummary(match[1]))) return null
 
   const date = toDate(match[1])
   const content = await readText(path.join(SUMMARY_DIR, fileName))
@@ -64,11 +99,10 @@ export const getLatestSummaries = async (limit = 60): Promise<Entry[]> => {
       files
         .filter(fileName => SUMMARY_FILE.test(fileName))
         .sort((a, b) => b.localeCompare(a))
-        .slice(0, limit)
         .map(readSummary),
     )
 
-    return summaries.filter((entry): entry is Entry => entry !== null)
+    return summaries.filter((entry): entry is Entry => entry !== null).slice(0, limit)
   } catch {
     return []
   }

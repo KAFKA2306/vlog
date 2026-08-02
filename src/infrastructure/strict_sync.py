@@ -11,6 +11,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from src.infrastructure.image_optimizer import ImageOptimizer
+from src.infrastructure.publication import is_publishable_summary
 from src.infrastructure.settings import settings
 from supabase import create_client
 
@@ -87,8 +88,12 @@ class StrictSupabaseSync:
 
     def _sync_summaries(self) -> int:
         rows: list[dict[str, Any]] = []
+        blocked_paths: list[Path] = []
         for path in Path(settings.summary_dir).glob("*_summary.txt"):
             date_str = path.stem.removesuffix("_summary")
+            if not is_publishable_summary(date_str):
+                blocked_paths.append(path)
+                continue
             if not (date_str.isdigit() and len(date_str) == 8):
                 continue
             rows.append(
@@ -101,12 +106,23 @@ class StrictSupabaseSync:
                     "is_public": True,
                 }
             )
+        for path in blocked_paths:
+            (
+                self.client.table("daily_entries")
+                .update({"is_public": False})
+                .eq("file_path", path.as_posix())
+                .execute()
+            )
         return self._verified_upsert("daily_entries", rows, "file_path")
 
     def _sync_novels(self) -> int:
         rows: list[dict[str, Any]] = []
+        blocked_paths: list[Path] = []
         for path in Path(settings.novel_out_dir).glob("*.md"):
             if not (path.stem.isdigit() and len(path.stem) == 8):
+                continue
+            if not is_publishable_summary(path.stem):
+                blocked_paths.append(path)
                 continue
             rows.append(
                 {
@@ -117,6 +133,13 @@ class StrictSupabaseSync:
                     "tags": ["novel"],
                     "is_public": True,
                 }
+            )
+        for path in blocked_paths:
+            (
+                self.client.table("novels")
+                .update({"is_public": False})
+                .eq("file_path", path.as_posix())
+                .execute()
             )
         return self._verified_upsert("novels", rows, "file_path")
 
