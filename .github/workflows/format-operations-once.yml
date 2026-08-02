@@ -1,0 +1,31 @@
+name: Format operations once
+
+on:
+  push:
+    branches:
+      - agent/harden-vlog-operations-main
+    paths:
+      - .github/workflows/format-operations-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/harden-vlog-operations-main
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - name: Format operational Python files
+        run: uvx --from ruff==0.14.9 ruff format src/daily.py src/infrastructure/observability.py src/operations.py
+      - name: Commit formatted files and remove workflow
+        run: |
+          rm .github/workflows/format-operations-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: format operations hardening"
+          git push origin HEAD:agent/harden-vlog-operations-main
