@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import random
 import re
@@ -6,15 +8,16 @@ from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 from typing import Any, Dict, Protocol, cast
 
-import google.generativeai as genai
-import torch
-from diffusers import DiffusionPipeline
-from google.generativeai.types import content_types
-from PIL import Image
-
 from src.domain.entities import RecordingSession
 from src.infrastructure.observability import TraceLogger
 from src.infrastructure.settings import settings
+
+
+def _genai() -> Any:
+    """Load the provider SDK only when an AI operation actually runs."""
+    import google.generativeai as genai
+
+    return genai
 
 
 class JulesClient:
@@ -30,8 +33,9 @@ class JulesClient:
         )
         if not api_key:
             raise ValueError()
-        genai.configure(api_key=api_key)
-        self._model = genai.GenerativeModel(settings.jules_model)
+        sdk = _genai()
+        sdk.configure(api_key=api_key)
+        self._model = sdk.GenerativeModel(settings.jules_model)
         self._tracer = TraceLogger()
 
     def parse_task(self, user_input: str) -> Dict[str, Any]:
@@ -52,9 +56,7 @@ class JulesClient:
             text = text[3:-3]
         return json.loads(text)
 
-    def chat(
-        self, history: Iterable[content_types.StrictContentType], message: str
-    ) -> str:
+    def chat(self, history: Iterable[Any], message: str) -> str:
         chat = self._model.start_chat(history=history)
         start_time = time.time()
         response = chat.send_message(message)
@@ -85,7 +87,7 @@ class JulesClient:
 
 
 class ImagePipelineOutput(Protocol):
-    images: Sequence[Image.Image]
+    images: Sequence[Any]
 
 
 ImagePipeline = Callable[..., ImagePipelineOutput]
@@ -93,7 +95,7 @@ ImagePipeline = Callable[..., ImagePipelineOutput]
 
 class ImageGenerator:
     def __init__(self) -> None:
-        self._pipe = None
+        self._pipe: Any = None
         self._tracer = TraceLogger()
 
     def generate_from_novel(self, chapter_text: str, output_path: Path) -> None:
@@ -120,6 +122,9 @@ class ImageGenerator:
         output_path: Path,
         seed: int | None = None,
     ) -> None:
+        import torch
+        from diffusers import DiffusionPipeline
+
         if not self._pipe:
             self._pipe = DiffusionPipeline.from_pretrained(
                 settings.image_model,
@@ -170,8 +175,9 @@ class Novelizer:
         context: str = "",
     ) -> str:
         if not self._model:
-            genai.configure(api_key=settings.gemini_api_key)
-            self._model = genai.GenerativeModel(settings.novel_model)
+            sdk = _genai()
+            sdk.configure(api_key=settings.gemini_api_key)
+            self._model = sdk.GenerativeModel(settings.novel_model)
         prompt = self._prompt_template.format(
             novel_so_far=novel_so_far,
             today_summary=today_summary,
@@ -208,8 +214,9 @@ class Summarizer:
         end_time_str: str | None = None,
     ) -> str:
         if not self._model:
-            genai.configure(api_key=settings.gemini_api_key)
-            self._model = genai.GenerativeModel(settings.gemini_model)
+            sdk = _genai()
+            sdk.configure(api_key=settings.gemini_api_key)
+            self._model = sdk.GenerativeModel(settings.gemini_model)
         if session:
             d = session.start_time.strftime("%Y-%m-%d")
             s = session.start_time.strftime("%H:%M")
@@ -245,8 +252,9 @@ class Curator:
 
     def evaluate(self, summary: str, novel: str) -> Dict[str, Any]:
         if not self._model:
-            genai.configure(api_key=settings.gemini_api_key)
-            self._model = genai.GenerativeModel(settings.jules_model)
+            sdk = _genai()
+            sdk.configure(api_key=settings.gemini_api_key)
+            self._model = sdk.GenerativeModel(settings.jules_model)
         prompt = self._prompt_template.format(summary=summary, novel=novel)
         start_time = time.time()
         response = self._model.generate_content(prompt)
@@ -274,8 +282,9 @@ class MangaScriptGenerator:
     def generate(self, novel_text: str) -> Dict[str, Any]:
         target_model = getattr(settings, "manga_model", settings.gemini_model)
         if not self._model:
-            genai.configure(api_key=settings.gemini_api_key)
-            self._model = genai.GenerativeModel(target_model)
+            sdk = _genai()
+            sdk.configure(api_key=settings.gemini_api_key)
+            self._model = sdk.GenerativeModel(target_model)
         prompt = self._prompt_template.format(novel_text=novel_text)
         start_time = time.time()
         response = self._model.generate_content(prompt)
