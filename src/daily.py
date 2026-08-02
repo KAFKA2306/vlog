@@ -38,9 +38,7 @@ class DailyPipeline:
         self.monitor = monitor
         self.project_root = (project_root or Path.cwd()).resolve()
         self.run_log = self.project_root / "data/daily_runs.jsonl"
-        self.events = OperationalEventLog(
-            self.project_root / "data/error_events.jsonl"
-        )
+        self.events = OperationalEventLog(self.project_root / "data/error_events.jsonl")
 
     def run(self) -> str | None:
         run_id = str(uuid4())
@@ -107,9 +105,7 @@ class DailyPipeline:
                         date_str,
                     )
                 summary = (
-                    self.project_root
-                    / "data/summaries"
-                    / f"{date_str}_summary.txt"
+                    self.project_root / "data/summaries" / f"{date_str}_summary.txt"
                 )
                 if self._nonempty(summary):
                     self._stage(

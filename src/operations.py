@@ -193,12 +193,29 @@ class OperationsLoader:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
             for line_no, raw in enumerate(handle, start=1):
                 lower = raw.lower()
-                if not any(token in lower for token in ("error", "failed", "exception", "traceback", "warning", "429")):
+                if not any(
+                    token in lower
+                    for token in (
+                        "error",
+                        "failed",
+                        "exception",
+                        "traceback",
+                        "warning",
+                        "429",
+                    )
+                ):
                     continue
                 match = timestamp_re.search(raw)
                 timestamp = match.group(1).replace(",", ".") if match else None
                 category, component, operation, code = self._classify_legacy(raw)
-                severity = "error" if any(t in lower for t in ("error", "failed", "exception", "traceback", "429")) else "warning"
+                severity = (
+                    "error"
+                    if any(
+                        t in lower
+                        for t in ("error", "failed", "exception", "traceback", "429")
+                    )
+                    else "warning"
+                )
                 events.append(
                     self._canonical(
                         {
@@ -322,7 +339,8 @@ def build_report(events: list[dict[str, Any]], days: int) -> OperationsReport:
         last_failure = failures[-1]
         later_success = any(
             e.get("status") in STATUS_SUCCESS
-            and OperationsLoader._timestamp(e) > OperationsLoader._timestamp(last_failure)
+            and OperationsLoader._timestamp(e)
+            > OperationsLoader._timestamp(last_failure)
             for e in grouped
         )
         highest = max(
@@ -426,7 +444,9 @@ def render_html(report: OperationsReport) -> str:
         if event.get("status") == "failed"
     )
     max_count = max(category_counts.values(), default=1)
-    state_label = {"healthy": "正常", "degraded": "要確認", "critical": "重大障害"}[report.state]
+    state_label = {"healthy": "正常", "degraded": "要確認", "critical": "重大障害"}[
+        report.state
+    ]
 
     stage_cards = []
     for category in CATEGORY_ORDER:
@@ -441,7 +461,9 @@ def render_html(report: OperationsReport) -> str:
     incident_rows = []
     for incident in report.incidents[:50]:
         state = "未解消" if incident.is_open else "解消済み"
-        context = html.escape(json.dumps(incident.context, ensure_ascii=False, indent=2))
+        context = html.escape(
+            json.dumps(incident.context, ensure_ascii=False, indent=2)
+        )
         incident_rows.append(
             "<tr>"
             f"<td><span class='pill {'open' if incident.is_open else 'resolved'}'>{state}</span></td>"
@@ -455,12 +477,16 @@ def render_html(report: OperationsReport) -> str:
             "</tr>"
         )
     if not incident_rows:
-        incident_rows.append("<tr><td colspan='7' class='empty'>選択期間に障害はありません。</td></tr>")
+        incident_rows.append(
+            "<tr><td colspan='7' class='empty'>選択期間に障害はありません。</td></tr>"
+        )
 
     timeline_rows = []
     for event in reversed(report.events[-120:]):
         timestamp = OperationsLoader._timestamp(event)
-        context = html.escape(json.dumps(event.get("context") or {}, ensure_ascii=False, indent=2))
+        context = html.escape(
+            json.dumps(event.get("context") or {}, ensure_ascii=False, indent=2)
+        )
         timeline_rows.append(
             "<tr>"
             f"<td>{html.escape(_fmt_time(timestamp))}</td>"
@@ -471,7 +497,9 @@ def render_html(report: OperationsReport) -> str:
             "</tr>"
         )
     if not timeline_rows:
-        timeline_rows.append("<tr><td colspan='5' class='empty'>イベントがありません。</td></tr>")
+        timeline_rows.append(
+            "<tr><td colspan='5' class='empty'>イベントがありません。</td></tr>"
+        )
 
     bars = []
     for category in CATEGORY_ORDER:
@@ -510,18 +538,20 @@ summary{{cursor:pointer;max-width:580px}} pre{{white-space:pre-wrap;background:#
 <div class='metric'><small>未解消インシデント</small><strong>{report.open_incidents}</strong></div>
 <div class='metric'><small>観測イベント</small><strong>{len(report.events)}</strong></div>
 </section>
-<section class='panel'><h2>パイプライン監視</h2><div class='stages'>{''.join(stage_cards)}</div></section>
-<section class='panel'><h2>対応が必要な障害</h2><div class='table-wrap'><table><thead><tr><th>状態</th><th>重大度</th><th>分類</th><th>箇所</th><th>回数</th><th>最終発生</th><th>詳細</th></tr></thead><tbody>{''.join(incident_rows)}</tbody></table></div></section>
+<section class='panel'><h2>パイプライン監視</h2><div class='stages'>{"".join(stage_cards)}</div></section>
+<section class='panel'><h2>対応が必要な障害</h2><div class='table-wrap'><table><thead><tr><th>状態</th><th>重大度</th><th>分類</th><th>箇所</th><th>回数</th><th>最終発生</th><th>詳細</th></tr></thead><tbody>{"".join(incident_rows)}</tbody></table></div></section>
 <section class='two'>
-<div class='panel'><h2>カテゴリ別イベント量</h2>{''.join(bars)}</div>
+<div class='panel'><h2>カテゴリ別イベント量</h2>{"".join(bars)}</div>
 <div class='panel'><h2>運用原則</h2><p><strong>成功通知は証跡監査後のみ。</strong></p><p>録音スレッド停止、空録音、処理スレッド例外、同期失敗、スケジューラ起動失敗を同一スキーマへ集約します。</p><p>同じ component / operation の後続成功を検出するとインシデントを自動的に「解消済み」と判定します。</p><p>秘密値・Webhook・APIキー・ホームディレクトリは保存前にマスクします。</p></div>
 </section>
-<section class='panel'><h2>最新イベント</h2><div class='table-wrap'><table><thead><tr><th>時刻</th><th>分類</th><th>コンポーネント</th><th>状態</th><th>内容</th></tr></thead><tbody>{''.join(timeline_rows)}</tbody></table></div></section>
+<section class='panel'><h2>最新イベント</h2><div class='table-wrap'><table><thead><tr><th>時刻</th><th>分類</th><th>コンポーネント</th><th>状態</th><th>内容</th></tr></thead><tbody>{"".join(timeline_rows)}</tbody></table></div></section>
 <footer>VLog Operations · local-only report · raw logs are not published.</footer>
 </main></body></html>"""
 
 
-def write_report_files(report: OperationsReport, html_path: Path, json_path: Path) -> None:
+def write_report_files(
+    report: OperationsReport, html_path: Path, json_path: Path
+) -> None:
     html_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.write_text(render_html(report), encoding="utf-8")
@@ -534,20 +564,56 @@ def write_report_files(report: OperationsReport, html_path: Path, json_path: Pat
 def run_doctor(root: Path) -> int:
     log = OperationalEventLog(root / "data/error_events.jsonl")
     checks: list[tuple[str, bool, str]] = []
-    checks.append(("uv executable", shutil.which("uv") is not None, shutil.which("uv") or "not found"))
-    checks.append(("project data writable", os.access(root / "data", os.W_OK) if (root / "data").exists() else os.access(root, os.W_OK), str(root / "data")))
+    checks.append(
+        (
+            "uv executable",
+            shutil.which("uv") is not None,
+            shutil.which("uv") or "not found",
+        )
+    )
+    checks.append(
+        (
+            "project data writable",
+            os.access(root / "data", os.W_OK)
+            if (root / "data").exists()
+            else os.access(root, os.W_OK),
+            str(root / "data"),
+        )
+    )
     for key in ("GOOGLE_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"):
-        checks.append((key, bool(os.environ.get(key)), "configured" if os.environ.get(key) else "missing"))
+        checks.append(
+            (
+                key,
+                bool(os.environ.get(key)),
+                "configured" if os.environ.get(key) else "missing",
+            )
+        )
     service_path = root / "vlog-daily.service"
-    service_text = service_path.read_text(encoding="utf-8") if service_path.exists() else ""
-    checks.append(("daily ExecStart", "uv run python -m src.daily" in service_text, "repo-relative uv daily runner"))
-    checks.append(("no stale /snap/bin/task", "/snap/bin/task" not in service_text, "legacy scheduler path absent"))
+    service_text = (
+        service_path.read_text(encoding="utf-8") if service_path.exists() else ""
+    )
+    checks.append(
+        (
+            "daily ExecStart",
+            "uv run python -m src.daily" in service_text,
+            "repo-relative uv daily runner",
+        )
+    )
+    checks.append(
+        (
+            "no stale /snap/bin/task",
+            "/snap/bin/task" not in service_text,
+            "legacy scheduler path absent",
+        )
+    )
 
     failed = 0
     for name, ok, detail in checks:
         print(f"{'PASS' if ok else 'FAIL':4}  {name:28} {detail}")
         log.emit(
-            category="infrastructure" if "ExecStart" not in name and "task" not in name else "scheduler",
+            category="infrastructure"
+            if "ExecStart" not in name and "task" not in name
+            else "scheduler",
             component="doctor",
             operation=name.lower().replace(" ", "_"),
             status=EventStatus.SUCCEEDED if ok else EventStatus.FAILED,
@@ -567,7 +633,20 @@ def record_service_failure(unit: str, root: Path) -> int:
     context: dict[str, Any] = {"unit": unit}
     try:
         show = subprocess.run(
-            ["systemctl", "--user", "show", unit, "-p", "Result", "-p", "ExecMainStatus", "-p", "ExecMainCode", "-p", "ActiveEnterTimestamp"],
+            [
+                "systemctl",
+                "--user",
+                "show",
+                unit,
+                "-p",
+                "Result",
+                "-p",
+                "ExecMainStatus",
+                "-p",
+                "ExecMainCode",
+                "-p",
+                "ActiveEnterTimestamp",
+            ],
             check=False,
             capture_output=True,
             text=True,
@@ -575,7 +654,17 @@ def record_service_failure(unit: str, root: Path) -> int:
         )
         context["systemctl"] = show.stdout.strip()
         journal = subprocess.run(
-            ["journalctl", "--user", "-u", unit, "-n", "40", "--no-pager", "-o", "short-iso"],
+            [
+                "journalctl",
+                "--user",
+                "-u",
+                unit,
+                "-n",
+                "40",
+                "--no-pager",
+                "-o",
+                "short-iso",
+            ],
             check=False,
             capture_output=True,
             text=True,
@@ -603,7 +692,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="VLog operational observability")
     sub = parser.add_subparsers(dest="command")
 
-    report_parser = sub.add_parser("report", help="Build console, JSON and HTML reports")
+    report_parser = sub.add_parser(
+        "report", help="Build console, JSON and HTML reports"
+    )
     report_parser.add_argument("--days", type=int, default=90)
     report_parser.add_argument("--html", default="data/reports/operations.html")
     report_parser.add_argument("--json", default="data/reports/operations.json")
@@ -622,7 +713,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     doctor_parser = sub.add_parser("doctor", help="Validate operational prerequisites")
     doctor_parser.add_argument("--root", default=".")
 
-    failure_parser = sub.add_parser("service-failure", help="Capture a failed systemd unit")
+    failure_parser = sub.add_parser(
+        "service-failure", help="Capture a failed systemd unit"
+    )
     failure_parser.add_argument("--unit", required=True)
     failure_parser.add_argument("--root", default=".")
 
