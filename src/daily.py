@@ -104,7 +104,9 @@ class DailyPipeline:
                         "--date",
                         date_str,
                     )
-                summary = self.project_root / "data/summaries" / f"{date_str}_summary.txt"
+                summary = (
+                    self.project_root / "data/summaries" / f"{date_str}_summary.txt"
+                )
                 if self._nonempty(summary):
                     self._stage(
                         run_id,
@@ -246,7 +248,8 @@ class DailyPipeline:
         try:
             self._cli(stage_env, *command_args)
             artifact_states = {
-                str(path): self._nonempty(self.project_root / path) for path in artifacts
+                str(path): self._nonempty(self.project_root / path)
+                for path in artifacts
             }
             if not all(artifact_states.values()):
                 missing = [path for path, ok in artifact_states.items() if not ok]
@@ -329,8 +332,7 @@ class DailyPipeline:
     def _has_transcript(self, date_str: str) -> bool:
         transcript_dir = self.project_root / "data/transcripts"
         return any(
-            self._nonempty(path)
-            for path in transcript_dir.glob(f"*{date_str}*.txt")
+            self._nonempty(path) for path in transcript_dir.glob(f"*{date_str}*.txt")
         )
 
     @staticmethod

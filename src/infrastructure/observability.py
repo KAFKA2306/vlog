@@ -347,9 +347,8 @@ class OperationalEventLog:
             ):
                 key = (str(event.get("fingerprint") or ""), event_resource)
                 open_failures[key] = event
-            elif (
-                event.get("status") == EventStatus.RECOVERED
-                and event.get("resolves_fingerprint")
+            elif event.get("status") == EventStatus.RECOVERED and event.get(
+                "resolves_fingerprint"
             ):
                 key = (str(event["resolves_fingerprint"]), event_resource)
                 open_failures.pop(key, None)
@@ -418,10 +417,14 @@ class OperationalEventLog:
             return True
         if policy == "never":
             return False
-        return payload.get("status") in {
-            EventStatus.FAILED,
-            EventStatus.RECOVERED,
-        } or payload.get("severity_text") == Severity.CRITICAL
+        return (
+            payload.get("status")
+            in {
+                EventStatus.FAILED,
+                EventStatus.RECOVERED,
+            }
+            or payload.get("severity_text") == Severity.CRITICAL
+        )
 
 
 class TraceLogger:
