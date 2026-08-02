@@ -347,7 +347,22 @@ class Application:
             context={"files": list(session.file_paths)},
         )
         try:
-            self._use_case.execute_session(session)
+            processed = self._use_case.execute_session(session)
+            if not processed:
+                self._events.emit(
+                    category="processing",
+                    component="recording-pipeline",
+                    operation="process_session",
+                    status=EventStatus.SKIPPED,
+                    severity=Severity.WARNING,
+                    message="Recorded session skipped because transcript was too short",
+                    code="transcript_too_short",
+                    session_id=session_id,
+                    resource_id=resource_id,
+                    retryable=False,
+                    context={"files": list(session.file_paths)},
+                )
+                return
             self._events.emit(
                 category="processing",
                 component="recording-pipeline",

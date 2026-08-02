@@ -63,7 +63,7 @@ class ProcessRecordingUseCase:
 
         return True
 
-    def execute_session(self, session: RecordingSession) -> None:
+    def execute_session(self, session: RecordingSession) -> bool:
         transcripts_info = [
             self._transcriber.transcribe_and_save(path) for path in session.file_paths
         ]
@@ -76,7 +76,7 @@ class ProcessRecordingUseCase:
             print(f"Transcript too short ({len(cleaned.encode('utf-8'))}B), skipping.")
             for audio_path in session.file_paths:
                 self._files.archive(audio_path)
-            return
+            return False
 
         if transcripts_info:
             _, first_path = transcripts_info[0]
@@ -92,6 +92,7 @@ class ProcessRecordingUseCase:
 
         for audio_path in session.file_paths:
             self._files.archive(audio_path)
+        return True
 
     def _create_session(self, audio_path: str) -> RecordingSession:
         basename = Path(audio_path).stem

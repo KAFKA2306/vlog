@@ -125,16 +125,25 @@ class ImageGenerator:
         import torch
         from diffusers import DiffusionPipeline
 
+        device = settings.image_device
+        if device.startswith("cuda") and not torch.cuda.is_available():
+            device = "cpu"
+
         if not self._pipe:
+            pipeline_kwargs: dict[str, Any] = {
+                "torch_dtype": torch.bfloat16 if device != "cpu" else torch.float32,
+                "use_safetensors": True,
+            }
+            if device != "cpu":
+                pipeline_kwargs["device_map"] = "balanced"
             self._pipe = DiffusionPipeline.from_pretrained(
-                settings.image_model,
-                torch_dtype=torch.bfloat16,
-                use_safetensors=True,
-                device_map="balanced",
+                settings.image_model, **pipeline_kwargs
             )
+            if device == "cpu":
+                self._pipe.to(device)
         if seed is None:
             seed = random.randint(0, 2**32 - 1)
-        generator = torch.Generator(settings.image_device).manual_seed(seed)
+        generator = torch.Generator(device).manual_seed(seed)
         prompt_path = settings.photo_prompt_dir / f"{output_path.stem}.txt"
         prompt_path.parent.mkdir(parents=True, exist_ok=True)
         prompt_path.write_text(

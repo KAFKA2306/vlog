@@ -197,7 +197,9 @@ class TestSessionTranscriptSizeGate:
             preprocessed="あ", state_path=tmp_path / "daily_state.json"
         )
         session = self._make_session(audio)
-        uc.execute_session(session)
+        result = uc.execute_session(session)
+
+        assert result is False
 
         assert not summarizer.called
         assert audio in files.archived
@@ -212,7 +214,9 @@ class TestSessionTranscriptSizeGate:
             preprocessed=long_text, state_path=tmp_path / "daily_state.json"
         )
         session = self._make_session(audio)
-        uc.execute_session(session)
+        result = uc.execute_session(session)
+
+        assert result is True
 
         assert any("cleaned_" in k for k in files.saved)
         assert audio in files.archived

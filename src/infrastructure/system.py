@@ -215,12 +215,19 @@ class Transcriber:
     @property
     def model(self) -> "WhisperModel":
         if self._model is None:
+            import ctranslate2
             from faster_whisper import WhisperModel
+
+            device = settings.whisper_device
+            compute_type = settings.whisper_compute_type
+            if device == "cuda" and ctranslate2.get_cuda_device_count() == 0:
+                device = "cpu"
+                compute_type = "int8"
 
             self._model = WhisperModel(
                 settings.whisper_model_size,
-                device=settings.whisper_device,
-                compute_type=settings.whisper_compute_type,
+                device=device,
+                compute_type=compute_type,
             )
         return self._model
 

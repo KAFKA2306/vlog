@@ -18,7 +18,7 @@ from uuid import uuid4
 try:
     import fcntl
 except ImportError:  # pragma: no cover - production is WSL/Linux
-    fcntl = None  # type: ignore[assignment]
+    fcntl: Any = None
 
 _DEFAULT_EVENT_PATH = Path("data/error_events.jsonl")
 _DEFAULT_HEARTBEAT_DIR = Path("data/heartbeats")
