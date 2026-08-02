@@ -1,22 +1,24 @@
 [Unit]
 Description=VRChat Auto-Diary Service
 After=network.target
+OnFailure=vlog-monitor-failure.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
 WorkingDirectory=%h/projects/vlog
-EnvironmentFile=%h/projects/vlog/.env
+EnvironmentFile=-%h/projects/vlog/.env
 ExecStart=%h/.local/bin/uv run python -m src.main
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
 
-# Security Hardening
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/projects/vlog/data %h/projects/vlog/data/recordings %h/projects/vlog/data/logs
+ReadWritePaths=%h/projects/vlog/data
 ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
 
 [Install]
