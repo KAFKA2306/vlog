@@ -1,0 +1,16 @@
+[Unit]
+Description=Capture VRChat Vlog monitor failure
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/vlog
+EnvironmentFile=-%h/projects/vlog/.env
+ExecStart=%h/.local/bin/uv run python -m src.operations service-failure --unit vlog.service --root %h/projects/vlog
+ExecStart=%h/.local/bin/uv run python -m src.cli notify --message "❌ VLog録音監視サービスが停止しました。詳細はローカルOperationsレポートを確認してください。"
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/projects/vlog/data
+ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
