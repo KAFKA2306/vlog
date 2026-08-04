@@ -10,6 +10,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: apps/capture-vrchat:packages/memory-domain/src:packages/ingestion/src
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -17,5 +19,5 @@ jobs:
           enable-cache: true
 
       - run: uv sync --only-group dev
-      - run: uv run ruff check src
-      - run: uv run ruff format --check src
+      - run: uv run ruff check apps/capture-vrchat/src packages scripts tests infra/systemd
+      - run: uv run ruff format --check apps/capture-vrchat/src packages scripts tests infra/systemd
