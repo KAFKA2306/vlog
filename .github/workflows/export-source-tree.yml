@@ -9,11 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create source snapshot
-        run: tar --exclude=.git -czf /tmp/vlog-source.tgz .
+      - name: Create source snapshot and Git tree manifest
+        run: |
+          tar --exclude=.git -czf /tmp/vlog-source.tgz .
+          git rev-parse HEAD^{tree} > /tmp/root-tree-sha.txt
+          git ls-tree -r HEAD > /tmp/git-tree.txt
       - uses: actions/upload-artifact@v4
         with:
           name: vlog-source-tree
-          path: /tmp/vlog-source.tgz
+          path: |
+            /tmp/vlog-source.tgz
+            /tmp/root-tree-sha.txt
+            /tmp/git-tree.txt
           retention-days: 1
           if-no-files-found: error
