@@ -2,7 +2,6 @@ import subprocess
 from pathlib import Path
 
 import google.generativeai as genai
-
 from src.infrastructure.settings import settings
 
 
@@ -29,6 +28,7 @@ def distill():
     analysis_text = analysis_res.text
 
     import time
+
     print("Waiting for quota...")
     time.sleep(30)
 

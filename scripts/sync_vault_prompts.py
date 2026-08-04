@@ -66,7 +66,9 @@ def sync() -> int:
         flags=re.DOTALL,
     )
 
-    manga_pattern = r"(【かふか キャラクター定義（全コマ固定）】\n\s+外見: ).*?(\n\s+服装: )"
+    manga_pattern = (
+        r"(【かふか キャラクター定義（全コマ固定）】\n\s+外見: ).*?(\n\s+服装: )"
+    )
     vlog_text = re.sub(
         manga_pattern,
         r"\1" + character_kafka_content + r"\2",

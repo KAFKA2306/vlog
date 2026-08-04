@@ -7,7 +7,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
 import yaml  # noqa: E402
-
 from src.infrastructure.cognee import cognee_memory  # noqa: E402
 
 QUEUE_PATH = PROJECT_ROOT / "data" / "cognee_queue.yaml"

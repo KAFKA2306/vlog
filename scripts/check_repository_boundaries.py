@@ -97,7 +97,9 @@ def check(root: Path) -> list[Violation]:
     for required in REQUIRED_PATHS:
         if not (root / required).exists():
             violations.append(
-                Violation("missing-boundary", required, "required v2 boundary is absent"),
+                Violation(
+                    "missing-boundary", required, "required v2 boundary is absent"
+                ),
             )
 
     for relative in tracked:
@@ -132,7 +134,11 @@ def check(root: Path) -> list[Violation]:
                     "raw audio/video must be stored in private object storage",
                 ),
             )
-        if path.is_file() and not path.is_symlink() and path.stat().st_size > MAX_GIT_FILE_BYTES:
+        if (
+            path.is_file()
+            and not path.is_symlink()
+            and path.stat().st_size > MAX_GIT_FILE_BYTES
+        ):
             violations.append(
                 Violation(
                     "oversized-git-object",
@@ -163,7 +169,9 @@ def main() -> int:
             f"{violation.code}: {violation.path}: {violation.message}",
             file=sys.stderr,
         )
-    print(f"Boundary check failed with {len(violations)} violation(s).", file=sys.stderr)
+    print(
+        f"Boundary check failed with {len(violations)} violation(s).", file=sys.stderr
+    )
     return 1
 
 

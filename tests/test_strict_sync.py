@@ -1,5 +1,4 @@
 import pytest
-
 from src.infrastructure.strict_sync import StrictSupabaseSync
 
 

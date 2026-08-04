@@ -62,7 +62,10 @@ def main() -> int:
 
     tracked_files = int(summary["tracked_files"])
     if args.fail_on_tracked_evidence and tracked_files:
-        print(f"ERROR: {tracked_files} evidence files are tracked by Git.", file=sys.stderr)
+        print(
+            f"ERROR: {tracked_files} evidence files are tracked by Git.",
+            file=sys.stderr,
+        )
         return 2
     return 0
 

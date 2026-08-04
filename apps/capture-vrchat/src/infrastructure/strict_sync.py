@@ -9,7 +9,6 @@ from typing import Any
 from uuid import uuid4
 
 from dotenv import load_dotenv
-
 from src.infrastructure.image_optimizer import ImageOptimizer
 from src.infrastructure.publication import is_publishable_summary
 from src.infrastructure.settings import settings

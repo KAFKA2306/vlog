@@ -96,9 +96,16 @@ class SourceObject:
     def __post_init__(self) -> None:
         _validate_id(self.id, "id")
         _validate_aware(self.recorded_at, "recorded_at")
-        if not self.object_uri.startswith("private://") and self.privacy is not PrivacyLevel.PUBLIC:
-            raise ValueError("non-public source objects must use a private:// object URI")
-        if len(self.sha256) != 64 or any(ch not in "0123456789abcdef" for ch in self.sha256.lower()):
+        if (
+            not self.object_uri.startswith("private://")
+            and self.privacy is not PrivacyLevel.PUBLIC
+        ):
+            raise ValueError(
+                "non-public source objects must use a private:// object URI"
+            )
+        if len(self.sha256) != 64 or any(
+            ch not in "0123456789abcdef" for ch in self.sha256.lower()
+        ):
             raise ValueError("sha256 must be a 64-character hexadecimal digest")
         if self.size_bytes < 0:
             raise ValueError("size_bytes must not be negative")

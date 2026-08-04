@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Set
 import yaml
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from src.project import PROJECT_ROOT
 
 

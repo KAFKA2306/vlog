@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import psutil
-
 from src.infrastructure.settings import settings
 
 if TYPE_CHECKING:
