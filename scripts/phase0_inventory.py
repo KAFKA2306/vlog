@@ -11,7 +11,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 INGESTION_SRC = REPO_ROOT / "packages" / "ingestion" / "src"
 sys.path.insert(0, str(INGESTION_SRC))
 
-from vlog_ingestion import InventoryBuilder, InventoryConfig, write_inventory  # noqa: E402
+from vlog_ingestion import (  # noqa: E402
+    InventoryBuilder,
+    InventoryConfig,
+    write_inventory,
+)
 
 
 def parse_args() -> argparse.Namespace:
