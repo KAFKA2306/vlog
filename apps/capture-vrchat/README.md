@@ -1,12 +1,7 @@
-# capture-vrchat
+# VRChat capture application
 
-Python runtime for VRChat detection, recording, transcription, memory extraction, narrative generation, synchronization, and operational recovery.
+This application contains the current Python runtime. Its import package remains named `src` during migration and is made available through `PYTHONPATH` by repository entry points.
 
-The import package remains `src` during this behavior-preserving relocation, but its physical root is now `apps/capture-vrchat/src`. Runtime launchers set `PYTHONPATH=apps/capture-vrchat` explicitly. A future package-rename can occur independently from the repository-boundary migration.
+Responsibilities include VRChat process observation, recording, transcription orchestration, current file-based artifact generation, synchronization, and operational evidence. Canonical v2 persistence is not yet implemented.
 
-```bash
-PYTHONPATH=apps/capture-vrchat uv run python -m src.main
-PYTHONPATH=apps/capture-vrchat uv run python -m src.cli --help
-```
-
-Business rules that become canonical Human Memory v2 capabilities move into `packages/`; vendor-specific implementations move into `adapters/`.
+Use `Taskfile.yaml` for commands and see [runtime architecture](../../docs/architecture.md).

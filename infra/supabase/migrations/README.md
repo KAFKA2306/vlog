@@ -1,5 +1,5 @@
 # Supabase migrations
 
-Versioned PostgreSQL, RLS, Storage policy, idempotency, and outbox migrations belong here.
+This directory contains ordered SQL migrations for the current Supabase projection. Human Memory v2 canonical migrations, outbox, and complete RLS/Storage policy migration remain future work.
 
-Phase 0 exports the current remote state before any migration is applied. Public/private separation must be enforced by database and Storage policy, not only by application branches.
+Export schema, rows, policies, buckets, and paginated object manifests before destructive changes. See [maintenance](../../../docs/MAINTENANCE.md).

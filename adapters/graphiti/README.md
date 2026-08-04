@@ -1,5 +1,5 @@
 # graphiti
 
-Rebuildable temporal relationship projection for time-varying people, preferences, promises, and entity links.
+Status: reserved adapter boundary for optional rebuildable temporal graph projection.
 
-Canonical history remains in PostgreSQL and reviewed private memory files. Projection rebuilds must not overwrite or erase canonical revisions.
+It is not implemented as an authoritative production store in this directory. Canonical responsibilities remain defined by [Human Memory v2](../../docs/architecture/human-memory-v2.md).

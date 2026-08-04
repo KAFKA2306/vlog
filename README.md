@@ -141,3 +141,7 @@ Start with the [documentation index](docs/README.md).
 - [Agent router](AGENTS.md)
 
 Production reader: [kaflog.vercel.app](https://kaflog.vercel.app)
+
+## Documentation governance
+
+All Markdown is governed by [docs/markdown-governance.md](docs/markdown-governance.md). Generic agent tutorials and point-in-time service status do not belong in the active documentation corpus.

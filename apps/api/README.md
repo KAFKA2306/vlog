@@ -1,5 +1,5 @@
-# api
+# API application
 
-HTTP application boundary for canonical memory queries, artifact generation requests, correction workflows, and publication decisions.
+Status: reserved; no production API is implemented in this boundary.
 
-Write operations require authenticated authorization and explicit policy checks. Search projections are read accelerators and cannot bypass canonical PostgreSQL/RLS decisions.
+The future API will expose authorized operations over canonical memory and artifacts. It must not make search projections authoritative or expose private evidence without an explicit use case and policy check. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

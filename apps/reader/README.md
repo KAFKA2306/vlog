@@ -1,37 +1,22 @@
-# VRChat Auto-Diary Reader
+# VLog Reader
 
-data/summaries の日次要約を読みやすく表示する Next.js リーダー。
+The Reader is a Next.js application under `apps/reader/`. It presents current diary and narrative projections while the v2 review and publication model is being built.
 
-## 依存関係
+## Development
 
-プロジェクトルートから Bun の固定ロックを同期する。
+Use repository tasks so dependency installation, type checking, linting, and production build remain aligned:
 
-    task web:setup
+```bash
+task web:dev
+task web:build
+task web:start
+```
 
-依存関係を意図的に更新する場合だけ次を実行し、bun.lock をコミットする。
+## Boundaries
 
-    task web:lock
+- Browser code must not receive service-role credentials or unrestricted private-object URLs.
+- Generated narratives and images must not be presented as canonical evidence.
+- Private, review, and public states should be visually and semantically distinct.
+- Deployment providers must use `apps/reader/` as the application root.
 
-## 開発
-
-    task web:dev
-
-ブラウザで http://localhost:3000 を開く。
-
-## 検証
-
-    task web:build
-
-型検査、ESLint、本番ビルドを順番に実行する。
-
-## 本番確認
-
-    task web:start
-
-ブラウザで http://localhost:4000 を開く。
-
-## デプロイ
-
-    task web:deploy
-
-本番 URL は https://kaflog.vercel.app である。
+A successful build does not prove the live Vercel configuration or Supabase policy behavior.

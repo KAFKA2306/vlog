@@ -1,5 +1,5 @@
 # ingestion
 
-Owns source hashing, read-only inventory, idempotency, provenance capture, ingestion run state, and outbox contracts.
+Status: foundation implemented.
 
-It does not generate narratives, decide publication, or treat directory/file existence as canonical processing state.
+Responsibility: inventory and future ingestion/idempotency capabilities. Provider-specific code and application wiring do not belong here. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

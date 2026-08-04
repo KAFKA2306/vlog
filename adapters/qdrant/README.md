@@ -1,5 +1,5 @@
 # qdrant
 
-Optional vector projection for a scale or latency requirement that PostgreSQL/pgvector cannot satisfy.
+Status: reserved adapter boundary for optional vector projection for scale requirements.
 
-No Qdrant deployment is required in Phase 0/1. Adoption requires measured evidence and an ADR; canonical data remains elsewhere.
+It is not implemented as an authoritative production store in this directory. Canonical responsibilities remain defined by [Human Memory v2](../../docs/architecture/human-memory-v2.md).

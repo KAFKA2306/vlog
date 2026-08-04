@@ -1,11 +1,5 @@
-# mbti
+# MBTI-derived narrative analysis
 
-MBTI分析ユースケース。日記データからMBTI性格タイプを分析。
+Status: optional derived analysis within the legacy runtime.
 
-## ファイル一覧
-
-| ファイル | クラス/関数 | 責務 |
-|----------|------------|------|
-| `each.py` | `analyze_mbti()` | 各日記ファイルを個別にMBTI分析 |
-| `overall.py` | `analyze_overall()` | 全日記を統合してMBTI総合分析 |
-
+Outputs are interpretive artifacts, not psychological diagnosis, canonical identity, or accepted memory. They must preserve source context, uncertainty, and privacy boundaries. Do not publish or retain sensitive person-level conclusions automatically.

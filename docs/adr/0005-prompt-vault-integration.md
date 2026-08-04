@@ -1,44 +1,26 @@
----
-codd:
-  node_id: "req:prompt-vault-integration"
-  type: adr
-  status: approved
-  links:
-    - to: scripts/sync_vault_prompts.py
-      type: implementation
-    - to: data/prompts.yaml
-      type: configuration
-    - evidence: "rg -n \"sync_vault_prompts|task vault:sync|prompt-vault|AGENTS.md\" docs/adr/0005-prompt-vault-integration.md scripts/sync_vault_prompts.py Taskfile.yaml AGENTS.md"
-    ---
+# ADR-0005: external prompt asset integration
 
+## Status
 
-# ADR-0005: Prompt Vault をソースオブトゥルースとするプロンプト管理
+Accepted for prompt assets; audited 2026-08-04.
 
-## ステータス
+## Context
 
-承認済み (Approved)
+Prompt text can drift when copied across code, configuration, and agent instructions. An external prompt repository can provide reviewed prompt assets and change history.
 
-## コンテキスト
+## Decision
 
-VLog プロジェクトにおける画像生成やキャラクター（Kafka）の描写において、プロンプトの一貫性と品質管理が重要である。
-一方で、キャラクターのアイデンティティ定義や過去の成功事例（アセット）は別プロジェクト `prompt-vault` で集中的に管理・監査（Audit）されている。
-`vlog` 内にプロンプトをハードコードしたり個別に管理すると、キャラクター設定の乖離（Identity Drift）や、最新のプロンプト改善の反映漏れが発生するリスクがある。
+Prompt assets may be synchronized through an explicit repository task. The public VLog repository retains only the configuration and code required to consume those assets.
 
-## 意思決定
+The external prompt source is not canonical human memory, evidence storage, or a substitute for versioned runtime configuration. Synchronization must not copy private journals, people data, secrets, or unreviewed personal memory into this public repository.
 
-`prompt-vault` を「プロンプトのソースオブトゥルース（信頼できる唯一の情報源）」として位置づけ、`vlog` のプロンプト設定をこれと同期する仕組みを導入する。
-単なるテキストのコピーではなく、キャラクターのアイデンティティ（Identity）と視覚スタイル（Visual Style）を固定するための「ガード」を機械的に注入することを決定した。
+## Consequences
 
-## 実装
+- Prompt changes can be reviewed independently from runtime code.
+- Runtime execution remains reproducible only when the synchronized revision and configuration are recorded.
+- Missing external access is an environment condition and must not be reported as a successful synchronization.
 
-- **同期スクリプト**: `scripts/sync_vault_prompts.py` を実装。
-  - `prompt-vault/db/prompts.json` から `character_kafka`, `kafka_identity_lock` に加え、`master_style_lighting` などのスタイル・ブロックも抽出。
-  - アイデンティティ保持のための強力な記述（Consistency Guard）と、実写化を防ぐネガティブ・プロンプトの自動強化を実装。
-- **タスク自動化**: `Taskfile.yaml` に `task vault:sync` を追加。
-- **ドキュメント**: `AGENTS.md` に外部連携としてのリンクを明記。
+## References
 
-## 影響
-
-- **アイデンティティの固定**: 定義文だけでなく「一貫性維持の指示」が注入されるため、モデルの逸脱（Identity Drift）が抑制される。
-- **スタイルの一貫性**: プロンプト・レベルでアニメ調の質感がロックされ、実写寄りの質感が生成されるリスクが低減する。
-- **運用フローの確立**: `prompt-vault` 側でのプロンプト改善が、ワンコマンドで `vlog` の全生成パイプラインに波及する。
+- [Maintenance](../MAINTENANCE.md)
+- [Human Memory v2](../architecture/human-memory-v2.md)

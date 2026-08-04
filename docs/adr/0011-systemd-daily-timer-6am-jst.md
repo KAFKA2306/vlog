@@ -1,48 +1,26 @@
----
-codd:
-  node_id: "req:adr-0011"
-  type: adr
-  status: accepted
-  links:
-    - to: vlog-daily.timer
-      type: implementation
-    - to: docs/MAINTENANCE.md
-      type: implementation
-    - to: docs/DAILY_MONITORING.md
-      type: implementation
-    - evidence: "rg -n \"09:00 JST|09:00:00|9AM JST\" vlog-daily.timer docs/MAINTENANCE.md docs/DAILY_MONITORING.md"
----
+# ADR-0011: daily timer at 09:00 local time
 
-# ADR-0011: `vlog-daily.timer` の実行時刻を 06:00 から 09:00 JST に変更する
+## Status
 
-## ステータス
+Accepted; audited 2026-08-04.
 
-承認済み (Accepted)
+## Context
 
-## コンテキスト
+The current daily pipeline needs a predictable execution window that avoids the primary interactive VRChat session. The schedule was changed to 09:00.
 
-`vlog-daily.timer` は、VLog の日次処理を自動起動する基盤である。
-従来は毎朝 06:00 JST に実行されていたが、運用上の都合により 09:00 JST へ変更する必要があった。
+## Decision
 
-## 意思決定
+`infra/systemd/vlog-daily.timer.in` schedules the current daily service at 09:00 with persistence enabled. The template currently relies on the host's local timezone rather than embedding a timezone identifier.
 
-日次実行時刻を毎朝 09:00 JST に統一する。
+The installed timer must therefore be inspected on the target host. Repository syntax verification does not prove the intended Asia/Tokyo trigger time or that a catch-up execution occurred.
 
-この変更は以下に反映する。
+## Consequences
 
-1. systemd timer 定義
-2. 運用手順ドキュメント
-3. 日次監視手順ドキュメント
+- The intended production schedule is documented in one timer template and the daily pipeline contract.
+- Host timezone drift can change the actual trigger time.
+- Schedule changes require template, contract, tests, and live timer verification.
 
-## 影響
+## References
 
-- **メリット**:
-  - 日次処理の開始時刻が運用手順と一致し、確認作業が単純になる。
-  - 朝の監視・メンテナンス時刻を 09:00 JST に揃えられる。
-- **デメリット**:
-  - 旧 06:00 JST 前提の運用メモや記憶は更新が必要になる。
-
-## 検証
-
-- `systemctl --user list-timers vlog-daily.timer` で次回実行が 09:00 JST であることを確認した。
-- `systemctl --user status vlog-daily.timer` で unit が loaded / active であることを確認した。
+- [Current daily pipeline contract](../daily_pipeline_contract.md)
+- [Operations](../OPERATIONS.md)

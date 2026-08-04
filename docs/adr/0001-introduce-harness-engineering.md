@@ -14,6 +14,10 @@ codd:
 
 # ADR 1: Implement Harness Engineering
 
+## Audit note (2026-08-04)
+
+Accepted. Current validation is defined by Taskfile, CI, and the relocated runtime; old command examples are historical.
+
 ## Status
 
 Approved

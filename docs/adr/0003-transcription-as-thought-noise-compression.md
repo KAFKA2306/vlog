@@ -12,6 +12,10 @@ codd:
 
 # ADR 3: 思考ノイズ圧縮としての文字起こし設計
 
+## Audit note (2026-08-04)
+
+Accepted as rationale for a derived artifact. Transcription and compression must not replace raw evidence or reviewed memory.
+
 ## Status
 
 Approved

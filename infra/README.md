@@ -1,9 +1,9 @@
 # Infrastructure
 
-Deployment and operations assets live here.
+Portable deployment and service assets live here:
 
-- `infra/supabase/migrations/`: versioned PostgreSQL, RLS, Storage, and outbox migrations.
-- `infra/systemd/`: Linux/WSL units and installation helpers.
-- `infra/windows/`: Windows Task Scheduler, bootstrap, and watchdog assets.
+- `systemd/`: rendered user-unit templates and installer;
+- `windows/`: bootstrap, Task Scheduler, WSL bridge, and watchdog assets;
+- `supabase/`: current schema and migrations.
 
-Runtime paths must be derived from the repository root or explicit environment variables. Infrastructure files must not contain user-specific `/home/...` paths as portable defaults.
+Repository validation does not prove installation or live service behavior. Use component runbooks and verify in the target environment.
