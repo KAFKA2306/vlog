@@ -1,0 +1,29 @@
+name: Format Markdown Governance
+
+on:
+  push:
+    branches:
+      - agent/audit-all-markdown
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/audit-all-markdown
+      - uses: astral-sh/setup-uv@v5
+      - run: uvx ruff format scripts/check_repository_boundaries.py tests/test_markdown_governance.py
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check_repository_boundaries.py tests/test_markdown_governance.py
+          git commit -m "style: format Markdown governance checks"
+          git push origin HEAD:agent/audit-all-markdown
