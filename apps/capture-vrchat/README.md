@@ -1,5 +1,12 @@
 # capture-vrchat
 
-Target application boundary for VRChat detection, audio capture, transcription orchestration, and session lifecycle control.
+Python runtime for VRChat detection, recording, transcription, memory extraction, narrative generation, synchronization, and operational recovery.
 
-The current implementation remains in legacy `src/` until the behavior-preserving relocation PR. This application may call package APIs and adapter protocols; it must not own canonical memory persistence rules.
+The import package remains `src` during this behavior-preserving relocation, but its physical root is now `apps/capture-vrchat/src`. Runtime launchers set `PYTHONPATH=apps/capture-vrchat` explicitly. A future package-rename can occur independently from the repository-boundary migration.
+
+```bash
+PYTHONPATH=apps/capture-vrchat uv run python -m src.main
+PYTHONPATH=apps/capture-vrchat uv run python -m src.cli --help
+```
+
+Business rules that become canonical Human Memory v2 capabilities move into `packages/`; vendor-specific implementations move into `adapters/`.

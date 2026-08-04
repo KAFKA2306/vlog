@@ -4,17 +4,17 @@ codd:
   type: spec
   status: approved
   links:
-    - to: src/main.py
+    - to: apps/capture-vrchat/src/main.py
       type: implementation
-    - to: src/app.py
+    - to: apps/capture-vrchat/src/app.py
       type: implementation
 ---
 
 # VRChat Auto-Diary システム構成図
 
-> マスタードキュメント → [docs/overview.md](file:///home/kafka/projects/vlog/docs/overview.md)  
-> パイプライン契約 → [docs/daily_pipeline_contract.md](file:///home/kafka/projects/vlog/docs/daily_pipeline_contract.md)
-> 開発ガイド → [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md)
+> マスタードキュメント → [overview.md](overview.md)
+> パイプライン契約 → [daily_pipeline_contract.md](daily_pipeline_contract.md)
+> 開発ガイド → [AGENTS.md](../AGENTS.md)
 
 このシステムがどのように動いているかを図で説明します。
 

@@ -19,7 +19,7 @@ LLMエージェントが知識カットオフや推論により、旧モデル�
 1. **読み取り義務**: モデル関連の変更前に `data/config.yaml` を必ず読み取り、現在値を確認する
 2. **変更禁止**: ユーザーが明示的にモデル名を指定しない限り、一切変更しない
 3. **提案禁止**: 「このモデルに変更すべき」等の提案を自発的に行わない
-4. **フォールバック保護**: `src/infrastructure/settings.py` の `_DEFAULT_LLM_MODEL` は `config.yaml` から動的に読み込まれるため、直接編集しない
+4. **フォールバック保護**: `apps/capture-vrchat/src/infrastructure/settings.py` の `_DEFAULT_LLM_MODEL` は `config.yaml` から動的に読み込まれるため、直接編集しない
 
 ## 禁止パターン
 
@@ -32,6 +32,6 @@ LLMエージェントが知識カットオフや推論により、旧モデル�
 
 以下のファイルを変更する際にこのスキルが自動適用される：
 - `data/config.yaml`
-- `src/infrastructure/settings.py`
-- `src/infrastructure/cognee.py`
-- `src/infrastructure/ai.py`
+- `apps/capture-vrchat/src/infrastructure/settings.py`
+- `apps/capture-vrchat/src/infrastructure/cognee.py`
+- `apps/capture-vrchat/src/infrastructure/ai.py`

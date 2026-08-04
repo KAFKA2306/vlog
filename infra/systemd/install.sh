@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 cd "$ROOT"
+export VLOG_PROJECT_ROOT="$ROOT"
+export PYTHONPATH="$ROOT/apps/capture-vrchat:$ROOT/packages/memory-domain/src:$ROOT/packages/ingestion/src${PYTHONPATH:+:$PYTHONPATH}"
 
 if [[ -f .env ]]; then
   set -a
@@ -11,16 +14,7 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-for unit in \
-  vlog.service \
-  vlog-monitor-failure.service \
-  vlog-daily.service \
-  vlog-daily.timer \
-  vlog-daily-failure.service
-do
-  systemctl --user link --force "$ROOT/$unit"
-done
-
+python3 infra/systemd/render.py --root "$ROOT" --output "$UNIT_DIR"
 systemctl --user daemon-reload
 systemctl --user enable --now vlog-daily.timer
 systemctl --user enable vlog.service
@@ -32,9 +26,10 @@ uv run python -m src.operations recover-latest \
   --component systemd \
   --operation launch \
   --code scheduler_binary_recovered \
-  --message "Repository systemd units were relinked and verified" || true
+  --message "Rendered repository systemd templates and verified the runtime" || true
 uv run python -m src.operations report --days 90 || true
 
 systemctl --user --no-pager status vlog.service || true
+echo "Rendered units: $UNIT_DIR"
 echo "Operations report: $ROOT/data/reports/operations.html"
-echo "Optional Windows watchdog: powershell.exe -ExecutionPolicy Bypass -File scripts/windows/install-vlog-watchdog.ps1"
+echo "Optional Windows watchdog: powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1"

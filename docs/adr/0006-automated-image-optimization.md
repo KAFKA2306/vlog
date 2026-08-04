@@ -4,9 +4,9 @@ codd:
   type: adr
   status: accepted
   links:
-    - to: src/infrastructure/image_optimizer.py
+    - to: apps/capture-vrchat/src/infrastructure/image_optimizer.py
       type: implementation
-    - evidence: "src/infrastructure/image_optimizer.py EXISTS and integrated into SupabaseRepository._sync_photos"
+    - evidence: "apps/capture-vrchat/src/infrastructure/image_optimizer.py EXISTS and integrated into SupabaseRepository._sync_photos"
     ---
 
 
@@ -27,7 +27,7 @@ VLogプロジェクトでは、VRChat内での活動を記録した画像アセ�
 以下の画像最適化パイプラインを実装し、配信の軽量化を自動化した。
 
 1. **WebP変換の自動化**:
-   * `src/infrastructure/image_optimizer.py` を新設し、Pillowを使用して PNG から WebP への変換を実装した。
+   * `apps/capture-vrchat/src/infrastructure/image_optimizer.py` を新設し、Pillowを使用して PNG から WebP への変換を実装した。
    * 品質（quality）は視覚的な劣化を最小限に抑えつつ、ファイルサイズを劇的に削減できる `80` 前後をデフォルトとする。
 
 2. **同期プロセスへの統合**:

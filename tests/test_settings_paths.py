@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from src.infrastructure.settings import (
     Settings,
     _get_project_root,

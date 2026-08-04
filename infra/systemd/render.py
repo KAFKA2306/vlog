@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import shutil
+from pathlib import Path
+
+TEMPLATE_DIR = Path(__file__).resolve().parent
+UNIT_SUFFIXES = (".service.in", ".timer.in")
+
+
+def find_repository_root() -> Path:
+    return TEMPLATE_DIR.parents[1]
+
+
+def escape_unit_value(value: str) -> str:
+    """Escape a value used in an unquoted systemd unit directive."""
+
+    escaped: list[str] = []
+    for char in value:
+        if char == "%":
+            escaped.append("%%")
+        elif char.isalnum() or char in "/._:-":
+            escaped.append(char)
+        elif ord(char) <= 0xFF:
+            escaped.append(f"\\x{ord(char):02x}")
+        else:
+            escaped.append(char)
+    return "".join(escaped)
+
+
+def resolve_uv_path(explicit: Path | None = None) -> Path:
+    candidate = explicit or (Path(found) if (found := shutil.which("uv")) else None)
+    if candidate is None:
+        raise ValueError("uv executable was not found; install uv or pass --uv")
+    resolved = candidate.expanduser().resolve()
+    if not resolved.is_file():
+        raise ValueError(f"uv executable does not exist: {resolved}")
+    return resolved
+
+
+def render_units(
+    root: Path,
+    output: Path,
+    uv_path: Path | None = None,
+) -> list[Path]:
+    root = root.expanduser().resolve()
+    if not (root / "pyproject.toml").is_file():
+        raise ValueError(f"not a VLog repository: {root}")
+
+    uv = resolve_uv_path(uv_path)
+    escaped_root = escape_unit_value(str(root))
+    pythonpath = ":".join(
+        (
+            f"{root}/apps/capture-vrchat",
+            f"{root}/packages/memory-domain/src",
+            f"{root}/packages/ingestion/src",
+        )
+    )
+    replacements = {
+        "@VLOG_ROOT@": escaped_root,
+        "@VLOG_PYTHONPATH@": escape_unit_value(pythonpath),
+        "@VLOG_UV@": escape_unit_value(str(uv)),
+    }
+    output.mkdir(parents=True, exist_ok=True)
+
+    rendered: list[Path] = []
+    for template in sorted(TEMPLATE_DIR.iterdir()):
+        if not template.name.endswith(UNIT_SUFFIXES):
+            continue
+        destination = output / template.name.removesuffix(".in")
+        content = template.read_text(encoding="utf-8")
+        for placeholder, value in replacements.items():
+            content = content.replace(placeholder, value)
+        if "@VLOG_" in content:
+            raise ValueError(f"unresolved placeholder in {template}")
+        destination.write_text(content, encoding="utf-8")
+        rendered.append(destination)
+    return rendered
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Render portable VLog systemd units.")
+    parser.add_argument("--root", type=Path, default=find_repository_root())
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--uv", type=Path)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    for path in render_units(
+        args.root,
+        args.output.expanduser().resolve(),
+        args.uv,
+    ):
+        print(path)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -22,7 +22,7 @@ VLog の録音、文字起こし、生成、同期、通知、systemd 実行を�
 WSL:
 
 ```bash
-cd /home/kafka/projects/vlog
+cd /path/to/vlog
 git pull --ff-only
 bash scripts/install_systemd_units.sh
 ```
@@ -30,7 +30,7 @@ bash scripts/install_systemd_units.sh
 任意の Windows 外形監視:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File scripts/windows/install-vlog-watchdog.ps1
+powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1
 ```
 
 登録名は `VLog External Watchdog`、ログは `%LOCALAPPDATA%\VLog\watchdog.log` です。

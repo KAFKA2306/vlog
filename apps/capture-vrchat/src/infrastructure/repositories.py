@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Set
 
 from dotenv import load_dotenv
-
 from src.infrastructure.image_optimizer import ImageOptimizer
 from src.infrastructure.publication import is_publishable_summary
 from src.infrastructure.settings import settings

@@ -1,16 +1,14 @@
 import logging
-import sys
 from pathlib import Path
 
-# Add project root to sys.path to ensure imports work
-project_root = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_root))
+from src.infrastructure.ai import ImageGenerator, Novelizer
+from src.infrastructure.graph_storage import GraphStorage
+from src.infrastructure.repositories import SupabaseRepository
+from src.infrastructure.settings import settings
+from src.project import PROJECT_ROOT
+from src.use_cases.build_novel import BuildNovelUseCase
 
-from src.infrastructure.ai import ImageGenerator, Novelizer  # noqa: E402
-from src.infrastructure.graph_storage import GraphStorage  # noqa: E402
-from src.infrastructure.repositories import SupabaseRepository  # noqa: E402
-from src.infrastructure.settings import settings  # noqa: E402
-from src.use_cases.build_novel import BuildNovelUseCase  # noqa: E402
+project_root = PROJECT_ROOT
 
 # Configure logging
 logging.basicConfig(

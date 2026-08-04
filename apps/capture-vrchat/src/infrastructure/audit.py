@@ -259,7 +259,7 @@ class StrictAuditor:
         relevant_files = [
             Path("README.md"),
             Path("docs/architecture.md"),
-            Path("frontend/reader/README.md"),
+            Path("apps/reader/README.md"),
             Path("Taskfile.yaml"),
             Path(".claude/skills/discord-operations/SKILL.md"),
             Path("docs/adr/0010-external-reader-integration.md"),

@@ -26,8 +26,8 @@ Suggest or apply edits to `data/novels/*.md` or `data/summaries/*.txt` when the 
 ### 4. AI Outcome Diagnostic
 If output quality regresses (e.g., summary becomes English, tone shifts):
 - **Step 1**: Check `git log --oneline -- data/prompts.yaml` for prompt changes.
-- **Step 2**: Check `git log --oneline src/` for code changes near the regression date.
-- **Step 3**: Verify key consistency between `src/infrastructure/ai.py` (e.g., `prompts[...]`) and `data/prompts.yaml`.
+- **Step 2**: Check `git log --oneline -- apps/capture-vrchat/src/` for code changes near the regression date.
+- **Step 3**: Verify key consistency between `apps/capture-vrchat/src/infrastructure/ai.py` (e.g., `prompts[...]`) and `data/prompts.yaml`.
 
 ## Guidelines
 - Follow the "Silent Operator" principle: keep edits concise and focused on narrative quality.

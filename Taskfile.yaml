@@ -1,9 +1,10 @@
 version: "3"
 
 env:
-  UV: "{{.HOME}}/.local/bin/uv"
-  BUN: "{{.HOME}}/.bun/bin/bun"
-  BUNX: "{{.HOME}}/.bun/bin/bunx"
+  UV: "uv"
+  BUN: "bun"
+  BUNX: "bunx"
+  PYTHONPATH: "{{.USER_WORKING_DIR}}/apps/capture-vrchat:{{.USER_WORKING_DIR}}/packages/memory-domain/src:{{.USER_WORKING_DIR}}/packages/ingestion/src"
   LD_LIBRARY_PATH: "{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cudnn/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cublas/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/nccl/lib"
 
 tasks:
@@ -38,9 +39,9 @@ tasks:
           task photos:all               全小説から画像を一括生成
 
         ■ Windows 起動
-          ダブルクリック: windows\run.bat
+          ダブルクリック: infra\windows\run.bat
         ■ 初回セットアップ（管理者権限で実行）
-          windows\bootstrap.bat
+          infra\windows\bootstrap.bat
 
         ■ データ同期
           task sync                     Supabase同期
@@ -83,16 +84,12 @@ tasks:
     cmd: $UV run python -m src.main
 
   up:
-    desc: systemd日次タイマー起動
-    cmds:
-      - systemctl --user link --force "$(pwd)/vlog.service" "$(pwd)/vlog-daily.service" "$(pwd)/vlog-daily-failure.service" "$(pwd)/vlog-daily.timer"
-      - systemctl --user daemon-reload
-      - systemctl --user disable --now vlog.service
-      - systemctl --user enable --now vlog-daily.timer
+    desc: portable systemdユニットを描画して起動
+    cmd: bash infra/systemd/install.sh
 
   systemd:install:
     desc: systemdユニットを再リンクして反映
-    cmd: bash scripts/install_systemd_units.sh
+    cmd: bash infra/systemd/install.sh
   down:
     desc: systemd日次タイマー停止
     cmds:
@@ -190,36 +187,36 @@ tasks:
   # ────────────────────────────────────────
   web:lock:
     desc: フロントエンド依存ロック更新
-    cmd: cd frontend/reader && $BUN install
+    cmd: cd apps/reader && $BUN install
 
   web:setup:
     desc: フロントエンド依存同期
-    cmd: cd frontend/reader && $BUN ci
+    cmd: cd apps/reader && $BUN ci
 
   web:dev:
     desc: 開発サーバー
     deps: [web:setup]
-    cmd: cd frontend/reader && $BUN run dev -- --hostname 0.0.0.0 --port 3000
+    cmd: cd apps/reader && $BUN run dev -- --hostname 0.0.0.0 --port 3000
 
   web:build:
     desc: 型・Lint・本番ビルド
     deps: [web:setup]
     cmds:
-      - cd frontend/reader && $BUN run typecheck
-      - cd frontend/reader && $BUN run lint
-      - cd frontend/reader && $BUN run build
+      - cd apps/reader && $BUN run typecheck
+      - cd apps/reader && $BUN run lint
+      - cd apps/reader && $BUN run build
 
   web:start:
     desc: 本番起動（ポート4000）
     deps: [web:setup]
-    cmd: cd frontend/reader && $BUN run start -- --hostname 0.0.0.0 --port 4000
+    cmd: cd apps/reader && $BUN run start -- --hostname 0.0.0.0 --port 4000
 
   web:deploy:
     desc: Vercelデプロイ
     deps: [web:build]
     cmds:
-      - cd frontend/reader && $BUNX vercel link --project kaflog --yes
-      - cd frontend/reader && $BUNX vercel --prod --yes
+      - cd apps/reader && $BUNX vercel link --project kaflog --yes
+      - cd apps/reader && $BUNX vercel --prod --yes
 
   web:env:
     desc: 環境変数抽出
@@ -227,7 +224,7 @@ tasks:
       - test -f .env || (echo ".env がありません" && exit 1)
       - |
         . ./.env
-        cat >frontend/reader/.env.local <<EOF
+        cat >apps/reader/.env.local <<EOF
         NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         EOF
@@ -237,15 +234,19 @@ tasks:
   # ────────────────────────────────────────
   lint:
     desc: コード品質チェック
-    cmds: ["$UV run ruff check src tests && $UV run ruff format src tests"]
+    cmds: ["$UV run ruff check apps/capture-vrchat/src packages scripts tests infra/systemd && $UV run ruff format apps/capture-vrchat/src packages scripts tests infra/systemd"]
 
   test:
     desc: テスト実行
     cmd: $UV run pytest tests
 
   systemd:verify:
-    desc: systemdユニット検証
-    cmd: systemd-analyze --user verify vlog.service vlog-daily.service vlog-daily-failure.service vlog-daily.timer
+    desc: systemdテンプレートを一時描画して検証
+    cmd: |
+      TMP_DIR=$(mktemp -d)
+      trap 'rm -rf "$TMP_DIR"' EXIT
+      python3 infra/systemd/render.py --root "$(pwd)" --output "$TMP_DIR"
+      systemd-analyze --user verify "$TMP_DIR"/vlog.service "$TMP_DIR"/vlog-monitor-failure.service "$TMP_DIR"/vlog-daily.service "$TMP_DIR"/vlog-daily-failure.service "$TMP_DIR"/vlog-daily.timer
 
   notify:daily-failure:
     desc: 日次処理失敗通知
@@ -261,7 +262,7 @@ tasks:
 
   typecheck:
     desc: Python型検査
-    cmd: $UV run ty check src tests
+    cmd: $UV run ty check apps/capture-vrchat/src packages tests infra/systemd
 
   clean:
     desc: キャッシュ削除
@@ -293,17 +294,8 @@ tasks:
       - echo "Maintenance complete. Check for any suggested refactors or ADR updates."
 
   doc:check:
-    desc: ドキュメントのポインタ整合性チェック
-    cmds:
-      - |
-        ERR=0
-        for p in $(grep -rh "file:///" AGENTS.md .claude/rules/ | sed -n 's/.*(file:\/\/\([^)]*\)).*/\1/p'); do
-          if [ ! -e "$p" ]; then
-            echo "Broken pointer: $p"
-            ERR=1
-          fi
-        done
-        exit $ERR
+    desc: リポジトリ境界とportable Markdownリンクを検証
+    cmd: $UV run --no-sync python scripts/check_repository_boundaries.py
 
   audit:
     desc: 厳格な証拠監査を実行
@@ -336,7 +328,7 @@ tasks:
     desc: Cognee キューから次のバッチを処理
     env:
       COGNEE_SKIP_CONNECTION_TEST: "true"
-    cmd: $UV run python scripts/ingest_to_cognee.py
+    cmd: $UV run --extra cognee python scripts/ingest_to_cognee.py
 
   cognee:status:
     desc: Cognee キュー状況表示

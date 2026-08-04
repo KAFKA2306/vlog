@@ -15,12 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Backend**: Python 3.11+, Pydantic models, Protocol-based dependency injection
 - **AI**: Gemini 2.5 Flash (summarization, novel generation), Faster Whisper (transcription), Diffusers (image generation)
 - **Database**: Supabase (PostgreSQL) with REST API sync
-- **Frontend**: Next.js 16 + React 19 (in `frontend/reader/`)
+- **Frontend**: Next.js 16 + React 19 (in `apps/reader/`)
 - **Orchestration**: systemd timers (daily at 03:00 JST) + Task runner
 
 ## Architecture: Layered Design
 
-### Domain Layer (`src/domain/`)
+### Domain Layer (`apps/capture-vrchat/src/domain/`)
 Defines interfaces as Protocols (structural subtyping):
 - `TranscriberProtocol`: Takes audio → returns transcript + path
 - `SummarizerProtocol`: Takes transcript + session → returns summary
@@ -31,7 +31,7 @@ Defines interfaces as Protocols (structural subtyping):
 
 Entities: `RecordingSession` (dataclass with file_paths, start_time, end_time)
 
-### Infrastructure Layer (`src/infrastructure/`)
+### Infrastructure Layer (`apps/capture-vrchat/src/infrastructure/`)
 Concrete implementations:
 - **`ai.py`**: Gemini/Whisper/Diffusers clients (Summarizer, Novelizer, ImageGenerator, Curator)
 - **`system.py`**: Process monitoring, audio recording, VRChat launch detection
@@ -39,7 +39,7 @@ Concrete implementations:
 - **`settings.py`**: Pydantic BaseSettings from `data/config.yaml` + environment variables
 - **`observability.py`**: TraceLogger logs to `data/traces.jsonl` for debugging
 
-### Use Cases Layer (`src/use_cases/`)
+### Use Cases Layer (`apps/capture-vrchat/src/use_cases/`)
 Business logic orchestrators:
 - **`ProcessRecordingUseCase`**: Main workflow
   - Inject dependencies via constructor (Transcriber, Summarizer, Novelizer, etc.)
@@ -74,7 +74,7 @@ class ProcessRecordingUseCase:
 
 ### Configuration Management
 - **`data/config.yaml`**: Defines audio params, model sizes, paths, image gen settings
-- **`src/infrastructure/settings.py`**: Pydantic dataclass loads from YAML + `.env`
+- **`apps/capture-vrchat/src/infrastructure/settings.py`**: Pydantic dataclass loads from YAML + `.env`
 - Prompts stored in `settings.prompts` (loaded from YAML)
 - Access via `settings.recording_dir`, `settings.gemini_api_key`, etc.
 
@@ -179,11 +179,11 @@ task notify --message "Custom message"      # Send Discord notification
 
 | File | Purpose |
 |------|---------|
-| `src/cli_handlers.py` | Parses CLI args, wires dependencies, calls use cases |
-| `src/use_cases/*.py` | Business logic (transcribe → summarize → novel → image) |
-| `src/infrastructure/ai.py` | Gemini/Whisper/Diffusers clients + prompt templates |
-| `src/infrastructure/system.py` | Process monitoring, audio recording |
-| `src/infrastructure/repositories.py` | File I/O, task tracking, Supabase sync |
+| `apps/capture-vrchat/src/cli_handlers.py` | Parses CLI args, wires dependencies, calls use cases |
+| `apps/capture-vrchat/src/use_cases/*.py` | Business logic (transcribe → summarize → novel → image) |
+| `apps/capture-vrchat/src/infrastructure/ai.py` | Gemini/Whisper/Diffusers clients + prompt templates |
+| `apps/capture-vrchat/src/infrastructure/system.py` | Process monitoring, audio recording |
+| `apps/capture-vrchat/src/infrastructure/repositories.py` | File I/O, task tracking, Supabase sync |
 | `data/config.yaml` | All tunable params (model, audio, image, paths, prompts) |
 | `data/tasks.json` | Jules task list (JSON) |
 | `data/traces.jsonl` | API call logs for debugging |
@@ -276,8 +276,8 @@ cat data/novels/20260318.md
 2. Change model via `image.model` (must be Diffusers-compatible)
 
 ### Add New CLI Command
-1. Add subparser in `src/cli.py`
-2. Implement handler in `src/cli_handlers.py`
+1. Add subparser in `apps/capture-vrchat/src/cli.py`
+2. Implement handler in `apps/capture-vrchat/src/cli_handlers.py`
 3. Wire dependencies in handler, call use case
 4. Add task to `Taskfile.yaml` if needed for daily execution
 

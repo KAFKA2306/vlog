@@ -2,7 +2,7 @@
 
 Public OSS engine for capturing VRChat evidence, deriving reviewable human-memory claims, generating narrative artifacts, and publishing only explicitly approved projections.
 
-> Migration status: Human Memory Repository v2 Phase 0/1. The current runtime remains operational in legacy `src/` and `frontend/reader/` locations while canonical boundaries, inventory, and schemas are introduced. See [Issue #14](https://github.com/KAFKA2306/vlog/issues/14).
+> Human Memory Repository v2 Phase 0 and the behavior-preserving repository relocation are implemented in this tree. Canonical PostgreSQL/outbox migration and the private `kafka-memory` repository remain separate follow-up phases. See [Issue #14](https://github.com/KAFKA2306/vlog/issues/14).
 
 ## Architecture
 
@@ -26,14 +26,21 @@ Diaries and novels are generated views, not canonical memory. AI-extracted claim
 
 ```text
 vlog/
-├── apps/                  deployable capture, reader, API, and MCP entry points
-├── packages/              domain, ingestion, narrative, privacy, observability
-├── adapters/              PostgreSQL, Storage, Graphiti, Cognee, Qdrant
-├── infra/                 Supabase migrations, systemd, Windows automation
-├── schemas/               versioned evidence and memory contracts
-├── docs/                  architecture, ADRs, and operations
-├── src/                   legacy runtime during migration
-└── frontend/reader/       legacy Next.js reader during migration
+├── apps/
+│   ├── capture-vrchat/   Python capture and processing runtime
+│   ├── reader/           Next.js private/public reader
+│   ├── api/              future HTTP application boundary
+│   └── mcp/              future read-first MCP boundary
+├── packages/             domain, ingestion, narrative, privacy, observability
+├── adapters/             PostgreSQL, Storage, and rebuildable projections
+├── infra/
+│   ├── supabase/         schema and migrations
+│   ├── systemd/          portable unit templates and installer
+│   └── windows/          Task Scheduler, bootstrap, and watchdog assets
+├── schemas/              versioned interchange contracts
+├── docs/                 architecture, ADRs, and operations
+├── tests/                repository-level verification
+└── data/                 machine-local evidence and generated artifacts
 ```
 
 Private personal data is deliberately outside this public repository:
@@ -62,7 +69,7 @@ Requirements: Python 3.11+, [uv](https://github.com/astral-sh/uv), and [Task](ht
 ```bash
 git clone https://github.com/KAFKA2306/vlog.git
 cd vlog
-uv sync
+uv sync --frozen
 cp .env.example .env
 ```
 
@@ -77,6 +84,8 @@ task status
 task sync
 task web:dev
 ```
+
+The Python runtime intentionally retains the import package name `src` during the behavior-preserving relocation. `Taskfile.yaml`, systemd, Windows scripts, and CI set `PYTHONPATH` to `apps/capture-vrchat`.
 
 ## Phase 0 inventory
 
@@ -103,7 +112,7 @@ The inventory records file counts, bytes, hashes, Git tracking state, duplicate 
 
 - [Human Memory v2 architecture](docs/architecture/human-memory-v2.md)
 - [Phase 0 inventory runbook](docs/operations/phase0-inventory.md)
-- [Current architecture](docs/architecture.md)
+- [Current runtime architecture](docs/architecture.md)
 - [Daily pipeline contract](docs/daily_pipeline_contract.md)
 - [Operations](docs/OPERATIONS.md)
 - [Agent router](AGENTS.md)

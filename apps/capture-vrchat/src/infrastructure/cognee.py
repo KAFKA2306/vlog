@@ -2,7 +2,6 @@ import os
 from collections.abc import Sequence
 
 import cognee
-
 from src.infrastructure.settings import settings
 
 llm_model = settings.gemini_model

@@ -111,7 +111,11 @@ class InventoryBuilder:
                 is_symlink = path.is_symlink()
                 link_target = os.readlink(path) if is_symlink else None
                 stat = path.lstat() if is_symlink else path.stat()
-                digest = self._hash_symlink(link_target) if is_symlink else self._sha256(path)
+                digest = (
+                    self._hash_symlink(link_target)
+                    if is_symlink
+                    else self._sha256(path)
+                )
                 yield InventoryFile(
                     category=category,
                     path=relative_path,

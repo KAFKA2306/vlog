@@ -13,7 +13,8 @@ coding_principles: null
 
 scan:
   source_dirs:
-    - "src/"
+    - "apps/capture-vrchat/src/"
+    - "packages/"
   test_dirs:
     - "tests/"
   doc_dirs:

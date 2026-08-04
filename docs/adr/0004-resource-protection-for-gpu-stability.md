@@ -4,7 +4,7 @@ codd:
   type: adr
   status: approved
   links:
-    - to: src/cli_handlers.py
+    - to: apps/capture-vrchat/src/cli_handlers.py
       type: implementation
     - evidence: "Guard Trace: uv run python -m src.cli check-vrc (Exit 0 when idle, Exit 1 when running)"
       type: verification
@@ -28,7 +28,7 @@ VRChat が検出された場合、システムは重い処理を開始せずに�
 
 ## 実装
 
-- `src/cli_handlers.py` 内に `_guard_vrc_running()` を実装。
+- `apps/capture-vrchat/src/cli_handlers.py` 内に `_guard_vrc_running()` を実装。
 - `Taskfile.yaml` の `process:daily` 冒頭で `check-vrc` を実行。
 
 ## 影響

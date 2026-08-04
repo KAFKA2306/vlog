@@ -1,0 +1,17 @@
+[Unit]
+Description=Capture VRChat Vlog daily processing failure
+
+[Service]
+Type=oneshot
+WorkingDirectory=@VLOG_ROOT@
+EnvironmentFile=-@VLOG_ROOT@/.env
+Environment=PYTHONPATH=@VLOG_PYTHONPATH@
+ExecStart=@VLOG_UV@ run python -m src.operations service-failure --unit vlog-daily.service --root @VLOG_ROOT@
+ExecStart=@VLOG_UV@ run python -m src.cli notify --message "❌ VLog日次処理が失敗しました。詳細はローカルOperationsレポートを確認してください。"
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=@VLOG_ROOT@/data
+ReadOnlyPaths=@VLOG_ROOT@/apps/capture-vrchat @VLOG_ROOT@/packages @VLOG_ROOT@/pyproject.toml @VLOG_ROOT@/uv.lock

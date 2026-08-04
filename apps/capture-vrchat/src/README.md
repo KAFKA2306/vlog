@@ -1,6 +1,6 @@
-# src
+# VRChat Capture Runtime
 
-VLog Auto Diaryのメインソースコード。Clean Architectureパターン。
+VLog Auto DiaryのPython実行パッケージ。リポジトリ上の配置は `apps/capture-vrchat/src/` だが、挙動維持のためimport名は `src` のまま運用する。
 
 ## ディレクトリ構成
 

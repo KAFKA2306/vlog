@@ -14,9 +14,10 @@ from src.domain.interfaces import (
     TranscriptPreprocessorProtocol,
 )
 from src.infrastructure.settings import settings
+from src.project import PROJECT_ROOT
 from src.use_cases.daily_artifacts import DailyArtifactManager
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = PROJECT_ROOT
 QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
 
 

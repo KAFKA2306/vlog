@@ -19,7 +19,7 @@
 
 - Python: uv, ruff
 - Tasks: Taskfile.yaml
-- Frontend: npm
+- Frontend: Bun
 
 # Model
 

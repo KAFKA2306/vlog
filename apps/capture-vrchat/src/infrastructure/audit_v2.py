@@ -231,7 +231,7 @@ class StrictRunAuditor:
         )
 
     def _audit_rls_contract(self) -> AuditFinding:
-        path = Path("supabase/schema.sql")
+        path = Path("infra/supabase/schema.sql")
         if not path.exists():
             return AuditFinding(
                 "rls-contract",

@@ -8,7 +8,7 @@ codd:
       type: implementation
     - to: .claude/skills/discord-operations/SKILL.md
       type: implementation
-    - evidence: "rg -n \"kaflog\\.vercel\\.app|rule-scribe-games\\.vercel\\.app\" README.md docs/architecture.md frontend/reader/README.md Taskfile.yaml .claude/skills/discord-operations/SKILL.md docs/adr/0010-external-reader-integration.md"
+    - evidence: "rg -n \"kaflog\\.vercel\\.app|rule-scribe-games\\.vercel\\.app\" README.md docs/architecture.md apps/reader/README.md Taskfile.yaml .claude/skills/discord-operations/SKILL.md docs/adr/0010-external-reader-integration.md"
     ---
 
 

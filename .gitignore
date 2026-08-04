@@ -64,14 +64,14 @@ data/evaluations/
 !*.md
 
 # Frontend
-frontend/reader/node_modules/
-frontend/reader/.next/
-frontend/reader/.vercel/
-frontend/reader/cloudflared
-frontend/reader/package-lock.json
-frontend/reader/.env.local
-frontend/reader/out/
-frontend/reader/build/
+apps/reader/node_modules/
+apps/reader/.next/
+apps/reader/.vercel/
+apps/reader/cloudflared
+apps/reader/package-lock.json
+apps/reader/.env.local
+apps/reader/out/
+apps/reader/build/
 
 # Lock files (keep uv.lock, ignore others)
 package-lock.json
