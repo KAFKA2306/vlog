@@ -17,10 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Audit Markdown
-        run: python scripts/markdown_inventory.py
+        run: |
+          python scripts/markdown_inventory.py
+          find . -type f \( -name '*.md' -o -name '*.markdown' \) \
+            -not -path './.git/*' \
+            -not -path './.venv/*' \
+            -not -path './node_modules/*' \
+            -not -path './.next/*' \
+            -print0 | tar --null -czf artifacts/markdown-files.tar.gz --files-from -
       - name: Upload audit
         uses: actions/upload-artifact@v4
         with:
           name: markdown-audit
-          path: artifacts/markdown-audit.json
+          path: |
+            artifacts/markdown-audit.json
+            artifacts/markdown-files.tar.gz
           if-no-files-found: error
