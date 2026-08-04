@@ -101,9 +101,7 @@ def _strip_code_fences(text: str) -> str:
 
 def _local_link_failure(root: Path, source: Path, raw_target: str) -> str | None:
     target = raw_target.strip()
-    if not target or target.startswith(
-        ("http://", "https://", "mailto:", "tel:", "#")
-    ):
+    if not target or target.startswith(("http://", "https://", "mailto:", "tel:", "#")):
         return None
     target = unquote(target.split("#", 1)[0].split("?", 1)[0])
     if target.startswith("<") and target.endswith(">"):
@@ -148,9 +146,7 @@ def check_markdown(root: Path, tracked: list[str]) -> list[Violation]:
         for raw_target in MARKDOWN_LINK.findall(_strip_code_fences(text)):
             failure = _local_link_failure(root, path, raw_target)
             if failure:
-                violations.append(
-                    Violation("broken-markdown-link", relative, failure)
-                )
+                violations.append(Violation("broken-markdown-link", relative, failure))
         if relative.startswith((".agent/", ".claude/", ".gemini/")):
             line_count = len(text.splitlines())
             if line_count > MAX_AGENT_MARKDOWN_LINES:
