@@ -7,10 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  python:
     runs-on: ubuntu-latest
     env:
       GOOGLE_API_KEY: test-key
+      PYTHONPATH: apps/capture-vrchat:packages/memory-domain/src:packages/ingestion/src
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -30,10 +31,28 @@ jobs:
           soundfile
           google-generativeai
       - name: Compile Python sources
-        run: uv run --no-sync python -m compileall -q src packages scripts tests
+        run: uv run --no-sync python -m compileall -q apps/capture-vrchat/src packages scripts tests infra/systemd
       - name: Lint Python sources
-        run: uvx ruff check src packages scripts tests
+        run: uvx ruff check apps/capture-vrchat/src packages scripts tests infra/systemd
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py
+      - name: Verify rendered systemd units
+        run: |
+          output="$(mktemp -d)"
+          python3 infra/systemd/render.py --root "$PWD" --output "$output"
+          systemd-analyze --user verify "$output"/*.service "$output"/*.timer
       - name: Run tests
         run: uv run --no-sync pytest -q
+
+  reader:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/reader
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run build
