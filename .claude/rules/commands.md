@@ -1,20 +1,15 @@
-# Commands & Workflows
+# Command rules
 
-## Core Tasks
+`Taskfile.yaml` is the command index. Read the task definition before relying on a command name or side effect.
 
-- `task setup`: Sync dependencies (`uv sync`).
-- `task dev`: Run monitor in dev mode.
-- `task lint`: Format and lint with `ruff`.
-- `task status`: Check systemd & log status.
+Common repository checks:
 
-## Operation Tasks
+```bash
+task lint
+task test
+task doc:check
+task systemd:verify
+task web:build
+```
 
-- `task process FILE=...`: Process a specific recording.
-- `task process:all`: Batch process all recordings.
-- `task novel:build`: Generate daily novel.
-- `task sync`: Sync with Supabase.
-
-## Git Protocol
-
-- `task commit MESSAGE="..."`: Stage and commit changes.
-- Use `/git` workflow for repository maintenance.
+Operational and deployment commands may modify the host or contact external services. Execute them only in the intended environment and report their actual result separately from CI.

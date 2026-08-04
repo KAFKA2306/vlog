@@ -1,5 +1,5 @@
 # narrative
 
-Generation policies and use cases for diaries, novels, illustrations, and periodic reviews.
+Status: reserved.
 
-Narrative output is always an `Artifact` derived from canonical episode/claim IDs. Deleting a generated artifact must not delete its evidence or canonical memory.
+Responsibility: derived diary, novel, review, and illustration generation. Provider-specific code and application wiring do not belong here. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

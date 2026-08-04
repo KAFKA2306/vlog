@@ -117,7 +117,7 @@ task web:build
 task web:start
 ```
 
-The application root is `apps/reader/`. A Vercel project configured with the former `frontend/reader` root has not completed the cutover. Verify the provider configuration and deployed revision, not only the local build.
+The application root is `apps/reader/`. A Vercel project configured with the former pre-v2 Reader root has not completed the cutover. Verify the provider configuration and deployed revision, not only the local build.
 
 ## Human Memory v2 phase changes
 
@@ -148,3 +148,7 @@ Before advancing a phase in documentation or Issue #14:
 - [Current runtime architecture](architecture.md)
 - [Human Memory v2 architecture](architecture/human-memory-v2.md)
 - [Current daily pipeline contract](daily_pipeline_contract.md)
+
+## Markdown audit
+
+`task doc:check` validates all tracked Markdown links and portability rules. New normative documents require an entry in `docs/README.md`; dated status observations belong under `docs/incidents/`; agent-specific instructions must route to canonical docs rather than copy them.

@@ -1,5 +1,5 @@
 # cognee
 
-Optional, rebuildable knowledge projection.
+Status: reserved adapter boundary for optional rebuildable knowledge projection.
 
-Cognee is not a core runtime dependency and must not be required for capture, inventory, canonical persistence, correction, or publication. Its index can be deleted and reconstructed from canonical stores.
+It is not implemented as an authoritative production store in this directory. Canonical responsibilities remain defined by [Human Memory v2](../../docs/architecture/human-memory-v2.md).

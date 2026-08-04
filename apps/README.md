@@ -4,9 +4,9 @@ Deployable and user-facing entry points live here.
 
 | Boundary | Status | Responsibility |
 |---|---|---|
-| `capture-vrchat/` | implemented | VRChat detection, recording, transcription, and current processing orchestration |
-| `reader/` | implemented | Next.js private/public reader |
-| `api/` | reserved | HTTP API over canonical memory and artifacts |
-| `mcp/` | reserved | read-first MCP tools (`search`, `timeline`, `get_evidence`, `list_open_loops`) |
+| `capture-vrchat/` | implemented | current capture and processing runtime |
+| `reader/` | implemented | current Next.js Reader |
+| `api/` | reserved | future HTTP boundary over canonical data |
+| `mcp/` | reserved | future read-first retrieval tools |
 
-Applications may depend on packages and adapter interfaces. Packages must not import application code.
+Applications may depend on packages and adapters. Packages must not import applications. See [current architecture](../docs/architecture.md).

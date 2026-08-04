@@ -1,5 +1,5 @@
 # privacy
 
-Redaction, pseudonymization, retention, evidence access, and publication-gate policies.
+Status: reserved.
 
-Private-by-default is enforced here and in PostgreSQL/Storage policy. Application code alone is not a sufficient privacy boundary.
+Responsibility: redaction, pseudonymization, retention, and publication gates. Provider-specific code and application wiring do not belong here. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

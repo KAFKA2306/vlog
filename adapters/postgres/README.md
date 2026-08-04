@@ -1,5 +1,5 @@
 # postgres
 
-Canonical metadata persistence adapter for sources, episodes, utterances, moments, entities, claims, revisions, artifacts, ingestion runs, outbox events, and publication decisions.
+Status: reserved adapter boundary for future canonical PostgreSQL persistence.
 
-Migrations and RLS definitions live under `infra/supabase/migrations/`.
+It is not implemented as an authoritative production store in this directory. Canonical responsibilities remain defined by [Human Memory v2](../../docs/architecture/human-memory-v2.md).

@@ -14,6 +14,10 @@ codd:
 
 # ADR 2: Principles of Autonomous Maintenance
 
+## Audit note (2026-08-04)
+
+Partially superseded. Automation must preserve evidence, use explicit scope, and must not perform broad cleanup or hide failed checks.
+
 ## Status
 
 Approved

@@ -1,30 +1,10 @@
-# Forbidden
+# General repository rules
 
-- Comments, docstrings
-- Error handling (try-except)
-- Retry, timeout logic
-- Hardcoded values
-- Mocking
-- Root file creation
-- Modifying `data/prompts.yaml` without explicit user instruction (PROTECTED FILE)
-
-# Required
-
-- Config in yaml/.env
-- Type hints on all functions
-- Small, composable functions
-- Short files, isolated concerns
-
-# Tools
-
-- Python: uv, ruff
-- Tasks: Taskfile.yaml
-- Frontend: Bun
-
-# Model
-
-Model name defined in `data/config.yaml` only (PROTECTED — see model_protection.md)
-
-# Docs
-
-Write in Japanese only
+- Follow [AGENTS.md](../../AGENTS.md) and the canonical documentation index.
+- Keep public OSS, private memory, raw evidence, derived artifacts, and public projections separated.
+- Preserve comments and docstrings that explain contracts, invariants, hazards, or non-obvious decisions.
+- Use typed, bounded error handling at external boundaries. Do not swallow exceptions or force success after a required failure.
+- Use explicit timeouts and retry policies only where operations are safe and idempotent.
+- Tests and mocks are valid when they verify contracts without pretending to prove live infrastructure behavior.
+- Avoid unrelated root files and duplicated command or dependency inventories.
+- Do not modify protected prompts or model identifiers without explicit user instruction.

@@ -1,5 +1,5 @@
 # observability
 
-Operational events, traces, health checks, inventory audit records, and recovery evidence.
+Status: reserved.
 
-Observability data must avoid raw private evidence and secrets. It may identify a source by opaque ID/hash, but must not become an alternate copy of personal content.
+Responsibility: cross-application telemetry and operational contracts. Provider-specific code and application wiring do not belong here. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

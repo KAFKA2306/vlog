@@ -1,47 +1,50 @@
 # VLog documentation
 
-This directory separates the current executable runtime from the Human Memory Repository v2 target architecture.
+This directory separates current executable behavior, target architecture, operations, decisions, and historical evidence.
 
 ## Source-of-truth map
 
 | Document | Authority |
 |---|---|
-| [`../README.md`](../README.md) | repository entry point, setup, and current status |
-| [`overview.md`](overview.md) | product purpose, scope, and implementation status |
-| [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md) | target architecture, canonical data rules, and migration phases |
+| [`../README.md`](../README.md) | repository entry point, setup, and current migration status |
+| [`overview.md`](overview.md) | product purpose and scope |
+| [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md) | target architecture, canonical stores, and migration phases |
 | [`architecture.md`](architecture.md) | current file-based runtime and deployable boundaries |
-| [`operations/phase0-inventory.md`](operations/phase0-inventory.md) | non-destructive inventory procedure before data migration |
-| [`OPERATIONS.md`](OPERATIONS.md) | runtime diagnosis, supervision, incident evidence, and recovery |
+| [`daily_pipeline_contract.md`](daily_pipeline_contract.md) | current legacy-compatible scheduled execution contract |
+| [`OPERATIONS.md`](OPERATIONS.md) | diagnosis, supervision, incident evidence, and recovery |
 | [`MAINTENANCE.md`](MAINTENANCE.md) | repeatable repository and infrastructure maintenance |
-| [`daily_pipeline_contract.md`](daily_pipeline_contract.md) | current legacy-compatible daily execution contract |
-| [`adr/`](adr/) | accepted design decisions and their rationale |
+| [`operations/phase0-inventory.md`](operations/phase0-inventory.md) | non-destructive inventory before data migration |
+| [`image.md`](image.md) | current illustration-generation boundary |
+| [`adr/README.md`](adr/README.md) | architecture decision index and status |
+| [`incidents/`](incidents/) | dated historical incident records, not current status |
+| [`markdown-governance.md`](markdown-governance.md) | Markdown ownership, retention, and validation rules |
 
 ## Precedence
 
-When documents appear to conflict, use this order:
+When documents conflict, use this order:
 
-1. versioned schemas and executable tests;
-2. `architecture/human-memory-v2.md` for the target state;
-3. a component-specific operations or infrastructure runbook;
-4. `architecture.md` and `daily_pipeline_contract.md` for current runtime behavior;
-5. historical ADRs and incident reports.
-
-The current runtime intentionally preserves date-named files, directory scans, and Supabase synchronization while migration work continues. Those mechanisms describe existing behavior; they are not the v2 canonical state model.
+1. schemas, tests, package manifests, Taskfile, and implementation;
+2. target architecture for intended state;
+3. component-specific runbooks for current operation;
+4. current runtime architecture and pipeline contract;
+5. ADRs for decision rationale;
+6. historical incidents and archived observations.
 
 ## Status vocabulary
 
-Documentation uses three distinct states:
+- **Implemented in repository**: code, schema, tests, or templates exist.
+- **CI-verified**: repository checks passed for a specific commit.
+- **Environment-verified**: the actual host, deployment, database, storage, network, or GPU behavior was observed.
+- **Historical**: true only for the dated evidence and environment recorded.
+- **Planned**: accepted direction without a production implementation claim.
 
-- **Implemented in repository**: code, schema, checks, or templates exist and pass repository validation.
-- **Environment-verified**: the change has also been executed successfully against the actual host, scheduler, deployment provider, database, or object storage.
-- **Planned**: the design is accepted but no production implementation is claimed.
+CI does not establish environment verification.
 
-A successful GitHub Actions run does not establish environment verification for systemd, Windows Task Scheduler, Vercel, Supabase contents, private storage, or GPU execution.
+## Maintenance rules
 
-## Documentation maintenance rules
-
-- Do not duplicate dependency versions or command lists when `pyproject.toml`, `apps/reader/package.json`, or `Taskfile.yaml` is authoritative.
-- Use repository-relative links and paths.
-- Mark legacy-compatible behavior explicitly.
-- Never describe a migration as complete until both repository validation and the required environment evidence exist.
-- Update this index when adding a new normative architecture or operations document.
+- Update an existing authority instead of creating a parallel specification.
+- Link to volatile configuration and code instead of copying dependency versions, task inventories, model names, or implementation symbols.
+- Use repository-relative links and redact personal paths.
+- Put point-in-time service observations under `incidents/`, not in normative runbooks.
+- Keep agent files as concise routers.
+- Run `task doc:check`.

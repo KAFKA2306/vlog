@@ -1,21 +1,5 @@
 # memory-domain
 
-Storage-agnostic canonical entities for Human Memory Repository v2.
+Status: foundation implemented.
 
-## Owns
-
-- `SourceObject`, `Episode`, `Utterance`, `Moment`, and `Entity`
-- `MemoryClaim` and append-only `MemoryRevision`
-- generated `Artifact` metadata
-- explicit `PublicationDecision`
-- ingestion idempotency identity (`source_hash + pipeline_version`)
-
-## Does not own
-
-- filesystem or Supabase access
-- embeddings, Graphiti, Cognee, or Qdrant indexes
-- prompt templates and model clients
-- public web rendering
-- private journal content
-
-An accepted `MemoryClaim` cannot be constructed without provenance evidence. The domain package therefore makes the central v2 rule executable rather than documentary.
+Responsibility: canonical entity and provenance invariants. Provider-specific code and application wiring do not belong here. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

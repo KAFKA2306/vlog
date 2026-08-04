@@ -1,5 +1,5 @@
-# mcp
+# MCP application
 
-Read-first MCP application boundary.
+Status: reserved; no production MCP server is implemented in this boundary.
 
-Initial tools are limited to `search`, `timeline`, `get_evidence`, and `list_open_loops`. Correct, forget, accept, and publish operations require an approval workflow and are intentionally excluded from the first MCP surface.
+The intended first surface is read-only retrieval such as search, timeline, evidence lookup, and open-loop listing. Write, correct, forget, and publish operations require explicit approval. See [Human Memory v2](../../docs/architecture/human-memory-v2.md).

@@ -1,5 +1,5 @@
 # supabase-storage
 
-Private object storage adapter for evidence bytes and an explicitly separate public projection path.
+Status: reserved adapter boundary for future private evidence and public projection storage.
 
-Object listing must paginate to completion. A fixed 1000-object response is not accepted as a complete inventory or synchronization result.
+It is not implemented as an authoritative production store in this directory. Canonical responsibilities remain defined by [Human Memory v2](../../docs/architecture/human-memory-v2.md).
