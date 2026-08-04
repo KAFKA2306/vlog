@@ -29,6 +29,11 @@ jobs:
           sounddevice
           soundfile
           google-generativeai
-      - run: uv run --no-sync python -m compileall -q src tests
-      - run: uvx ruff check src tests
-      - run: uv run --no-sync pytest -q
+      - name: Compile Python sources
+        run: uv run --no-sync python -m compileall -q src packages scripts tests
+      - name: Lint Python sources
+        run: uvx ruff check src packages scripts tests
+      - name: Enforce public/private repository boundaries
+        run: uv run --no-sync python scripts/check_repository_boundaries.py
+      - name: Run tests
+        run: uv run --no-sync pytest -q

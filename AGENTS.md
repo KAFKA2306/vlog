@@ -1,59 +1,63 @@
 # AGENTS.md
 
-## Antigravity Audit Rule
+Public OSS engine for capturing evidence, deriving reviewable human-memory claims, generating narrative artifacts, and publishing only explicitly approved projections.
 
-Before searching for `.agy`, always verify whether Antigravity CLI (`agy`) is installed.
+## Mandatory audit rule
 
-Mandatory checks:
+Before searching for `.agy`, verify whether the Antigravity CLI is installed and integrated:
 
 1. `which agy`
 2. `agy --version`
 3. `agy --help`
 4. `agy /usage`
-5. Search Taskfile, systemd services, tmux launchers, shell scripts, and cron jobs for `agy`
+5. search Taskfile, systemd units, tmux launchers, shell scripts, and cron jobs for `agy`
 
-Never infer that Antigravity is absent merely because `.agy` does not exist.
+The canonical runtime identifier is `agy`, not `.agy`. Absence of `.agy` does not prove that Antigravity is absent.
 
-The canonical runtime identifier is `agy`, not `.agy`.
+## Repository boundaries
 
-If `.agy` is not found but `agy` exists, continue investigation using the installed CLI and its integrations.
+- `apps/`: deployable capture, reader, API, and MCP entry points.
+- `packages/`: storage-agnostic domain, ingestion, narrative, privacy, and observability logic.
+- `adapters/`: PostgreSQL, Supabase Storage, Graphiti, Cognee, and Qdrant implementations.
+- `infra/`: Supabase migrations, systemd units, and Windows automation.
+- `schemas/`: versioned interchange contracts.
+- `docs/`: architecture, ADRs, and operating procedures.
 
-Failure to check `agy` before concluding Antigravity is absent is considered an audit failure.
+The current `src/` and `frontend/reader/` paths are legacy runtime locations during migration. New Human Memory v2 capabilities belong in the target boundaries. Do not create new personal diary or memory content in this public repository.
 
-VRChat Auto-Diary (vlog) 開発用エントリーポインタ。
+## Canonical pointers
 
-## 🎯 プロジェクト概要
+- [Human Memory v2 architecture](docs/architecture/human-memory-v2.md)
+- [Phase 0 inventory runbook](docs/operations/phase0-inventory.md)
+- [Current architecture](docs/architecture.md)
+- [Daily pipeline contract](docs/daily_pipeline_contract.md)
+- [Architecture decisions](docs/adr/)
+- [Python coding rules](.claude/rules/python_coding.md)
+- [General rules](.claude/rules/general.md)
+- [Commands](.claude/rules/commands.md)
+- [Model protection](.claude/rules/model_protection.md)
+- [Task runner](Taskfile.yaml)
 
-VRChatの活動を自動監視・録音し、Geminiで要約・小説化して記録するライフログシステム。
+All repository pointers must be relative Markdown links. Do not add user-specific `file://` or absolute home-directory paths.
 
-## 📍 主要ポインタ
+## Data and privacy rules
 
-詳細なルールとワークフローは以下を参照：
+- Raw audio, photo, video, full transcript, and personal conversation evidence are private-object-storage data, not Git content.
+- Private journals, people, relationships, preferences, corrections, and feedback belong in the private `kafka-memory` repository.
+- AI output starts as a candidate. It is not an accepted memory or publication decision.
+- Accepted memory claims must retain provenance to an episode/source and, where available, an utterance or time span.
+- Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections, never the sole source of truth.
+- Structural migrations must not delete or move raw evidence until Phase 0 inventory and remote exports are complete.
 
-- **コーディング規約**: [.claude/rules/python_coding.md](file:///home/kafka/projects/vlog/.claude/rules/python_coding.md) / [.claude/rules/general.md](file:///home/kafka/projects/vlog/.claude/rules/general.md)
-- **コマンド・手順**: [.claude/rules/commands.md](file:///home/kafka/projects/vlog/.claude/rules/commands.md) / [Taskfile.yaml](file:///home/kafka/projects/vlog/Taskfile.yaml)
-- **アーキテクチャ定義**: [docs/architecture.md](file:///home/kafka/projects/vlog/docs/architecture.md)
-- **パイプライン契約**: [docs/daily_pipeline_contract.md](file:///home/kafka/projects/vlog/docs/daily_pipeline_contract.md)
-- **意思決定履歴**: [docs/adr/](file:///home/kafka/projects/vlog/docs/adr/)
-- **モデル名保護**: [.claude/rules/model_protection.md](file:///home/kafka/projects/vlog/.claude/rules/model_protection.md)
+## Verification
 
-## 🚀 クイックコマンド
-
-エージェントは常に以下のツールを使用して作業を検証すること：
+Run the relevant checks before completing work:
 
 ```bash
-task lint    # 保存後に自動実行される（PostToolUse）
-task status  # システム全体の稼働状況確認
-task dev     # ローカル実行テスト
+task lint
+task test
+uv run --no-sync python scripts/check_repository_boundaries.py
+uv run --no-sync python scripts/phase0_inventory.py
 ```
 
-## 🔗 外部連携
-
-- **Prompt Vault**: プロンプトのソースオブトゥルース。Kafkaのアイデンティティ設定などはここから同期する。
-  - 同期コマンド: `task vault:sync`
-  - ソース: [/home/kafka/projects/prompt-vault/](file:///home/kafka/projects/prompt-vault/)
-
-## 💡 ガイドラインと設計思想
-
-- **設定ファイルの保護について**: `.claude/settings.json` や `pyproject.toml` 等は、システムの安定性を担保するハーネスとして意図的に保護されています。これらの変更が必要な場合は、影響範囲を考慮して慎重に評価してください。
-- **ドキュメントの分散によるコンテキスト維持**: `AGENTS.md` が巨大化すると、LLMのコンテキスト領域を圧迫し要点が伝わりにくくなります。新しいルールが必要な場合は `.claude/rules/` に追加し、このファイルは軽量なポインタのリストとして機能させてください。
+Do not report runtime, Supabase, Windows, or systemd validation as complete unless it was executed in the corresponding operating environment.
