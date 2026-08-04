@@ -1,0 +1,23 @@
+name: Markdown Inventory
+
+on:
+  push:
+    branches:
+      - agent/audit-all-markdown
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit Markdown
+        run: python scripts/markdown_inventory.py
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdown-audit
+          path: artifacts/markdown-audit.json
+          if-no-files-found: error
