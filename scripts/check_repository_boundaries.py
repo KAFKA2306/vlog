@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -39,6 +40,11 @@ RAW_MEDIA_SUFFIXES = {
     ".avi",
     ".mkv",
 }
+NON_PORTABLE_AGENT_LINKS = (
+    re.compile(r"\]\(file://[^)]*\)"),
+    re.compile(r"\]\(/home/[^)]*\)"),
+    re.compile(r"\]\([A-Za-z]:\\[^)]*\)"),
+)
 MAX_GIT_FILE_BYTES = 100 * 1024 * 1024
 
 
@@ -75,13 +81,14 @@ def check(root: Path) -> list[Violation]:
     agents = root / "AGENTS.md"
     if agents.exists():
         text = agents.read_text(encoding="utf-8")
-        for forbidden in ("file://", "/home/kafka/", "\\home\\kafka\\"):
-            if forbidden in text:
+        for pattern in NON_PORTABLE_AGENT_LINKS:
+            match = pattern.search(text)
+            if match:
                 violations.append(
                     Violation(
                         "non-portable-agent-pointer",
                         "AGENTS.md",
-                        f"contains forbidden absolute pointer: {forbidden}",
+                        f"contains non-portable Markdown link: {match.group(0)}",
                     ),
                 )
 
