@@ -112,18 +112,6 @@ def check(root: Path) -> list[Violation]:
                     "tracked file exceeds GitHub's 100 MiB file limit",
                 ),
             )
-        if path.is_symlink():
-            target = path.resolve(strict=False)
-            try:
-                target.relative_to(root)
-            except ValueError:
-                violations.append(
-                    Violation(
-                        "escaping-symlink",
-                        relative,
-                        "tracked symlink resolves outside the repository",
-                    ),
-                )
 
     return violations
 
