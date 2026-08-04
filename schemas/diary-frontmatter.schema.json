@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KAFKA2306/vlog/schemas/diary-frontmatter.schema.json",
+  "title": "Human Memory v2 Diary Frontmatter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "date",
+    "generated_at",
+    "generator_version",
+    "source_episode_ids",
+    "source_claim_ids",
+    "publication_status"
+  ],
+  "properties": {
+    "artifact_id": {"type": "string", "format": "uuid"},
+    "date": {"type": "string", "format": "date"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "generator_version": {"type": "string", "minLength": 1},
+    "source_episode_ids": {
+      "type": "array",
+      "items": {"type": "string", "format": "uuid"}
+    },
+    "source_claim_ids": {
+      "type": "array",
+      "items": {"type": "string", "format": "uuid"}
+    },
+    "publication_status": {
+      "type": "string",
+      "enum": ["private", "review_required", "approved", "rejected", "withdrawn"]
+    },
+    "publication_decision_id": {"type": ["string", "null"], "format": "uuid"},
+    "style_revision": {"type": ["string", "null"]}
+  },
+  "anyOf": [
+    {"properties": {"source_episode_ids": {"minItems": 1}}},
+    {"properties": {"source_claim_ids": {"minItems": 1}}}
+  ]
+}
