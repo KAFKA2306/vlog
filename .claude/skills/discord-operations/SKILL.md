@@ -14,7 +14,7 @@ VLogシステムの稼働状況や日次処理の結果をDiscordチャンネル
 
 - Configuration: `data/config.yaml` (whisper, gemini等のモデル設定含む)
 - Environment Variables: `.env` (`DISCORD_WEBHOOK_URL` を保持)
-- Implementation: `src/cli.py` / `src/cli_handlers.py` (notifyコマンドの実装)
+- Implementation: `apps/capture-vrchat/src/cli.py` / `apps/capture-vrchat/src/cli_handlers.py` (notifyコマンドの実装)
 - Systemd Units: `vlog.service`, `vlog-daily.service`, `vlog-daily.timer`, `vlog-daily-failure.service`
 
 ## Key Functions

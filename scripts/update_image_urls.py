@@ -11,8 +11,8 @@ url = os.environ["SUPABASE_URL"]
 key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 supabase = create_client(url, key)
 
-photos_dir = Path("frontend/reader/public/photos")
-infographics_dir = Path("frontend/reader/public/infographics")
+photos_dir = Path("apps/reader/public/photos")
+infographics_dir = Path("apps/reader/public/infographics")
 
 for photo in photos_dir.glob("*.png"):
     date = photo.stem.replace(" copy", "")

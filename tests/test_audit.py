@@ -15,8 +15,8 @@ def write_jsonl(path: Path, records: list[dict]) -> None:
 
 def prepare_contract(tmp_path: Path, monkeypatch, run_id: str) -> None:
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "supabase").mkdir()
-    (tmp_path / "supabase/schema.sql").write_text(
+    (tmp_path / "infra/supabase").mkdir(parents=True)
+    (tmp_path / "infra/supabase/schema.sql").write_text(
         "revoke all on table public.daily_entries "
         "from public, anon, authenticated;\n"
         "grant select on table public.daily_entries to anon, authenticated;\n"

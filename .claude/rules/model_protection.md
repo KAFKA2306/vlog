@@ -1,7 +1,7 @@
 ---
 paths:
   - "data/config.yaml"
-  - "src/infrastructure/settings.py"
+  - "apps/capture-vrchat/src/infrastructure/settings.py"
   - ".env"
 ---
 
@@ -10,13 +10,13 @@ paths:
 ## 絶対禁止事項
 
 - `data/config.yaml` 内の `model:` フィールドをユーザーの明示的指示なしに変更してはならない
-- `src/infrastructure/settings.py` 内の `_DEFAULT_LLM_MODEL` をユーザーの明示的指示なしに変更してはならない
+- `apps/capture-vrchat/src/infrastructure/settings.py` 内の `_DEFAULT_LLM_MODEL` をユーザーの明示的指示なしに変更してはならない
 - `.env` にモデル名を追加・変更してはならない（モデル名は `config.yaml` が唯一の定義元）
 
 ## 単一定義源 (Single Source of Truth)
 
 - LLMモデル名: `data/config.yaml` の各セクション (`gemini.model`, `novel.model`, `jules.model`)
-- Embeddingモデル名: `src/infrastructure/cognee.py`
+- Embeddingモデル名: `apps/capture-vrchat/src/infrastructure/cognee.py`
 - Whisperモデル名: `data/config.yaml` の `whisper.model_size`
 - 画像モデル名: `data/config.yaml` の `image.model`
 

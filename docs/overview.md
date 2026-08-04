@@ -4,15 +4,15 @@ codd:
   type: spec
   status: approved
   links:
-    - to: src/main.py
+    - to: apps/capture-vrchat/src/main.py
       type: implementation
 ---
 
 # VLog - VRChat Auto-Diary 完全ドキュメント
 
-> 開発コマンド・コーディング規約 → [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md)  
-> システム構成図 → [docs/architecture.md](file:///home/kafka/projects/vlog/docs/architecture.md)  
-> 画像生成サブシステム → [docs/image.md](file:///home/kafka/projects/vlog/docs/image.md)
+> 開発コマンド・コーディング規約 → [AGENTS.md](../AGENTS.md)
+> システム構成図 → [architecture.md](architecture.md)
+> 画像生成サブシステム → [image.md](image.md)
 
 ## 目次
 
@@ -79,7 +79,7 @@ VRChatでの体験を完全自動で記録・保存し、後から振り返れ�
 
 ## アーキテクチャ
 
-Clean Architectureを採用。詳細なディレクトリ構造・コマンド一覧・コーディング規約は [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md) を参照。
+Clean Architectureを採用。詳細なディレクトリ構造・コマンド一覧・コーディング規約は [AGENTS.md](../AGENTS.md) を参照。
 
 ### 依存性の方向
 
@@ -135,7 +135,7 @@ Infrastructure → Use Cases → Domain
 | **ruff** | latest | リンター・フォーマッター |
 | **uv** | latest | 高速パッケージマネージャー |
 
-### フロントエンド（frontend/reader/）
+### フロントエンド（apps/reader/）
 
 | ライブラリ | バージョン | 用途 |
 |-----------|----------|------|
@@ -146,109 +146,25 @@ Infrastructure → Use Cases → Domain
 
 #### ディレクトリ構造
 
-```
-frontend/reader/
-├── app/
-│   ├── page.tsx           # メインページ（日記一覧・詳細モーダル）
-│   ├── layout.tsx         # ルートレイアウト
-│   └── globals.css        # スタイル
-├── lib/
-│   └── supabaseClient.ts  # Supabaseクライアント初期化
-└── package.json
-```
-
-#### 主な機能
-
-- `daily_entries`と`novels`テーブルから公開エントリ取得
-- 検索・フィルタ機能（All/Summaries/Novels）
-- 日付順ソート・カード表示・詳細モーダル
-- 画像表示対応（`image_url`）
-
-### インフラストラクチャ
-
-- **Supabase**: バックエンドサービス（DB、認証、ストレージ）
-- **Vercel**: フロントエンドホスティング
-- **systemd**: Linuxサービス管理
-- **Task**: タスクランナー（Taskfile.yaml）
-
----
-
-## システム構成
-
-### コンポーネント構成図
-
-```mermaid
-graph TB
-    subgraph "ユーザー環境"
-        VRChat[VRChat Client]
-    end
-    
-    subgraph "VLog System Local"
-        Monitor[Process Monitor]
-        Recorder[Audio Recorder]
-        Transcriber[Whisper Transcriber]
-        Preprocessor[Text Preprocessor]
-        Summarizer[Gemini Summarizer]
-        Novelizer[Gemini Novelizer]
-        ImageGen[Diffusers Image Generator]
-        FileRepo[File Repository]
-        SupabaseRepo[Supabase Repository]
-    end
-    
-    subgraph "Supabase Cloud"
-        DB[PostgreSQL]
-        Storage[Object Storage]
-    end
-    
-    subgraph "Web Frontend Vercel"
-        NextApp[Next.js App]
-    end
-    
-    VRChat -->|プロセス起動検知| Monitor
-    Monitor -->|録音開始| Recorder
-    Recorder -->|音声ファイル| Transcriber
-    Transcriber -->|文字起こし| Preprocessor
-    Preprocessor -->|クリーンテキスト| Summarizer
-    Summarizer -->|要約| FileRepo
-    Summarizer -->|要約| SupabaseRepo
-    Summarizer -->|要約| Novelizer
-    Novelizer -->|小説| ImageGen
-    ImageGen -->|画像| SupabaseRepo
-    SupabaseRepo -->|sync| DB
-    SupabaseRepo -->|upload| Storage
-    NextApp -->|query| DB
-    NextApp -->|fetch| Storage
-```
-
-### ディレクトリ構造
-
-```
+```text
 vlog/
-├── src/                    # Pythonソースコード
-│   ├── domain/            # ドメイン層
-│   ├── use_cases/         # ユースケース層
-│   ├── infrastructure/    # インフラ層
-│   ├── app.py            # アプリケーション
-│   ├── cli.py            # CLI
-│   └── main.py           # エントリポイント
-├── frontend/              # Webフロントエンド
-│   └── reader/           # Next.jsアプリ
-├── data/                  # ローカルデータ
-│   ├── recordings/       # 音声録音（FLAC）
-│   ├── transcripts/      # 文字起こし結果
-│   ├── summaries/        # 日次要約
-│   ├── novels/           # 生成小説
-│   ├── photos/           # 生成画像
-│   ├── photos_prompts/   # 画像プロンプト
-│   └── archives/         # アーカイブ済みファイル
-├── docs/                  # ドキュメント
-├── supabase/              # Supabase設定
-│   └── schema.sql        # DBスキーマ
-├── config.yaml            # アプリケーション設定
-├── .env                   # 環境変数（秘密情報）
-├── pyproject.toml         # Python依存関係
-├── Taskfile.yaml          # タスク定義
-└── vlog.service          # systemdサービス
+├── apps/
+│   ├── capture-vrchat/src/  # Python runtime package (`src`)
+│   ├── reader/              # Next.js reader
+│   ├── api/                 # reserved API boundary
+│   └── mcp/                 # reserved MCP boundary
+├── packages/                # reusable domain capabilities
+├── adapters/                # persistence/search implementations
+├── infra/
+│   ├── supabase/            # schema and migrations
+│   ├── systemd/             # unit templates and installer
+│   └── windows/             # Windows bootstrap/watchdog
+├── schemas/                 # versioned contracts
+├── data/                    # machine-local evidence/artifacts
+├── docs/                    # documentation
+├── tests/                   # verification
+├── pyproject.toml
+└── Taskfile.yaml
 ```
 
 ---
@@ -409,7 +325,7 @@ image:
 
 ## 開発規則
 
-コーディング規約・アーキテクチャ原則・品質管理コマンドは [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md) を参照。
+コーディング規約・アーキテクチャ原則・品質管理コマンドは [AGENTS.md](../AGENTS.md) を参照。
 
 ---
 
@@ -546,10 +462,10 @@ task web:deploy
 
 ```batch
 REM 初回（管理者権限）
-windows\bootstrap.bat
+infra\windows\bootstrap.bat
 
 REM 通常実行
-windows\run.bat
+infra\windows\run.bat
 ```
 
 ---
@@ -755,7 +671,7 @@ USING (bucket_id = 'vlog-photos');
 
 ## 運用ガイド
 
-コマンド一覧（`task up`, `task status`, `task sync` 等）は [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md) を参照。
+コマンド一覧（`task up`, `task status`, `task sync` 等）は [AGENTS.md](../AGENTS.md) を参照。
 
 ### トラブルシューティング
 
@@ -881,13 +797,13 @@ whisper:
 
 - **モデル**: gemini-2.5-flash
 - **最大トークン**: デフォルト
-- **プロンプトテンプレート**: `src/infrastructure/summarizer_prompt.txt`
+- **プロンプトテンプレート**: `apps/capture-vrchat/src/infrastructure/summarizer_prompt.txt`
 
 #### 小説生成
 
 - **モデル**: gemini-2.5-flash
 - **最大トークン**: 4096
-- **プロンプトテンプレート**: `src/infrastructure/novelizer_prompt.txt`
+- **プロンプトテンプレート**: `apps/capture-vrchat/src/infrastructure/novelizer_prompt.txt`
 
 ### 画像生成仕様
 

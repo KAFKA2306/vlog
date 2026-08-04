@@ -6,17 +6,18 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/projects/vlog
-EnvironmentFile=%h/projects/vlog/.env
-ExecStart=%h/.local/bin/uv run python -m src.daily
+WorkingDirectory=@VLOG_ROOT@
+EnvironmentFile=@VLOG_ROOT@/.env
+Environment=PYTHONPATH=@VLOG_PYTHONPATH@
+ExecStart=@VLOG_UV@ run python -m src.daily
 Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/projects/vlog/data
-ReadOnlyPaths=%h/projects/vlog/src %h/projects/vlog/pyproject.toml %h/projects/vlog/uv.lock
+ReadWritePaths=@VLOG_ROOT@/data
+ReadOnlyPaths=@VLOG_ROOT@/apps/capture-vrchat @VLOG_ROOT@/packages @VLOG_ROOT@/pyproject.toml @VLOG_ROOT@/uv.lock
 
 [Install]
 WantedBy=default.target

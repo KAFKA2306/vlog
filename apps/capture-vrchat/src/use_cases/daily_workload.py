@@ -10,8 +10,9 @@ import yaml
 
 from src.infrastructure.settings import settings
 from src.infrastructure.system import ProcessMonitor, SystemResourceMonitor
+from src.project import PROJECT_ROOT
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = PROJECT_ROOT
 COGNEE_QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
 
 _AUDIO_SUFFIXES = {".wav", ".flac", ".mp3"}

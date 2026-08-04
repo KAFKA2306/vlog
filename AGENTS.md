@@ -23,7 +23,7 @@ The canonical runtime identifier is `agy`, not `.agy`. Absence of `.agy` does no
 - `schemas/`: versioned interchange contracts.
 - `docs/`: architecture, ADRs, and operating procedures.
 
-The current `src/` and `frontend/reader/` paths are legacy runtime locations during migration. New Human Memory v2 capabilities belong in the target boundaries. Do not create new personal diary or memory content in this public repository.
+The production runtime lives under `apps/capture-vrchat/`, the reader lives under `apps/reader/`, and operational assets live under `infra/`. Root-level `src/`, `frontend/`, `windows/`, `supabase/`, and systemd unit files are forbidden migration regressions. Do not create personal diary or memory content in this public repository.
 
 ## Canonical pointers
 

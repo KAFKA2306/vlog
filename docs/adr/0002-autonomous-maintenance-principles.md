@@ -6,7 +6,7 @@ codd:
   links:
     - to: Taskfile.yaml
       type: implementation
-    - to: src/cli.py
+    - to: apps/capture-vrchat/src/cli.py
       type: implementation
     - evidence: "task maintenance PASS (Deterministic garbage collection executed)"
       type: verification

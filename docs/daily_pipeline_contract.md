@@ -44,7 +44,7 @@
     task log:daily
     task down
 
-ユニット定義は vlog.service、vlog-daily.service、vlog-daily.timer、vlog-daily-failure.service を正とする。導入前に task systemd:verify で構文を検証する。
+ユニットテンプレートは `infra/systemd/*.in` を正とし、インストール時に現在のリポジトリパスを埋め込む。導入前に `task systemd:verify` で描画後の構文を検証する。
 
 ## 検証証拠
 

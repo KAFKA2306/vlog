@@ -1,5 +1,19 @@
 # systemd
 
-Target location for `vlog.service`, daily services/timers, failure units, and installation helpers.
+Portable user-unit templates and the installation path for the Linux/WSL runtime.
 
-Root-level units remain active during the behavior-preserving migration gate. They move here only with updated install scripts, Taskfile commands, path sandboxing, and `systemd-analyze verify` evidence.
+The repository stores `*.service.in` and `*.timer.in` templates containing `@VLOG_ROOT@`, `@VLOG_PYTHONPATH@`, and `@VLOG_UV@`. `render.py` resolves the current checkout path and writes concrete units outside the repository. No user home or checkout location is committed into a unit.
+
+Install and start:
+
+```bash
+task systemd:install
+```
+
+Validate rendered units without installing:
+
+```bash
+task systemd:verify
+```
+
+The installer writes units to `${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user`, reloads the user manager, enables the daily timer, and restarts the monitor service.

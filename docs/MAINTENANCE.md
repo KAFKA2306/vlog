@@ -10,179 +10,100 @@ codd:
 
 # VLog Maintenance Manual
 
-## Latest Status (2026-03-18)
+This document defines repeatable maintenance procedures. Point-in-time service status belongs in operations reports, not in this versioned runbook.
 
-### systemd Service & Timer
-- ✅ **vlog-daily.timer**: Runs at 09:00 JST daily
-- ✅ **vlog-daily.service**: Executes `/snap/bin/task process:daily`
-- ✅ **Taskfile**: `process:daily` now tolerates Supabase sync failures
+## Routine Verification
 
-### Known Issues
-
-#### 🚨 Supabase Free Tier Auto-Pause
-- **Problem**: Supabase pauses after 7 days of inactivity
-- **Status**: Currently paused (as of 2026-03-18)
-- **Symptoms**: 
-  - `task sync` fails with `postgrest.exceptions.APIError: Could not find the table 'public.evaluations'`
-  - systemd logs show `exit status 201/NICE` (misleading — it's not a NICE priority error, but exit code 201 from task)
-- **Solution**:
-  1. Go to https://supabase.com/dashboard
-  2. Select project **KafLog** (ctfklclaxidkjufnryvj.supabase.co)
-  3. Click **Resume project** (takes 2-3 minutes to restore)
-- **Workaround**: `process:daily` now catches sync failure and continues
-- **Next Pause**: 2026-05-31 (unless manually resumed before then)
-
-#### ⚙️ Exit Code Masking
-- When `task sync` fails with exit code 201, systemd interprets `status=201/NICE`
-- This is NOT a permission/NICE priority issue
-- Root cause: Supabase paused → sync fails → exit 201
-- **Fixed**: Taskfile now uses `|| true` to allow task to complete despite sync failure
-
-#### 🔄 Timer Execution Times
-- Timer configured: `OnCalendar=*-*-* 09:00:00` (9 AM JST)
-- Observed in logs: Executions at 06:00 and 18:00 (12-hour offset observed in Mar 17)
-- **Status**: Timer schedule is correct; offset may be timezone interpretation in journal
-
-### Data Integrity
-
-| Component | Status | Last Update |
-|-----------|--------|-------------|
-| novels/ | ✅ | 2026-03-17 08:34 |
-| summaries/ | ✅ | 2026-03-17 08:29 |
-| photos/ | ✅ | 2026-03-17 08:33 |
-| transcripts/ | ✅ | 2026-03-16 08:25 |
-| recordings/ | ✅ | 2026-03-16 08:27 |
-| traces.jsonl | ✅ | 2026-03-17 08:34 |
-
-### Cleanup Performed
-
-Removed unused directories (2026-03-18 18:27):
-- `data/novels\ copy/` (old backup)
-- `data/mbti_analysis/` (unused analysis)
-- `data/logs/` (systemd journal now sufficient)
-
-## Recovery Procedures
-
-### If `task process:daily` Fails in systemd
-
-1. **Check if Supabase is paused**:
-   ```bash
-   task sync
-   ```
-   If you see `Could not find the table`, Supabase is paused.
-
-2. **Resume Supabase**:
-   - https://supabase.com/dashboard → KafLog → Resume
-
-3. **Manually trigger reprocessing**:
-   ```bash
-   task process:daily
-   ```
-
-4. **Check systemd logs**:
-   ```bash
-   journalctl --user -u vlog-daily.service -n 20
-   systemctl --user status vlog-daily.service
-   ```
-
-### If Timer Doesn't Execute
-
-1. **Check timer status**:
-   ```bash
-   systemctl --user list-timers vlog-daily.timer
-   systemctl --user status vlog-daily.timer
-   ```
-
-2. **Enable timer**:
-   ```bash
-   systemctl --user enable --now vlog-daily.timer
-   ```
-
-3. **Force next execution** (for testing):
-   ```bash
-   systemctl --user start vlog-daily.service
-   ```
-
-## Logging & Monitoring (MANDATORY)
-
-### Log Locations
-
-1. **Service Logs** (systemd journal):
-   ```bash
-   journalctl --user -u vlog-daily.service --since "24 hours ago"
-   ```
-   - Persisted by systemd journal (default: 1-4 weeks depending on disk usage)
-   - Accessible anytime
-
-2. **Operation Log** (`/tmp/vlog-daily.log`):
-   ```bash
-   cat /tmp/vlog-daily.log
-   tail -20 /tmp/vlog-daily.log
-   ```
-   - Human-readable: timestamps + start/completion + failures
-   - **Note**: `/tmp` is volatile; persisted across reboots but not permanent
-   - Clear periodically: `task log:clear`
-
-### Daily Monitoring
-
-**Check if process ran today**:
 ```bash
-task monitor:daily
-```
-This shows:
-- Latest execution log
-- Timer status and next scheduled time
-- Last 24h service records
-- Supabase connectivity
-
-**Health check**:
-```bash
-task health:check
-```
-Verifies:
-- Timer is active
-- Last run succeeded/failed
-- Supabase is accessible
-
-### Failure Handling
-
-When `vlog-daily.service` fails:
-
-1. **Automatic notifications**:
-   - `vlog-daily-failure.service` triggers on failure
-   - Sends Discord webhook (if configured in CLI)
-   - Appends error details to `/tmp/vlog-daily.log`
-
-2. **Manual investigation**:
-   ```bash
-   # Recent errors
-   journalctl --user -u vlog-daily.service -n 10
-
-   # View full operation log
-   task log:daily
-
-   # Check Supabase status
-   task sync
-   ```
-
-### Log Retention Policy
-
-| Log Type | Location | Retention | Action |
-|----------|----------|-----------|--------|
-| systemd journal | `/var/log/journal` | 1-4 weeks | Automatic (system-managed) |
-| Operation log | `/tmp/vlog-daily.log` | Until cleared | `task log:clear` weekly |
-| Data files | `data/` subdirs | Permanent | Git-tracked |
-
-**Weekly maintenance**:
-```bash
-task log:clear  # Start fresh week
-task maintenance  # Full system check
+task lint
+task test
+task doc:check
+task systemd:verify
+task web:build
 ```
 
-## Future Improvements
+Environment-specific checks:
 
-- [ ] Implement Supabase pause detection (check project status API)
-- [ ] Auto-resume logic (daily cron to check & resume if paused)
-- [ ] Archive operation logs to persistent storage (e.g., data/logs/)
-- [ ] Alert on sustained failures (e.g., notify after 3 consecutive failures)
-- [ ] Structured logging (JSON format for automated analysis)
+```bash
+task status
+task service:status
+task log:status
+uv run python -m src.operations doctor --root "$(pwd)"
+uv run python -m src.operations report --days 30
+```
+
+## systemd
+
+Templates live under `infra/systemd/*.in`. They are rendered into the user systemd directory by `infra/systemd/render.py`; no checkout path is committed in a unit.
+
+```bash
+task systemd:verify
+task systemd:install
+systemctl --user status vlog.service vlog-daily.timer
+journalctl --user -u vlog.service -u vlog-daily.service --since "24 hours ago"
+```
+
+When a unit fails, inspect the rendered unit, its source template, the journal, `data/error_events.jsonl`, and `data/heartbeats/` before restarting.
+
+## Windows
+
+Canonical scripts live under `infra/windows/`.
+
+```text
+infra\windows\bootstrap.bat
+infra\windows\run.bat
+```
+
+External WSL watchdog:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1
+```
+
+Verify Task Scheduler state, `data/logs/windows-bootstrap.log`, `%LOCALAPPDATA%\VLog\watchdog.log`, and an actual recording created after VRChat starts. WSL-only execution is not Windows verification.
+
+## Evidence and Storage
+
+Before any destructive migration:
+
+```bash
+uv run --no-sync python scripts/phase0_inventory.py
+```
+
+- Do not delete or relocate raw evidence without a retained inventory and recoverable backup.
+- Do not treat a fixed-size Storage listing as complete; paginate until exhaustion.
+- Keep raw media in private object storage, not Git.
+- Keep publication separate from ingestion and generation.
+
+## Supabase
+
+For schema or policy changes:
+
+1. export the current schema and migration history;
+2. record table row counts and key ranges;
+3. inventory every bucket with visibility, object count, total bytes, and paginated object manifest;
+4. export RLS and Storage policies;
+5. apply changes from `infra/supabase/`;
+6. verify anonymous, authenticated, and service-role behavior independently.
+
+A connection failure, missing table, or paused project must be reported as an environment condition. Do not mask it by forcing a successful exit.
+
+## Reader
+
+```bash
+task web:setup
+task web:build
+task web:start
+```
+
+The application root is `apps/reader/`. A deployment provider configured with the former `frontend/reader` root must be updated during cutover.
+
+## Recovery Order
+
+1. identify the failed component and source evidence;
+2. preserve raw inputs and logs;
+3. repair configuration or code at its canonical boundary;
+4. run focused tests, then the full verification gate;
+5. replay only the affected idempotent operation;
+6. confirm output, audit event, and downstream visibility;
+7. record unresolved environment validation explicitly.

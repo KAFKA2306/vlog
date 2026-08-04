@@ -11,11 +11,16 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     "apps",
+    "apps/capture-vrchat",
+    "apps/reader",
     "packages",
     "packages/memory-domain",
     "packages/ingestion",
     "adapters",
     "infra",
+    "infra/systemd",
+    "infra/windows",
+    "infra/supabase",
     "schemas",
     "docs/architecture",
     "docs/operations",
@@ -40,10 +45,21 @@ RAW_MEDIA_SUFFIXES = {
     ".avi",
     ".mkv",
 }
-NON_PORTABLE_AGENT_LINKS = (
+NON_PORTABLE_MARKDOWN_LINKS = (
     re.compile(r"\]\(file://[^)]*\)"),
     re.compile(r"\]\(/home/[^)]*\)"),
     re.compile(r"\]\([A-Za-z]:\\[^)]*\)"),
+)
+LEGACY_PATHS = (
+    "src",
+    "frontend",
+    "windows",
+    "supabase",
+    "vlog.service",
+    "vlog-monitor-failure.service",
+    "vlog-daily.service",
+    "vlog-daily.timer",
+    "vlog-daily-failure.service",
 )
 MAX_GIT_FILE_BYTES = 100 * 1024 * 1024
 
@@ -72,29 +88,34 @@ def check(root: Path) -> list[Violation]:
     violations: list[Violation] = []
     tracked = tracked_files(root)
 
+    for legacy in LEGACY_PATHS:
+        if (root / legacy).exists():
+            violations.append(
+                Violation("legacy-boundary", legacy, "legacy root must remain removed"),
+            )
+
     for required in REQUIRED_PATHS:
         if not (root / required).exists():
             violations.append(
                 Violation("missing-boundary", required, "required v2 boundary is absent"),
             )
 
-    agents = root / "AGENTS.md"
-    if agents.exists():
-        text = agents.read_text(encoding="utf-8")
-        for pattern in NON_PORTABLE_AGENT_LINKS:
-            match = pattern.search(text)
-            if match:
-                violations.append(
-                    Violation(
-                        "non-portable-agent-pointer",
-                        "AGENTS.md",
-                        f"contains non-portable Markdown link: {match.group(0)}",
-                    ),
-                )
-
     for relative in tracked:
-        normalized = relative.replace("\\", "/")
         path = root / relative
+        if path.suffix.lower() == ".md" and path.is_file():
+            text = path.read_text(encoding="utf-8")
+            for pattern in NON_PORTABLE_MARKDOWN_LINKS:
+                match = pattern.search(text)
+                if match:
+                    violations.append(
+                        Violation(
+                            "non-portable-markdown-pointer",
+                            relative,
+                            f"contains non-portable Markdown link: {match.group(0)}",
+                        ),
+                    )
+
+        normalized = relative.replace("\\", "/")
         if any(normalized.startswith(prefix) for prefix in PRIVATE_ROOTS):
             violations.append(
                 Violation(

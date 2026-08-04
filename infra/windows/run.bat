@@ -1,11 +1,12 @@
 @echo off
-set "PROJECT_ROOT=%~dp0.."
+set "PROJECT_ROOT=%~dp0..\.."
 pushd "%PROJECT_ROOT%"
 
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"
 set "UV_PYTHON=3.12"
 set "PYTHONIOENCODING=utf-8"
+set "PYTHONPATH=%CD%\apps\capture-vrchat;%CD%\packages\memory-domain\src;%CD%\packages\ingestion\src"
 
 set "NVIDIA_BIN=%CD%\.venv-win\Lib\site-packages\nvidia"
 set "CUDNN_BIN=%NVIDIA_BIN%\cudnn\bin"

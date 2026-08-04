@@ -564,13 +564,13 @@ def write_report_files(
 def run_doctor(root: Path) -> int:
     log = OperationalEventLog(root / "data/error_events.jsonl")
     daily_text = (
-        (root / "vlog-daily.service").read_text(encoding="utf-8")
-        if (root / "vlog-daily.service").exists()
+        (root / "infra/systemd/vlog-daily.service.in").read_text(encoding="utf-8")
+        if (root / "infra/systemd/vlog-daily.service.in").exists()
         else ""
     )
     monitor_text = (
-        (root / "vlog.service").read_text(encoding="utf-8")
-        if (root / "vlog.service").exists()
+        (root / "infra/systemd/vlog.service.in").read_text(encoding="utf-8")
+        if (root / "infra/systemd/vlog.service.in").exists()
         else ""
     )
     checks = [

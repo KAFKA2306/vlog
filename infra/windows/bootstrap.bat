@@ -1,5 +1,5 @@
 @echo off
-pushd "%~dp0.."
+pushd "%~dp0..\.."
 
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"

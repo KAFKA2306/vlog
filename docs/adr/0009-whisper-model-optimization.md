@@ -6,9 +6,9 @@ codd:
   links:
     - to: data/config.yaml
       type: configuration
-    - to: src/infrastructure/system.py
+    - to: apps/capture-vrchat/src/infrastructure/system.py
       type: implementation
-    - evidence: "rg -n \"large-v3-turbo|compute_type|device|model_size\" data/config.yaml src/infrastructure/system.py src/infrastructure/README.md .claude/CLAUDE.md"
+    - evidence: "rg -n \"large-v3-turbo|compute_type|device|model_size\" data/config.yaml apps/capture-vrchat/src/infrastructure/system.py apps/capture-vrchat/src/infrastructure/README.md .claude/CLAUDE.md"
     ---
 
 

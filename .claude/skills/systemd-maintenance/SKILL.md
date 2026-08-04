@@ -1,6 +1,6 @@
 ---
 name: systemd-maintenance
-description: Manage and maintain systemd units for the VLog project, including `vlog.service`, `vlog-daily.service`, and `vlog-daily.timer`. ACTIVATE this skill whenever the user mentions "systemd", "service", "logs", "status", or if the core monitor fails to start automatically. It handles `task up`, `task down`, `task restart`, and `task logs`. Use this proactively to ensure the long-term stability of the background processes.
+description: Manage VLog user services, portable unit templates, logs, and recovery. Activate for systemd, service, timer, startup, status, or journal issues.
 allowed-tools:
   - "Bash(task *)"
   - Read
@@ -8,39 +8,33 @@ allowed-tools:
 
 # Systemd Maintenance Skill
 
-A specialized skill for managing the lifecycle and health of VLog's background services using systemd.
+## Canonical Assets
 
-## Core Operations
+- Templates: `infra/systemd/*.service.in`, `infra/systemd/*.timer.in`
+- Renderer: `infra/systemd/render.py`
+- Installer: `infra/systemd/install.sh`
+- Installed units: `${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/`
 
-### 1. Service Control
-Enable, start, or stop the background monitor and daily task timers.
-- **cmd**: `task up` (Enables and starts all units)
-- **cmd**: `task down` (Stops and disables all units)
-- **cmd**: `task restart` (Restarts the main `vlog` service)
+Repository templates contain placeholders rather than a fixed checkout path. Never edit the rendered user units as the source of truth.
 
-### 2. Status and Health Checks
-Monitor the current state of services.
-- **cmd**: `task service:status` (Checks the main monitor status)
-- **cmd**: `task status` (Runs the app-level status command)
+## Operations
 
-### 3. Log Analysis
-Investigate failures or crashes.
-- **cmd**: `task logs` (Tails the journal for the `vlog` unit)
-- When a crash is detected (e.g., monitor exit), immediately check logs to identify the root cause.
+```bash
+task systemd:verify
+task systemd:install
+task service:status
+task logs
+task down
+```
 
-## Unit Files
-The systemd units are located in:
-- `systemd/vlog.service`: Main recording monitor.
-- `systemd/vlog-daily.service`: Daily processing task.
-- `systemd/vlog-daily.timer`: Timer for the daily task.
+`task systemd:verify` renders into a temporary directory before `systemd-analyze verify`. `task systemd:install` renders the current repository and `uv` paths, reloads the user manager, enables the daily timer, and restarts the monitor.
 
-## Guidelines
-- **User Mode**: All `systemctl` commands MUST use the `--user` flag (handled by Taskfile).
-- **Proactive Maintenance**: If the user reports the app isn't working, first check `task service:status`.
-- **Silent Troubleshooting**: Analyze logs before asking the user for input on crashes.
+## Failure Diagnosis
 
-## Examples
-- "Start it in the background" -> `task up`
-- "Check whether the service is running" -> `task service:status`
-- "Show logs after an error" -> `task logs`
-- "Stop daily scheduled execution" -> `task down` (or individual systemctl commands)
+1. Run `systemctl --user status vlog.service vlog-daily.timer`.
+2. Inspect `journalctl --user -u vlog.service -u vlog-daily.service`.
+3. Compare the installed unit with the corresponding `.in` template.
+4. Re-run `task systemd:verify` before installation.
+5. Check `data/heartbeats/` and the operations report.
+
+Do not claim Linux/WSL runtime success from static CI alone.

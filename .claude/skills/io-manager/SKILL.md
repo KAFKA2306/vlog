@@ -21,7 +21,7 @@ Move processed content from active areas to long-term storage.
 - **Batch process**: `task process:all` or `task process:today`.
 
 ### 3. Integrity Verification
-Ensure that the filesystem structure matches the `src/infrastructure/settings.py` definitions.
+Ensure that the filesystem structure matches the `apps/capture-vrchat/src/infrastructure/settings.py` definitions.
 - Verify the existence of required directories (archives, photos, novels, summary, etc.).
 - Check for "orphaned" files (e.g., a summary with no source recording).
 

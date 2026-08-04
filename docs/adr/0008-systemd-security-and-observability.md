@@ -4,13 +4,13 @@ codd:
   type: adr
   status: accepted
   links:
-    - to: vlog.service
+    - to: infra/systemd/vlog.service.in
       type: implementation
-    - to: vlog-daily.service
+    - to: infra/systemd/vlog-daily.service.in
       type: implementation
     - to: vlog-daily-failure.service
       type: implementation
-    - evidence: "rg -n \"OnFailure=vlog-daily-failure.service|ProtectSystem=strict|NoNewPrivileges=yes|ReadWritePaths=|ReadOnlyPaths=\" vlog.service vlog-daily.service vlog-daily-failure.service"
+    - evidence: "rg -n \"OnFailure=vlog-daily-failure.service|ProtectSystem=strict|NoNewPrivileges=yes|ReadWritePaths=|ReadOnlyPaths=\" infra/systemd/vlog.service.in infra/systemd/vlog-daily.service.in infra/systemd/vlog-daily-failure.service.in"
     ---
 
 

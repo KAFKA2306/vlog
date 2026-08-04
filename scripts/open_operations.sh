@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+export PYTHONPATH="$ROOT/apps/capture-vrchat:$ROOT/packages/memory-domain/src:$ROOT/packages/ingestion/src${PYTHONPATH:+:$PYTHONPATH}"
 
 if [[ -f .env ]]; then
   set -a

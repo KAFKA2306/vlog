@@ -1,6 +1,7 @@
 param(
     [string]$Distro = "Ubuntu-22.04",
-    [string]$ProjectPath = "/home/kafka/projects/vlog",
+    [Parameter(Mandatory = $true)]
+    [string]$ProjectPath,
     [int]$HeartbeatMaxAgeSeconds = 180
 )
 
@@ -47,7 +48,7 @@ set -euo pipefail
 cd '$escapedProject'
 systemctl --user reset-failed vlog.service || true
 systemctl --user restart vlog.service
-uv run python -m src.operations emit \
+PYTHONPATH=apps/capture-vrchat:packages/memory-domain/src:packages/ingestion/src uv run python -m src.operations emit \
   --category infrastructure \
   --component windows-watchdog \
   --operation external_probe \

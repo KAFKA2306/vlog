@@ -4,7 +4,7 @@ codd:
   type: adr
   status: approved
   links:
-    - to: src/use_cases/process_recording.py
+    - to: apps/capture-vrchat/src/use_cases/process_recording.py
       type: implementation
     - evidence: "Compression Trace: raw (1264b) -> cleaned (1118b) [removed filler 'うん']"
       type: verification

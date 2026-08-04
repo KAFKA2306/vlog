@@ -6,7 +6,7 @@ description: Operating guide for audio processing, image generation, and media q
 # Media Expert Skill
 
 ## 1. Audio Pipeline
-- Format standards must follow `src/infrastructure/settings.py`.
+- Format standards must follow `apps/capture-vrchat/src/infrastructure/settings.py`.
 - Capture: hardware-native input (`48kHz`, stereo).
 - Processing target: AI-normalized (`16kHz`, mono).
 - VAD: use `webrtcvad` with a pre-roll buffer to prevent clipped speech starts.

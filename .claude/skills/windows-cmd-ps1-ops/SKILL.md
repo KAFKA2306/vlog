@@ -1,29 +1,32 @@
 ---
 name: windows-cmd-ps1-ops
-description: Windows operations protocol for running and recovering VLog via `run.bat`, `bootstrap.ps1`, and the Rust monitor. Trigger this skill when users hit UNC path launch failures, missing cargo/toolchain issues, ExecutionPolicy or permission blockers, restart-loop incidents, or Windows-side logging/debugging needs, because these failures are platform-specific and require exact command sequencing.
+description: Windows operations protocol for running and recovering VLog through Task Scheduler, `run.bat`, `bootstrap.bat`, and the external WSL watchdog. Trigger for UNC launch failures, uv/Python resolution, ExecutionPolicy blockers, restart loops, or Windows-side logging.
 ---
 
 # Windows CMD/PS1 Ops
 
 ## 1. Responsibility Split
-- `windows/run.bat` is the entry point for environment setup only.
-- `src/windows/rust/bootstrap.ps1` is the control plane for build, toolchain discovery, and restart flow.
-- `vlog-rs.exe monitor` is the execution target.
+- `infra/windows/bootstrap.bat` prepares the Windows environment and registers the logon task.
+- `infra/windows/run.bat` resolves the repository root, sets `PYTHONPATH`, and starts `python -m src.main`.
+- `infra/windows/install-vlog-watchdog.ps1` registers the external WSL watchdog.
+- `infra/windows/vlog-watchdog.ps1` probes systemd and heartbeat state, then requests recovery when stale.
 
 ## 2. Path and Toolchain Normalization
-- Normalize paths with `Resolve-Path` and avoid direct UNC execution.
-- Use temporary drive mapping (`pushd`) when needed to enforce stable `C:\` execution context.
-- If `where.exe cargo` fails, check `$env:USERPROFILE\.cargo\bin` explicitly.
+- Derive the repository root from each script location; do not hard-code a user home path.
+- Use `pushd` for UNC paths.
+- Use `.venv-win`, Python 3.12, and `uv sync --frozen`.
 
 ## 3. Recovery Rules
-- On abnormal process exit, restart after a short fixed delay.
-- Prevent duplicate monitor instances by checking existing processes before launch.
+- Prevent duplicate scheduled-task instances.
+- Record the resolved project path before launch.
+- Restart only after the service/heartbeat probe proves the runtime unhealthy.
 
 ## 4. Logging Rules
-- Truncate startup bootstrap logs before each run.
-- Keep log fields explicit: `timestamp`, `resolved_path`, `exit_code`, `working_dir`.
+- Keep `timestamp`, `resolved_path`, `working_dir`, and `exit_code` explicit.
+- Store Windows bootstrap logs under `data/logs/` and external watchdog logs under `%LOCALAPPDATA%\\VLog`.
 
 ## 5. Definition of Done
-- After `run.bat`, the monitor stays alive for at least 10 seconds.
-- Windows process detection works and recording files appear in `data/recordings`.
-- Crash reason is written to `logs/windows-rust-bootstrap.log`.
+- `VlogAutoDiary` remains running after launch.
+- VRChat detection creates evidence in `data/recordings/`.
+- systemd heartbeat and external watchdog recovery are observable.
+- No script depends on `/home/kafka/...` or another fixed checkout path.

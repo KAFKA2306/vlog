@@ -4,14 +4,14 @@ codd:
   type: spec
   status: approved
   links:
-    - to: src/infrastructure/ai.py
+    - to: apps/capture-vrchat/src/infrastructure/ai.py
       type: implementation
 ---
 
 # 画像生成サブシステム詳細仕様書 (Image Generation Subsystem Internal Specification)
 
-> マスタードキュメント → [docs/overview.md](file:///home/kafka/projects/vlog/docs/overview.md)  
-> 開発ガイド → [AGENTS.md](file:///home/kafka/projects/vlog/AGENTS.md)
+> マスタードキュメント → [overview.md](overview.md)
+> 開発ガイド → [AGENTS.md](../AGENTS.md)
 
 このドキュメントは、Vlogプロジェクトにおける画像生成サブシステム（Image Generation Subsystem）の技術仕様、アーキテクチャ、運用、およびトラブルシューティングに関する包括的なリファレンスです。
 
@@ -76,9 +76,9 @@ Vlogの画像生成サブシステムは、日々の活動ログ（音声認識�
 
 | コンポーネント | 実装 | 役割 |
 |---|---|---|
-| Orchestrator | `BuildNovelUseCase` (`src/use_cases/build_novel.py`) | プロセス全体の指揮者。小説生成完了をトリガーとして画像生成を開始 |
-| Core Generator | `ImageGenerator` (`src/infrastructure/ai.py`) | 画像生成ロジックの本体。プロンプト構築、モデルロード、推論実行、ファイル保存を一元管理 |
-| Prompt Engineer | `JulesClient` (`src/infrastructure/ai.py`) | Gemini 3 Flash APIへのインターフェース。「アートディレクター」として自然言語の小説を画像プロンプトへ変換 |
+| Orchestrator | `BuildNovelUseCase` (`apps/capture-vrchat/src/use_cases/build_novel.py`) | プロセス全体の指揮者。小説生成完了をトリガーとして画像生成を開始 |
+| Core Generator | `ImageGenerator` (`apps/capture-vrchat/src/infrastructure/ai.py`) | 画像生成ロジックの本体。プロンプト構築、モデルロード、推論実行、ファイル保存を一元管理 |
+| Prompt Engineer | `JulesClient` (`apps/capture-vrchat/src/infrastructure/ai.py`) | Gemini 3 Flash APIへのインターフェース。「アートディレクター」として自然言語の小説を画像プロンプトへ変換 |
 | Inference Engine | `Hugging Face Diffusers` | Z-Image-Turboを使用。PyTorchバックエンド上でCUDAアクセラレーションを活用 |
 
 ### 2.2 依存ライブラリ
@@ -214,7 +214,7 @@ image_generator:
 
 ## 5. 設定パラメータリファレンス
 
-設定は `src/infrastructure/settings.py` および `data/config.yaml` で管理されています。
+設定は `apps/capture-vrchat/src/infrastructure/settings.py` および `data/config.yaml` で管理されています。
 
 ### 5.1 現在の設定値
 

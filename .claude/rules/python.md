@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/**/*.py"
+  - "apps/capture-vrchat/src/**/*.py"
   - "tests/**/*.py"
 ---
 - 4-space indent

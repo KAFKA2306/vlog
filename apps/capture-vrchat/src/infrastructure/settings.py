@@ -6,9 +6,11 @@ import yaml
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.project import PROJECT_ROOT
+
 
 def _get_project_root() -> Path:
-    return Path(__file__).resolve().parent.parent.parent
+    return PROJECT_ROOT
 
 
 def resolve_project_path(value: Path) -> Path:
@@ -49,7 +51,7 @@ _DEFAULT_LLM_MODEL = _config.get("gemini", {}).get(
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=_get_project_root() / ".env", env_file_encoding="utf-8", extra="ignore"
     )
 
     gemini_api_key: str = Field(alias="GOOGLE_API_KEY")

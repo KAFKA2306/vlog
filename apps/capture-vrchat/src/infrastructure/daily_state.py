@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Iterable
 
 from src.infrastructure.settings import settings
+from src.project import PROJECT_ROOT
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = PROJECT_ROOT
 DEFAULT_STATE_PATH = _PROJECT_ROOT / "data" / "daily_state.json"
 
 
