@@ -1,45 +1,81 @@
-# VLog Operations
+# VLog operations
 
-VLog の録音、文字起こし、生成、同期、通知、systemd 実行を、同一の構造化イベントで監査します。運用ログは公開 Reader へ出しません。
+This runbook covers the current relocated runtime: recording, transcription, generation, synchronization, notifications, systemd supervision, Windows supervision assets, and local incident evidence. Operational logs and raw evidence must not be exposed through the public reader.
 
-## 監視構成
+The current runtime remains legacy-compatible and file-based. Human Memory v2 migration procedures are documented separately in [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md).
 
-監視は二層です。
+## Completion boundary
 
-1. WSL 内では `systemd` の `Type=notify` と `WatchdogSec=120s` が常駐プロセスの停止・ハングを検知します。
-2. Windows Task Scheduler は 5 分ごとに systemd 状態と heartbeat 鮮度を確認し、WSL 側の監督機構ごと停止した場合にサービスを再起動します。
+Repository validation and environment validation are different:
 
-主なローカル成果物:
+- `task systemd:verify` proves that rendered unit syntax is valid in the checking environment.
+- `task web:build` proves that the Reader can typecheck, lint, and build in the checking environment.
+- GitHub Actions does not prove live user-systemd operation, Windows Task Scheduler registration, audio capture, GPU execution, Vercel configuration, Supabase contents, Storage policy, or credentials.
 
-- `data/error_events.jsonl`: 現在の構造化イベント
-- `data/error_events.jsonl.1` 以降: ローテーション済みログ
-- `data/heartbeats/vlog-service.json`: 最新 heartbeat
-- `data/reports/operations.html`: ローカル運用コックピット
-- `data/reports/operations.json`: 機械可読監査結果
+Record environment-specific evidence before reporting an operational cutover as complete.
 
-## 初回反映
+## Supervision model
 
-WSL:
+The repository contains two supervision layers:
+
+1. Linux/WSL user systemd units under `infra/systemd/` for the monitor and daily pipeline.
+2. Windows Task Scheduler and watchdog assets under `infra/windows/` for host-level recovery when WSL or its user manager is unavailable.
+
+The existence and static validation of these assets do not establish that they are installed or functioning on the production host.
+
+Primary machine-local evidence:
+
+- `data/error_events.jsonl`: current structured operational events;
+- `data/error_events.jsonl.1` and later generations: rotated events;
+- `data/heartbeats/vlog-service.json`: latest monitor heartbeat;
+- `data/reports/operations.html`: local operations cockpit;
+- `data/reports/operations.json`: machine-readable report;
+- systemd journal and Windows watchdog logs.
+
+## Install or update Linux/WSL units
+
+From the repository root:
 
 ```bash
-cd /path/to/vlog
 git pull --ff-only
-bash scripts/install_systemd_units.sh
+task systemd:verify
+task systemd:install
 ```
 
-任意の Windows 外形監視:
+`infra/systemd/render.py` resolves the active repository root, Python path, and `uv` executable into user-unit files outside the repository. The installer targets `${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user`.
+
+Verify the actual user manager after installation:
+
+```bash
+systemctl --user status vlog.service vlog-daily.timer
+systemctl --user list-timers vlog-daily.timer --all --no-pager
+journalctl --user -u vlog.service -u vlog-daily.service --since "24 hours ago"
+```
+
+A host without a working user systemd bus has not completed this cutover, even if template verification succeeds.
+
+## Install or update the Windows watchdog
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1
 ```
 
-登録名は `VLog External Watchdog`、ログは `%LOCALAPPDATA%\VLog\watchdog.log` です。
+The configured task name is `VLog External Watchdog`; its log is `%LOCALAPPDATA%\VLog\watchdog.log`.
 
-## インシデントの単位
+Verify on the actual Windows machine:
 
-障害は `fingerprint + resource_id` で集約します。通常の `succeeded` イベントでは障害を閉じません。対象障害の fingerprint を `resolves_fingerprint` で明示的に参照する `recovered` イベントだけが解消証跡です。復旧後に同じ障害が再発した場合は再び未解消になります。
+- the scheduled task exists and is enabled;
+- WSL starts as expected;
+- the watchdog detects stale service state;
+- the intended service is restarted;
+- an actual VRChat session creates a non-empty recording;
+- logs identify failures without exposing secrets.
 
-手動確認後に閉じる例:
+## Incident identity and recovery
+
+Incidents are grouped by `fingerprint + resource_id`. A generic `succeeded` event does not resolve a failure. Resolution requires a `recovered` event that explicitly references the affected fingerprint through `resolves_fingerprint`. A later recurrence reopens the incident.
+
+Example after manual verification:
 
 ```bash
 uv run python -m src.operations recover-latest \
@@ -50,19 +86,21 @@ uv run python -m src.operations recover-latest \
   --message "Audio input was verified manually"
 ```
 
-## ログ耐久性
+Run Python module commands from the repository root so the Taskfile or environment provides `apps/capture-vrchat` on `PYTHONPATH`.
 
-構造化イベントには以下を適用します。
+## Event-log durability
 
-- プロセス間ファイルロック
-- 部分書き込みを防ぐ write loop
-- failure / recovered / critical の選択的 `fsync`
-- 既定 10 MiB、7 世代、90 日保持
-- API key、token、Webhook、ホームパスのマスク
-- 例外型、メッセージ、stacktrace
-- `service.name`、`service.instance.id`、`trace_id`、`span_id` 用フィールド
+Structured operational events implement:
 
-変更可能な環境変数:
+- inter-process file locking;
+- complete-write loops;
+- selective `fsync` for failure, recovered, and critical events;
+- size and retention controls;
+- masking for API keys, tokens, webhooks, and home paths;
+- exception type, message, and stack trace;
+- service, instance, trace, and span fields.
+
+Configurable environment variables:
 
 ```dotenv
 VLOG_EVENT_MAX_BYTES=10485760
@@ -71,34 +109,58 @@ VLOG_EVENT_RETENTION_DAYS=90
 VLOG_EVENT_FSYNC=failures
 ```
 
-## 日常操作
+## Routine diagnosis
 
 ```bash
-uv run python -m src.operations doctor
+task status
+task service:status
+task log:status
+uv run python -m src.operations doctor --root "$(pwd)"
 bash scripts/open_operations.sh 90
-systemctl --user status vlog.service
 cat data/heartbeats/vlog-service.json
 ```
 
-## 録音監視
+`task status` invokes both Windows and systemd commands. Use the component-specific commands when one host layer is unavailable.
 
-`AudioRecorder.start()` は音声ストリームが実際に開くまで最大 10 秒待ちます。録音スレッド内の例外は親ループへ伝達され、次を検出します。
+## Recording checks
 
-- 入力ストリーム開始失敗・タイムアウト
-- 音声入力 overflow
-- VRChat 稼働中の録音スレッド終了
-- 停止タイムアウト
-- 空または極端に小さい録音
-- セッション処理・Supabase 同期失敗
+The recorder and monitor are expected to surface:
 
-## 過去ログ
+- input stream startup failure or timeout;
+- input overflow;
+- recorder-thread termination while VRChat remains active;
+- stop timeout;
+- empty or unexpectedly small recording;
+- session processing failure;
+- synchronization failure.
 
-レポートは `data/incidents.jsonl`、`data/daily_runs.jsonl`、`data/logs/vlog.log` も読み込みます。旧ログの `429 / RESOURCE_EXHAUSTED` は Gemini rate limit、`/snap/bin/task` または `task: not found` は scheduler binary missing として分類します。破損 JSONL 行は `invalid_jsonl` インシデントとして可視化します。
+Static tests cannot confirm the selected physical audio device, permissions, sample flow, or recording growth. Validate those on the capture host.
 
-## systemd 失敗時
+## Historical logs
 
-`vlog.service` と `vlog-daily.service` の `OnFailure` は unit の終了状態と直近 40 行の journal をローカルログへ保存し、その後に短い Discord 通知を送ります。詳細ログや秘密値は通知・公開 Readerへ転送しません。
+The operations report also reads legacy sources such as `data/incidents.jsonl`, `data/daily_runs.jsonl`, and `data/logs/vlog.log`. Historical classification is compatibility logic; new operational evidence should use the current structured event format. Invalid JSONL rows must remain visible as audit failures rather than being silently skipped.
 
-## 検証ゲート
+## systemd failure path
 
-Pull Request では、Python のコンパイル、Ruff lint・format、全 pytest を必須ゲートとして実行します。障害の誤解消、復旧後の再発、複数プロセス同時書き込み、ログローテーション、秘密値マスク、破損 JSONL、systemd notify を回帰テストで固定します。
+The monitor and daily services use failure units under `infra/systemd/`. A failure handler records unit state and recent journal context locally before sending a brief notification. Detailed logs, evidence, paths, and secrets must not be copied into Discord or the public Reader.
+
+## Verification gate
+
+Repository changes should pass:
+
+```bash
+task test
+task doc:check
+task systemd:verify
+task web:build
+```
+
+Ruff check and format-check are enforced in CI. Environment changes additionally require evidence from the affected system: Linux/WSL, Windows, Vercel, Supabase, object storage, audio, or GPU.
+
+## Related documents
+
+- [Documentation index](README.md)
+- [Maintenance procedures](MAINTENANCE.md)
+- [Current runtime architecture](architecture.md)
+- [Current daily pipeline contract](daily_pipeline_contract.md)
+- [Phase 0 inventory](operations/phase0-inventory.md)
