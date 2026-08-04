@@ -7,7 +7,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "packages" / "ingestion" / "src"))
 
-from vlog_ingestion import InventoryBuilder, InventoryConfig, write_inventory  # noqa: E402
+from vlog_ingestion import (  # noqa: E402
+    InventoryBuilder,
+    InventoryConfig,
+    write_inventory,
+)
 
 
 def test_inventory_hashes_files_without_modifying_sources(tmp_path: Path) -> None:
