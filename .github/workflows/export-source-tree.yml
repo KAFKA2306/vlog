@@ -17,16 +17,17 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
-      - name: Preserve migration workflow and restore exact patch baseline
+      - name: Preserve workflows and restore exact patch baseline
         run: |
-          cp .github/workflows/export-source-tree.yml /tmp/apply-phase1.yml
+          cp -a .github/workflows /tmp/workflows-before-migration
           git checkout 184b8762ffd0ccc100ef7d7a0e65f023209b9b9b -- .github/workflows/export-source-tree.yml
       - name: Apply audited relocation patch
         run: |
           cat .phase1/patch.xz.b64.part-* | base64 --decode | xz --decompress > /tmp/phase1.patch
           git apply --index --binary --whitespace=error-all /tmp/phase1.patch
-          cp /tmp/apply-phase1.yml .github/workflows/export-source-tree.yml
-          git add .github/workflows/export-source-tree.yml
+          rm -rf .github/workflows
+          cp -a /tmp/workflows-before-migration .github/workflows
+          git add -A .github/workflows
       - name: Refresh lockfile
         run: uv lock
       - name: Verify and commit final relocation tree
@@ -39,7 +40,7 @@ jobs:
           test -d apps/capture-vrchat/src
           test -f apps/reader/package.json
           test -d infra/systemd
-          git diff --cached --quiet -- .github/workflows/export-source-tree.yml
+          git diff --cached --quiet -- .github/workflows
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: relocate runtime into Human Memory v2 boundaries"
