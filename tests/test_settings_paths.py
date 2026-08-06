@@ -14,7 +14,12 @@ def test_resolve_project_path_anchors_relative_paths() -> None:
     )
 
 
-def test_resolve_project_path_rejects_windows_paths_in_wsl() -> None:
+def test_resolve_project_path_rejects_windows_drive_paths_in_wsl() -> None:
+    with pytest.raises(ValueError, match="Windows path is not valid in WSL"):
+        resolve_project_path(Path(r"Z:\home\kafka\projects\vlog\transcripts"))
+
+
+def test_resolve_project_path_rejects_windows_unc_paths_in_wsl() -> None:
     with pytest.raises(ValueError, match="Windows path is not valid in WSL"):
         resolve_project_path(Path(r"\\wsl.localhost\Ubuntu-22.04\home\kafka"))
 
@@ -23,5 +28,12 @@ def test_settings_rejects_windows_paths_in_wsl() -> None:
     with pytest.raises(ValueError, match="Windows path is not valid in WSL"):
         Settings(
             GOOGLE_API_KEY="test",
-            VLOG_RECORDING_DIR=r"\\wsl.localhost\Ubuntu-22.04\home\kafka",
+            VLOG_RECORDING_DIR=r"Z:\home\kafka\projects\vlog\recordings",
         )
+
+
+def test_windows_runtime_preserves_windows_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.infrastructure.settings.platform.system", lambda: "Windows")
+    value = Path(r"Z:\home\kafka\projects\vlog\transcripts")
+
+    assert resolve_project_path(value) == value
