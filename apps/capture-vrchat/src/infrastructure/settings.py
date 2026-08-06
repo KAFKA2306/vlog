@@ -12,10 +12,15 @@ def _get_project_root() -> Path:
     return PROJECT_ROOT
 
 
+def is_windows_path_invalid_on_linux(
+    value: Path, *, system: str | None = None
+) -> bool:
+    runtime_system = system or platform.system()
+    return runtime_system == "Linux" and PureWindowsPath(str(value)).is_absolute()
+
+
 def resolve_project_path(value: Path) -> Path:
-    raw_value = str(value)
-    windows_path = PureWindowsPath(raw_value)
-    if platform.system() == "Linux" and windows_path.is_absolute():
+    if is_windows_path_invalid_on_linux(value):
         raise ValueError(f"Windows path is not valid in WSL: {value}")
     if value.is_absolute():
         return value
