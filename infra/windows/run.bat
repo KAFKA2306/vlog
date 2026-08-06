@@ -1,6 +1,18 @@
 @echo off
+setlocal
 set "PROJECT_ROOT=%~dp0..\.."
-pushd "%PROJECT_ROOT%"
+pushd "%PROJECT_ROOT%" 2>nul
+if errorlevel 1 (
+  echo ERROR: Could not open the project directory: "%PROJECT_ROOT%" 1>&2
+  echo If the repository is on a UNC or WSL share, map it to a Windows drive or copy it to a local Windows path, then run this script again. 1>&2
+  exit /b 1
+)
+
+if not exist "pyproject.toml" (
+  echo ERROR: The resolved project directory is invalid: "%CD%" 1>&2
+  popd
+  exit /b 1
+)
 
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"
