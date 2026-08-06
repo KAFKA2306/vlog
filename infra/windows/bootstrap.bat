@@ -34,22 +34,18 @@ if not exist "data\summaries" mkdir "data\summaries"
 if not exist "data\archives" mkdir "data\archives"
 if not exist "data\logs" mkdir "data\logs"
 uv sync --frozen
-if errorlevel 1 (
-  set "EXIT_CODE=%ERRORLEVEL%"
-  popd
-  exit /b %EXIT_CODE%
-)
+if errorlevel 1 goto :failed
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0register_task.ps1" -RunScript "%~dp0run.bat"
-if errorlevel 1 (
-  set "EXIT_CODE=%ERRORLEVEL%"
-  popd
-  exit /b %EXIT_CODE%
-)
+if errorlevel 1 goto :failed
 
 echo Bootstrap complete. Task scheduled.
 schtasks /Run /TN "VlogAutoDiary"
-set "EXIT_CODE=%ERRORLEVEL%"
+if errorlevel 1 goto :failed
 popd
 pause
-exit /b %EXIT_CODE%
+exit /b 0
+
+:failed
+popd
+exit /b 1
