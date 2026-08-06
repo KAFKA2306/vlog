@@ -12,9 +12,7 @@ def _get_project_root() -> Path:
     return PROJECT_ROOT
 
 
-def is_windows_path_invalid_on_linux(
-    value: Path, *, system: str | None = None
-) -> bool:
+def is_windows_path_invalid_on_linux(value: Path, *, system: str | None = None) -> bool:
     runtime_system = system or platform.system()
     return runtime_system == "Linux" and PureWindowsPath(str(value)).is_absolute()
 
