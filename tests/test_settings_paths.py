@@ -4,6 +4,7 @@ import pytest
 from src.infrastructure.settings import (
     Settings,
     _get_project_root,
+    is_windows_path_invalid_on_linux,
     resolve_project_path,
 )
 
@@ -32,8 +33,8 @@ def test_settings_rejects_windows_paths_in_wsl() -> None:
         )
 
 
-def test_windows_runtime_preserves_windows_paths(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("src.infrastructure.settings.platform.system", lambda: "Windows")
+def test_windows_drive_path_guard_is_linux_only() -> None:
     value = Path(r"Z:\home\kafka\projects\vlog\transcripts")
 
-    assert resolve_project_path(value) == value
+    assert is_windows_path_invalid_on_linux(value, system="Linux")
+    assert not is_windows_path_invalid_on_linux(value, system="Windows")
