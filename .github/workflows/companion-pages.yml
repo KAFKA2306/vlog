@@ -1,0 +1,110 @@
+name: Companion Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/companion-lab/**"
+      - ".github/workflows/companion-pages.yml"
+  pull_request:
+    paths:
+      - "apps/companion-lab/**"
+      - ".github/workflows/companion-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vlog-companion-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      pages_enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate static companion lab
+        run: |
+          set -euo pipefail
+          test -s apps/companion-lab/index.html
+          test -s apps/companion-lab/app.js
+          node --check apps/companion-lab/app.js
+          grep -F 'vlog-companion-lab-v1' apps/companion-lab/index.html
+          grep -F '73 bit' apps/companion-lab/index.html
+
+      - name: Assemble Pages artifact
+        run: |
+          rm -rf _site
+          mkdir _site
+          cp -R apps/companion-lab/. _site/
+          touch _site/.nojekyll
+
+      - name: Detect GitHub Pages configuration
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error -o pages-config.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")"
+          if [ "$status" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          elif [ "$status" = "404" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "### GitHub Pages is not enabled yet" >> "$GITHUB_STEP_SUMMARY"
+            echo "Enable Settings → Pages → Source: GitHub Actions once, then rerun this workflow." >> "$GITHUB_STEP_SUMMARY"
+          else
+            cat pages-config.json
+            exit 1
+          fi
+
+      - name: Configure Pages
+        if: github.event_name != 'pull_request' && steps.pages.outputs.enabled == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request' && steps.pages.outputs.enabled == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request' && needs.build.outputs.pages_enabled == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify public companion lab
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          matched=false
+          for attempt in $(seq 1 24); do
+            curl --fail --silent --show-error --location "${PAGE_URL}?smoke=${EXPECTED_SHA}-${attempt}" -o "$tmp/index.html"
+            if grep -Fq 'vlog-companion-lab-v1' "$tmp/index.html"; then
+              matched=true
+              break
+            fi
+            sleep 10
+          done
+          test "$matched" = true
+          curl --fail --silent --show-error --location "${PAGE_URL}app.js?smoke=${EXPECTED_SHA}" -o "$tmp/app.js"
+          grep -F 'vlog.companion.demo.words.v1' "$tmp/app.js"

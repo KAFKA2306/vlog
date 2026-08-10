@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f0e8">
+  <meta name="app-build" content="vlog-companion-lab-v1">
+  <meta name="description" content="VLogのローカル学習型VRChat companion projectionをブラウザで試す公開デモ。">
+  <title>VLog Companion Lab</title>
+  <style>
+    :root{--bg:#f4f0e8;--card:#fffdf8;--ink:#181713;--muted:#6f6b62;--line:#d9d2c4;--soft:#ebe4d7;--radius:20px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Noto Sans JP",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.65}.shell{width:min(1120px,calc(100% - 32px));margin:auto}a{color:inherit}.top{display:flex;justify-content:space-between;align-items:center;padding:24px 0}.brand{text-decoration:none;font-weight:900}.nav{display:flex;gap:10px}.btn,button{border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:10px 16px;font:inherit;font-weight:750;cursor:pointer;text-decoration:none}.btn.primary,button.primary{background:var(--ink);color:#fff}.hero{padding:68px 0 34px}.eyebrow{font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;font-weight:850;color:var(--muted)}h1{font-size:clamp(2.8rem,8vw,6.7rem);line-height:.92;letter-spacing:-.06em;margin:.15em 0}.lead{max-width:780px;color:var(--muted);font-size:1.16rem}.status{display:inline-flex;gap:8px;align-items:center;margin-top:18px;padding:7px 12px;background:var(--soft);border-radius:999px;font-size:.86rem}.dot{width:8px;height:8px;border-radius:50%;background:#2f6846}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;padding:24px 0 64px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:0 8px 28px rgba(38,32,20,.04)}.card h2{margin-top:0;font-size:1.35rem}.inputrow{display:flex;gap:10px}.inputrow input{flex:1;min-width:0;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit}.muted,.hint{color:var(--muted);font-size:.9rem}.words{display:grid;gap:8px;margin-top:18px}.word{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:11px 12px;background:var(--bg);border-radius:12px}.bar{height:5px;background:#dcd5c8;border-radius:999px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--ink)}.speakbox{display:flex;align-items:center;justify-content:center;min-height:160px;border:1px dashed var(--line);border-radius:16px;background:var(--bg);font-size:clamp(2rem,6vw,4rem);font-weight:900;letter-spacing:-.04em;text-align:center;padding:20px}.formula{font-family:"SFMono-Regular",Consolas,monospace;background:var(--ink);color:#fff;padding:16px;border-radius:14px;overflow:auto}.params{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.param{padding:10px;background:var(--bg);border-radius:11px;text-align:center}.param b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.metric{padding:15px;background:var(--bg);border-radius:14px}.metric b{display:block;font-size:1.8rem}.notice{border-left:3px solid var(--ink);padding:3px 0 3px 14px;color:var(--muted)}footer{padding:0 0 38px;color:var(--muted);font-size:.9rem}@media(max-width:780px){.grid{grid-template-columns:1fr}.inputrow{flex-direction:column}.params{grid-template-columns:repeat(3,1fr)}.split{grid-template-columns:1fr}.hero{padding-top:38px}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="top"><a class="brand" href="https://github.com/KAFKA2306/vlog">VLog / Companion Lab</a><nav class="nav"><a class="btn" href="https://github.com/KAFKA2306/vlog/tree/main/packages/companion">Source</a></nav></header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Human Memory Engine / Companion projection</p>
+      <h1>記憶から、<br>反応が育つ。</h1>
+      <p class="lead">VLogが扱う会話・記憶そのものを公開せず、選択された語の頻度と鮮度だけから「その環境らしい」反応を作る、LLM不要のVRChat companion projectionです。</p>
+      <div class="status"><span class="dot"></span>公開デモはlocalStorageのみ。原音声・全文会話・個人情報は扱いません。</div>
+    </section>
+    <section class="grid">
+      <article class="card">
+        <h2>1. 語を観測する</h2>
+        <p class="hint">`語/ヨミ` を空白・読点・カンマで区切って入力します。例: <code>猫/ネコ ラーメン VRChat/ブイアールチャット 猫/ネコ</code></p>
+        <form id="learn-form" class="inputrow"><input id="learn-input" autocomplete="off" placeholder="猫/ネコ ラーメン 音楽/オンガク"><button class="primary" type="submit">観測</button></form>
+        <div class="actions"><button id="seed" type="button">サンプル投入</button><button id="clear" type="button">デモ記憶を消す</button></div>
+        <div id="words" class="words" aria-live="polite"></div>
+      </article>
+      <article class="card">
+        <h2>2. 確率で反応する</h2>
+        <div id="speech" class="speakbox">…</div>
+        <div class="actions"><button id="speak" class="primary" type="button">反応を抽選</button></div>
+        <div class="formula">wᵢ = (countᵢ + 0.5)^0.8 × exp(-0.035 × ageDaysᵢ)</div>
+        <p class="muted">頻繁に観測された語を好みつつ、古い語は少しずつ弱くなります。意味理解はしません。</p>
+      </article>
+      <article class="card">
+        <h2>3. VRChat用73bitへ量子化</h2>
+        <div class="split"><div class="metric"><span class="muted">同期量</span><b>73 bit</b><span class="muted">8×Int + Mood + Speak</span></div><div class="metric"><span class="muted">文字枠</span><b>8</b><span class="muted">カナ→整数ID</span></div></div>
+        <div id="params" class="params"></div>
+        <p id="reading" class="notice">反応を抽選すると、読みとAvatar Parameter値を表示します。</p>
+      </article>
+      <article class="card">
+        <h2>4. VLogとの境界</h2>
+        <p><strong>Evidence:</strong> 原音声・全文会話はprivate側。</p>
+        <p><strong>Human Memory:</strong> claim/revisionはVLogの正準ルールに従う。</p>
+        <p><strong>Companion:</strong> 選択済み語から作る再構築可能なprojection。記憶の事実認定には使わない。</p>
+        <p><strong>VRChat:</strong> OSC adapterが <code>127.0.0.1:9000</code> へ送信。実クライアント受信とAnimator表示は別の実機検証。</p>
+        <p class="notice">このgithub.ioデモはUDP OSCを送信しません。ブラウザ表示とVRChat実機証拠を混同しません。</p>
+      </article>
+    </section>
+  </main>
+  <footer>VLog Human Memory Engine — companion projection demo</footer>
+</div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
