@@ -1,4 +1,5 @@
 import {
+  SLOTS,
   encodeReading,
   katakana,
   syncedParameterBits,
@@ -55,7 +56,7 @@ function renderWords() {
   const max = Math.max(...list.map((word) => word.count));
   wordsEl.innerHTML = list.map((word) => `<div class="word"><div><strong>${escapeHtml(word.text)}</strong><div class="muted">${escapeHtml(word.reading)}</div><div class="bar"><i style="width:${Math.max(5, word.count / max * 100)}%"></i></div></div><span class="muted">count</span><span>${word.count}</span></div>`).join('');
 }
-function renderParams(values = Array(8).fill(0), mood = 0, speak = false) {
+function renderParams(values = Array(SLOTS).fill(0), mood = 0, speak = false) {
   const entries = values.map((value, index) => [`PetChar${index}`, value]);
   entries.push(['PetMood', mood], ['PetSpeak', speak ? 1 : 0]);
   paramsEl.innerHTML = entries.map(([name, value]) => `<div class="param"><span class="muted">${name}</span><b>${value}</b></div>`).join('');
