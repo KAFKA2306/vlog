@@ -6,6 +6,10 @@ from dataclasses import dataclass
 
 KANA = "アイウエオカキクケコガギグゲゴサシスセソザジズゼゾタチツテトダヂヅデドナニヌネノハヒフヘホバビブベボパピプペポマミムメモヤユヨラリルレロワヲンァィゥェォャュョッーヴ"
 KANA_TO_INT = {char: index + 1 for index, char in enumerate(KANA)}
+SLOTS = 8
+WEIGHT_ALPHA = 0.5
+WEIGHT_BETA = 0.8
+DECAY_PER_DAY = 0.035
 
 
 @dataclass(frozen=True)
@@ -36,9 +40,9 @@ def observe(
 def weight(
     memory: TermMemory,
     now: float,
-    alpha: float = 0.5,
-    beta: float = 0.8,
-    decay_per_day: float = 0.035,
+    alpha: float = WEIGHT_ALPHA,
+    beta: float = WEIGHT_BETA,
+    decay_per_day: float = DECAY_PER_DAY,
 ) -> float:
     age_days = max(0.0, now - memory.last_seen) / 86400.0
     return (memory.count + alpha) ** beta * math.exp(-decay_per_day * age_days)
@@ -64,10 +68,15 @@ def katakana(text: str) -> str:
     return "".join(chars)
 
 
-def encode_reading(reading: str, slots: int = 8) -> list[int]:
+def encode_reading(reading: str, slots: int = SLOTS) -> list[int]:
     values = [KANA_TO_INT.get(char, 0) for char in katakana(reading)[:slots]]
     return values + [0] * (slots - len(values))
 
 
-def synced_parameter_bits(slots: int = 8) -> int:
+def normalize_chars(chars: list[int], slots: int = SLOTS) -> list[int]:
+    values = [max(0, min(255, int(value))) for value in chars[:slots]]
+    return values + [0] * (slots - len(values))
+
+
+def synced_parameter_bits(slots: int = SLOTS) -> int:
     return slots * 8 + 8 + 1
