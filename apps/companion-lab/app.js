@@ -1,6 +1,11 @@
+import {
+  encodeReading,
+  katakana,
+  syncedParameterBits,
+  weight,
+} from './companion-core.mjs';
+
 const STORAGE_KEY = 'vlog.companion.demo.words.v1';
-const KANA = 'アイウエオカキクケコガギグゲゴサシスセソザジズゼゾタチツテトダヂヅデドナニヌネノハヒフヘホバビブベボパピプペポマミムメモヤユヨラリルレロワヲンァィゥェォャュョッーヴ';
-const kanaToInt = new Map([...KANA].map((char, index) => [char, index + 1]));
 
 const $ = (selector) => document.querySelector(selector);
 const wordsEl = $('#words');
@@ -14,17 +19,6 @@ function load() {
   catch { return {}; }
 }
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(words)); }
-function katakana(text) {
-  return [...text].map((char) => {
-    const code = char.codePointAt(0);
-    return code >= 0x3041 && code <= 0x3096 ? String.fromCodePoint(code + 0x60) : char;
-  }).join('');
-}
-function encodeReading(reading) {
-  const values = [...katakana(reading)].slice(0, 8).map((char) => kanaToInt.get(char) || 0);
-  while (values.length < 8) values.push(0);
-  return values;
-}
 function parseEntries(text) {
   return text.split(/[\s、，,]+/u).map((value) => value.trim()).filter(Boolean).map((raw) => {
     const slash = raw.indexOf('/');
@@ -39,10 +33,6 @@ function observe(entries) {
     words[entry.text] = { text: entry.text, reading: entry.reading, count: (current?.count || 0) + 1, lastSeen: now };
   }
   save(); renderWords();
-}
-function weight(word, now = Date.now() / 1000) {
-  const ageDays = Math.max(0, now - word.lastSeen) / 86400;
-  return Math.pow(word.count + 0.5, 0.8) * Math.exp(-0.035 * ageDays);
 }
 function choose() {
   const list = Object.values(words);
@@ -76,7 +66,7 @@ function react() {
   const values = encodeReading(word.reading);
   speechEl.textContent = word.text;
   renderParams(values, 0, true);
-  readingEl.textContent = `読み: ${katakana(word.reading)} / [${values.join(', ')}] → PetSpeak=true → 180ms後にfalse`;
+  readingEl.textContent = `読み: ${katakana(word.reading)} / [${values.join(', ')}] → PetSpeak=true → 180ms後にfalse / ${syncedParameterBits()} bit`;
   window.setTimeout(() => renderParams(values, 0, false), 180);
 }
 
