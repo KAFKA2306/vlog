@@ -4,6 +4,8 @@ import socket
 import struct
 import time
 
+from vlog_companion import normalize_chars
+
 
 def _osc_string(value: str) -> bytes:
     data = value.encode("utf-8") + b"\0"
@@ -28,9 +30,9 @@ class VrchatOsc:
         self.socket.sendto(osc_message(f"/avatar/parameters/{name}", value), self.target)
 
     def speak(self, chars: list[int], mood: int = 0, pulse_seconds: float = 0.18) -> None:
-        for index, value in enumerate(chars):
+        for index, value in enumerate(normalize_chars(chars)):
             self.send_int(f"PetChar{index}", value)
         self.send_int("PetMood", max(0, min(255, mood)))
         self.send_bool("PetSpeak", True)
-        time.sleep(pulse_seconds)
+        time.sleep(max(0.0, pulse_seconds))
         self.send_bool("PetSpeak", False)

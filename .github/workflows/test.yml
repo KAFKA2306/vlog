@@ -36,6 +36,8 @@ jobs:
         run: uvx ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py
+      - name: Enforce companion browser/runtime parity
+        run: uv run --no-sync python scripts/check_companion_contract_parity.py
       - name: Verify rendered systemd units
         run: |
           output="$(mktemp -d)"
