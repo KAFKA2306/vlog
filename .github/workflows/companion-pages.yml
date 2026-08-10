@@ -5,10 +5,14 @@ on:
     branches: [main]
     paths:
       - "apps/companion-lab/**"
+      - "packages/companion/**"
+      - "scripts/check_companion_contract_parity.py"
       - ".github/workflows/companion-pages.yml"
   pull_request:
     paths:
       - "apps/companion-lab/**"
+      - "packages/companion/**"
+      - "scripts/check_companion_contract_parity.py"
       - ".github/workflows/companion-pages.yml"
   workflow_dispatch:
 
@@ -29,12 +33,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Validate companion contract parity
+        run: python3 scripts/check_companion_contract_parity.py
+
       - name: Validate static companion lab
         run: |
           set -euo pipefail
           test -s apps/companion-lab/index.html
           test -s apps/companion-lab/app.js
+          test -s apps/companion-lab/companion-core.mjs
           node --check apps/companion-lab/app.js
+          node --check apps/companion-lab/companion-core.mjs
           grep -F 'vlog-companion-lab-v1' apps/companion-lab/index.html
           grep -F '73 bit' apps/companion-lab/index.html
 
@@ -108,3 +117,5 @@ jobs:
           test "$matched" = true
           curl --fail --silent --show-error --location "${PAGE_URL}app.js?smoke=${EXPECTED_SHA}" -o "$tmp/app.js"
           grep -F 'vlog.companion.demo.words.v1' "$tmp/app.js"
+          curl --fail --silent --show-error --location "${PAGE_URL}companion-core.mjs?smoke=${EXPECTED_SHA}" -o "$tmp/companion-core.mjs"
+          grep -F 'export const SLOTS = 8' "$tmp/companion-core.mjs"
