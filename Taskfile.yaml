@@ -39,9 +39,9 @@ tasks:
           task photos:all               全小説から画像を一括生成
 
         ■ Windows 起動
-          ダブルクリック: infra\windows\run.bat
+          ダブルクリック: run.bat
         ■ 初回セットアップ（管理者権限で実行）
-          infra\windows\bootstrap.bat
+          bootstrap.bat
 
         ■ データ同期
           task sync                     Supabase同期

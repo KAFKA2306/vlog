@@ -3,7 +3,8 @@ param(
     [string]$RunScript
 )
 
-$runScript = (Resolve-Path -LiteralPath $RunScript).Path
+$ErrorActionPreference = "Stop"
+$runScript = (Resolve-Path -LiteralPath $RunScript).ProviderPath
 $arguments = '/d /c call ""{0}""' -f $runScript
 $action = New-ScheduledTaskAction -Execute $env:ComSpec -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -AtLogOn
