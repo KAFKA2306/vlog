@@ -1,0 +1,50 @@
+name: Branch Cleanup Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/branch-cleanup-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete audited stale branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "agent/audit-all-markdown"
+            "agent/consolidate-human-memory-docs"
+            "agent/fix-unc-test-lint"
+            "agent/fix-vlog-audit-pipeline"
+            "agent/guard-unc-bootstrap"
+            "agent/harden-vlog-operations"
+            "agent/harden-vlog-operations-main"
+            "agent/japanese-human-readme"
+            "agent/vlog-operations-observability"
+            "agent/windows-heartbeat-launchers"
+            "codex/align-maintenance-and-strict-audit-changes"
+            "codex/issue-14-phase0-phase1-boundaries"
+            "codex/issue-14-phase1-relocate-runtime"
+            "feat/companion-memory-projection"
+            "fix/companion-audit-gates"
+            "fix/issue-5-wsl-drive-path-guard"
+            "refactor/image-generator-optimization"
+          )
+
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              git push origin --delete "$branch"
+            else
+              echo "already absent: $branch"
+            fi
+          done
