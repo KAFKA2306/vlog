@@ -27,6 +27,7 @@ from src.use_cases.process_recording import ProcessRecordingUseCase
 
 logger = logging.getLogger(__name__)
 _AUDIO_RESOURCE = "audio-input:default"
+_HEARTBEAT_LOG_INTERVAL_SECONDS = 300
 
 
 class Application:
@@ -47,6 +48,8 @@ class Application:
         self._processing_threads: set[threading.Thread] = set()
         self._next_recording_retry_at = 0.0
         self._last_heartbeat_at = 0.0
+        self._last_heartbeat_log_at = 0.0
+        self._last_heartbeat_log_state: tuple[str, bool | None] | None = None
 
     def run(self) -> None:
         logger.info("Application started")
@@ -471,6 +474,34 @@ class Application:
             status=status,
             context=context,
         )
+        heartbeat_state = (status, vrchat_running)
+        state_changed = heartbeat_state != self._last_heartbeat_log_state
+        if (
+            state_changed
+            or now - self._last_heartbeat_log_at >= _HEARTBEAT_LOG_INTERVAL_SECONDS
+        ):
+            self._last_heartbeat_log_at = now
+            self._last_heartbeat_log_state = heartbeat_state
+            if status == "degraded":
+                logger.warning(
+                    "Monitor heartbeat: VRChat process detection is degraded; "
+                    "recording=%s; workers=%s",
+                    context["recording"],
+                    context["processing_threads"],
+                )
+            elif vrchat_running:
+                logger.info(
+                    "Monitor heartbeat: VRChat detected; recording=%s; workers=%s",
+                    context["recording"],
+                    context["processing_threads"],
+                )
+            else:
+                logger.info(
+                    "Monitor waiting: VRChat process not detected; "
+                    "recording=%s; workers=%s",
+                    context["recording"],
+                    context["processing_threads"],
+                )
         systemd_notify(
             "WATCHDOG=1",
             f"STATUS=VLog {status}; recording={context['recording']}; workers={context['processing_threads']}",

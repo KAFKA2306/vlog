@@ -8,6 +8,15 @@ def _read(name: str) -> str:
     return (WINDOWS_DIR / name).read_text(encoding="utf-8")
 
 
+def test_root_launchers_delegate_to_windows_implementation() -> None:
+    assert (ROOT / "run.bat").read_text(encoding="utf-8") == (
+        '@echo off\ncall "%~dp0infra\\windows\\run.bat" %*\nexit /b %ERRORLEVEL%\n'
+    )
+    assert (ROOT / "bootstrap.bat").read_text(encoding="utf-8") == (
+        '@echo off\ncall "%~dp0infra\\windows\\bootstrap.bat" %*\nexit /b %ERRORLEVEL%\n'
+    )
+
+
 def test_windows_launchers_fail_closed_when_project_directory_is_unavailable() -> None:
     for name in ("run.bat", "bootstrap.bat"):
         script = _read(name)
@@ -33,3 +42,9 @@ def test_windows_guide_explains_unc_mapping_and_failure_mode() -> None:
     assert "UNC" in guide
     assert "pushd" in guide
     assert "一時ドライブ" in guide
+
+
+def test_task_registration_uses_a_windows_filesystem_path_and_stops_on_errors() -> None:
+    script = (WINDOWS_DIR / "register_task.ps1").read_text(encoding="utf-8")
+    assert '$ErrorActionPreference = "Stop"' in script
+    assert "Resolve-Path -LiteralPath $RunScript).ProviderPath" in script

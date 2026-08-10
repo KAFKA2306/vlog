@@ -6,7 +6,9 @@ Windows は VRChat プロセスの検知と録音を担当し、WSL は日次処
 
 管理者権限のコマンドプロンプトでプロジェクトルートから実行する。
 
-    infra/windows/bootstrap.bat
+    bootstrap.bat
+
+リポジトリ直下の `bootstrap.bat` は、Windows 用実体を呼び出すランチャーである。
 
 bootstrap.bat は次を実行する。
 
@@ -21,7 +23,9 @@ bootstrap.bat は次を実行する。
 
 ## 手動起動
 
-    infra/windows/run.bat
+    run.bat
+
+リポジトリ直下の `run.bat` は、Windows 用実体を呼び出すランチャーである。
 
 run.bat は UNC パスを一時ドライブへ割り当て、.venv-win と Python 3.12 と `apps/capture-vrchat` を含む `PYTHONPATH` で `src.main` を実行する。相対パスは必ずプロジェクトルート基準で解決される。依存関係は uv.lock から変更しない。
 
@@ -49,6 +53,8 @@ WSL 側から全体状態を確認する。
     Get-Content data/logs/vlog.log -Tail 50
 
 windows-bootstrap.log は起動ごとに初期化され、起動時刻、解決済みパス、作業ディレクトリ、異常終了時の終了コードを記録する。
+
+`vlog.log` は起動時に加えて、VRChat が待機中・検出中であることを状態変更時に記録し、同じ状態が続く場合は 5 分ごとに heartbeat を記録する。30 秒ごとの内部 heartbeat は `data/heartbeats/vlog-service.json` を更新する。
 
 ## 停止と再起動
 
