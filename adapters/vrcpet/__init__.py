@@ -24,6 +24,7 @@ from .snapshot import (
     build_state_snapshot,
     diff_profile,
     diff_vocabulary_counts,
+    extract_vocabulary_counts,
 )
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     "diff_profile",
     "diff_vocabulary_counts",
     "discover_source_paths",
+    "extract_vocabulary_counts",
     "normalize_source",
     "parse_observation",
     "read_source_file",
