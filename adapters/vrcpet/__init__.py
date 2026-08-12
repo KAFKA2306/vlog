@@ -8,7 +8,7 @@ from .normalizer import (
     deduplicate_observations,
     normalize_source,
 )
-from .parser import ParseIssue, ParsedObservation, parse_observation
+from .parser import ParsedObservation, ParseIssue, parse_observation
 from .reader import (
     SourceBoundaryError,
     SourceFile,
