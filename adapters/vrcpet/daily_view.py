@@ -6,7 +6,12 @@ from numbers import Real
 from typing import Iterable, Mapping, Sequence
 
 from .normalizer import NormalizedObservation
-from .snapshot import ProfileDiff, StateSnapshot, VocabularyDiff
+from .snapshot import (
+    ProfileDiff,
+    StateSnapshot,
+    VocabularyDiff,
+    extract_vocabulary_counts,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +55,18 @@ class CompanionDailyView:
         )
 
 
+def _counts_from_observations(
+    observations: tuple[NormalizedObservation, ...],
+) -> Mapping[str, Real]:
+    for observation in observations:
+        if observation.parsed.observation_type != "vocabulary":
+            continue
+        if not observation.parsed.records:
+            continue
+        return extract_vocabulary_counts(observation.parsed.records[0])
+    return {}
+
+
 def build_companion_daily_view(
     *,
     day: date,
@@ -74,7 +91,7 @@ def build_companion_daily_view(
     )
     parse_issues = sum(len(item.parsed.issues) for item in observed)
 
-    counts = current_counts or {}
+    counts = current_counts if current_counts is not None else _counts_from_observations(observed)
     frequent_terms = tuple(
         sorted(
             (
