@@ -18,7 +18,6 @@ from vlog_memory_domain import (
 from .parser import ParsedObservation
 from .reader import SourceFile
 
-
 VRC_PET_NAMESPACE = UUID("7b042afa-2563-5c4f-81c5-f35fd0f7c7cc")
 
 
