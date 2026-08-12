@@ -20,5 +20,4 @@ jobs:
 
       - run: uv sync --only-group dev
       - run: uv run ruff check apps/capture-vrchat/src packages scripts tests infra/systemd
-      - name: Show exact Ruff formatter diff for Issue 27
-        run: uv run ruff format --diff tests/test_vrcpet_adapter.py || true
+      - run: uv run ruff format --check apps/capture-vrchat/src packages scripts tests infra/systemd
