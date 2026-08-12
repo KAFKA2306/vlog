@@ -59,6 +59,29 @@ def build_state_snapshot(
     )
 
 
+def extract_vocabulary_counts(document: Mapping[str, Any]) -> dict[str, Real]:
+    """Extract projection counts without turning the observed vendor shape canonical."""
+
+    words = document.get("words")
+    if isinstance(words, Mapping):
+        counts: dict[str, Real] = {}
+        for term, payload in words.items():
+            if not isinstance(term, str) or not isinstance(payload, Mapping):
+                continue
+            count = payload.get("count")
+            if isinstance(count, Real) and not isinstance(count, bool):
+                counts[term] = count
+        return counts
+
+    return {
+        key: value
+        for key, value in document.items()
+        if isinstance(key, str)
+        and isinstance(value, Real)
+        and not isinstance(value, bool)
+    }
+
+
 def diff_vocabulary_counts(
     previous: Mapping[str, Real],
     current: Mapping[str, Real],
