@@ -229,7 +229,8 @@ def test_state_snapshot_retains_exact_bytes_and_diff_is_explicit() -> None:
     assert vocabulary_delta.missing == {"old": 1}
 
 
-def test_observation_associates_with_existing_episode_without_memory_claim_promotion() -> None:
+def test_observation_associates_with_existing_episode_without_memory_claim_promotion(
+) -> None:
     primary = SourceObject(
         kind=SourceKind.AUDIO,
         object_uri="private://audio/session.flac",
