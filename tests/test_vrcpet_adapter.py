@@ -4,7 +4,6 @@ import json
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
-from uuid import uuid4
 
 import pytest
 
@@ -25,6 +24,7 @@ from adapters.vrcpet import (  # noqa: E402
     diff_profile,
     diff_vocabulary_counts,
     discover_source_paths,
+    extract_vocabulary_counts,
     normalize_source,
     parse_observation,
     read_source_file,
@@ -37,7 +37,12 @@ from vlog_memory_domain import (  # noqa: E402
 )
 
 
-def _source(relative_path: str, raw_bytes: bytes, *, mtime_ns: int = 1_700_000_000_000_000_000) -> SourceFile:
+def _source(
+    relative_path: str,
+    raw_bytes: bytes,
+    *,
+    mtime_ns: int = 1_700_000_000_000_000_000,
+) -> SourceFile:
     return SourceFile(
         relative_path=relative_path,
         raw_bytes=raw_bytes,
@@ -132,7 +137,7 @@ def test_discovery_is_limited_to_observed_vrcpet_inputs(tmp_path: Path) -> None:
     )
 
 
-def test_normalization_is_content_addressed_and_sanitizes_absolute_path(tmp_path: Path) -> None:
+def test_normalization_is_content_addressed_and_sanitizes_absolute_path() -> None:
     raw = b'{"text":"same"}\n'
     first = normalize_source(
         _source("logs/a.jsonl", raw),
@@ -152,7 +157,7 @@ def test_normalization_is_content_addressed_and_sanitizes_absolute_path(tmp_path
     assert first.source_object.id != changed.source_object.id
     assert first.source_object.object_uri.startswith("private://vrcpet/conversation/")
     manifest_text = json.dumps(first.manifest, ensure_ascii=False)
-    assert str(tmp_path) not in manifest_text
+    assert "C:\\Users\\" not in manifest_text
     assert first.manifest["metadata"]["source_relative_path"] == "logs/a.jsonl"
 
 
@@ -178,6 +183,21 @@ def test_duplicate_ingest_and_pipeline_version_are_idempotent() -> None:
     )
 
 
+def test_observed_nested_vocabulary_shape_extracts_counts_only_for_projection() -> None:
+    document = {
+        "words": {
+            "旅行": {"kind": "noun", "count": 5, "F": 1.5},
+            "GPU": {"kind": "noun", "count": 3, "S": 2.0},
+            "bad": {"kind": "noun", "count": "unknown"},
+        },
+        "total_learned": 1465,
+        "unknown_future_field": {"preserved": True},
+    }
+
+    assert extract_vocabulary_counts(document) == {"旅行": 5, "GPU": 3}
+    assert document["unknown_future_field"] == {"preserved": True}
+
+
 def test_state_snapshot_retains_exact_bytes_and_diff_is_explicit() -> None:
     profile_raw = b'{"favorite":"blue","mood":"curious"}'
     profile = normalize_source(
@@ -187,7 +207,9 @@ def test_state_snapshot_retains_exact_bytes_and_diff_is_explicit() -> None:
     snapshot = build_state_snapshot(profile, captured_on=date(2026, 8, 12))
 
     assert snapshot.raw_bytes == profile_raw
-    assert snapshot.object_uri.startswith("private://vrcpet/snapshots/2026-08-12/profile/")
+    assert snapshot.object_uri.startswith(
+        "private://vrcpet/snapshots/2026-08-12/profile/"
+    )
     profile_delta = diff_profile(
         {"favorite": "blue", "mood": "calm", "old": True},
         {"favorite": "blue", "mood": "curious", "new": 1},
@@ -235,7 +257,17 @@ def test_observation_associates_with_existing_episode_without_memory_claim_promo
 def test_end_to_end_daily_companion_view_is_rebuildable() -> None:
     conversation_raw = b'{"text":"travel"}\n{"broken":\n{"text":"Kyoto"}\n'
     profile_raw = b'{"favorite":"blue","mood":"curious"}'
-    vocabulary_raw = '{"旅行":5,"GPU":3,"京都":1}'.encode()
+    vocabulary_raw = json.dumps(
+        {
+            "words": {
+                "旅行": {"kind": "noun", "count": 5},
+                "GPU": {"kind": "noun", "count": 3},
+                "京都": {"kind": "noun", "count": 1},
+            },
+            "total_learned": 3,
+        },
+        ensure_ascii=False,
+    ).encode()
 
     conversation = normalize_source(
         _source("logs/2026-08-12.jsonl", conversation_raw),
@@ -266,7 +298,6 @@ def test_end_to_end_daily_companion_view_is_rebuildable() -> None:
         day=date(2026, 8, 12),
         observations=(conversation, profile, vocabulary),
         snapshots=snapshots,
-        current_counts={"旅行": 5, "GPU": 3, "京都": 1},
         vocabulary_diff=vocabulary_delta,
         profile_diff=profile_delta,
         pet_utterances=("こんにちは",),
@@ -276,6 +307,7 @@ def test_end_to_end_daily_companion_view_is_rebuildable() -> None:
     assert view.conversation_records == 2
     assert view.parse_issues == 1
     assert view.snapshots == 2
+    assert view.frequent_terms[0] == ("旅行", 5)
     assert "# すいの目から見た2026-08-12" in rendered
     assert "京都" in rendered
     assert "mood" in rendered
