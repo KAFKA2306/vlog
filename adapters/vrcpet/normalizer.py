@@ -14,7 +14,6 @@ from vlog_memory_domain import (
     SourceKind,
     SourceObject,
 )
-
 from .parser import ParsedObservation
 from .reader import SourceFile
 
