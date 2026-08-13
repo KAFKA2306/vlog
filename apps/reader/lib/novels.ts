@@ -19,7 +19,11 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const parseTags = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((tag): tag is string => typeof tag === 'string') : []
+  Array.isArray(value)
+    ? value.filter((tag): tag is string => typeof tag === 'string')
+    : []
+
+export const novelPermalink = (id: string) => `/novels/${encodeURIComponent(id)}`
 
 export const parsePublicNovel = (value: unknown): PublicNovel | null => {
   if (!isObject(value)) return null
