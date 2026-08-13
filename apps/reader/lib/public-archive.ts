@@ -21,7 +21,7 @@ type SupabaseRow = {
   date: string
   title: string
   content: string
-  image_url: string | null
+  image_url?: string | null
   is_public: boolean
 }
 
@@ -61,6 +61,54 @@ const assertPublicRow = (row: SupabaseRow) => {
   }
 }
 
+const requestPage = async ({
+  config,
+  fetchImpl,
+  kind,
+  limit,
+  offset,
+}: {
+  config: SupabaseConfig
+  fetchImpl: FetchLike
+  kind: PublicArchiveKind
+  limit: number
+  offset: number
+}) => {
+  const table = TABLE_BY_KIND[kind]
+  const makeUrl = (withImage: boolean) => {
+    const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/${table}`)
+    url.searchParams.set(
+      'select',
+      withImage
+        ? 'id,date,title,content,image_url,is_public'
+        : 'id,date,title,content,is_public',
+    )
+    url.searchParams.set('is_public', 'eq.true')
+    url.searchParams.set('date', `gte.${PUBLICATION_START_DATE}`)
+    url.searchParams.set('order', 'date.desc,id.asc')
+    url.searchParams.set('limit', String(limit))
+    url.searchParams.set('offset', String(offset))
+    return url
+  }
+
+  const init: RequestInit = {
+    headers: {
+      apikey: config.key,
+      Prefer: 'count=exact',
+    },
+    next: { revalidate: 300 },
+  }
+
+  let response = await fetchImpl(makeUrl(true), init)
+  if (!response.ok && response.status === 400) {
+    response = await fetchImpl(makeUrl(false), init)
+  }
+  if (!response.ok) {
+    throw new Error(`Supabase ${table} request failed: ${response.status}`)
+  }
+  return response
+}
+
 export const fetchAllPublicArchiveEntries = async ({
   config,
   fetchImpl = fetch,
@@ -83,25 +131,13 @@ export const fetchAllPublicArchiveEntries = async ({
   let offset = 0
 
   while (expectedTotal === null || entries.length < expectedTotal) {
-    const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/${table}`)
-    url.searchParams.set('select', 'id,date,title,content,image_url,is_public')
-    url.searchParams.set('is_public', 'eq.true')
-    url.searchParams.set('date', `gte.${PUBLICATION_START_DATE}`)
-    url.searchParams.set('order', 'date.desc,id.asc')
-    url.searchParams.set('limit', String(pageSize))
-    url.searchParams.set('offset', String(offset))
-
-    const response = await fetchImpl(url, {
-      headers: {
-        apikey: config.key,
-        Prefer: 'count=exact',
-      },
-      next: { revalidate: 300 },
+    const response = await requestPage({
+      config,
+      fetchImpl,
+      kind,
+      limit: pageSize,
+      offset,
     })
-
-    if (!response.ok) {
-      throw new Error(`Supabase ${table} request failed: ${response.status}`)
-    }
 
     const total = parseExactCount(response.headers.get('content-range'))
     if (expectedTotal === null) {
