@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
+from uuid import UUID
 
 from vlog_memory_domain import (
     EvidenceRef,
@@ -46,12 +47,33 @@ class BackfillSourceRecord:
 
     source_object_id: str
     episode_id: str
+    subject_entity_id: str
     recorded_at: datetime
     source_kind: BackfillSourceKind
     text: str
     utterance_id: str | None = None
     speaker_kind: SpeakerKind = SpeakerKind.UNKNOWN
     speaker_label: str = "unknown"
+
+    def __post_init__(self) -> None:
+        for field_name, value in (
+            ("source_object_id", self.source_object_id),
+            ("episode_id", self.episode_id),
+            ("subject_entity_id", self.subject_entity_id),
+        ):
+            try:
+                UUID(value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"{field_name} must be a UUID string") from exc
+        if self.utterance_id is not None:
+            try:
+                UUID(self.utterance_id)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("utterance_id must be a UUID string") from exc
+        if self.recorded_at.tzinfo is None or self.recorded_at.utcoffset() is None:
+            raise ValueError("recorded_at must be timezone-aware")
+        if not self.speaker_label.strip():
+            raise ValueError("speaker_label must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +129,7 @@ def _stable_candidate_id(
         [
             source.source_object_id,
             source.episode_id,
+            source.subject_entity_id,
             source.source_kind.value,
             source.utterance_id or "",
             source.speaker_kind.value,
@@ -140,7 +163,9 @@ def _candidate(
     )
 
 
-def _inspect_raw_transcript(source: BackfillSourceRecord) -> tuple[BackfillCandidate, ...]:
+def _inspect_raw_transcript(
+    source: BackfillSourceRecord,
+) -> tuple[BackfillCandidate, ...]:
     text = source.text.strip()
     if not text:
         return (
@@ -189,7 +214,7 @@ def _inspect_raw_transcript(source: BackfillSourceRecord) -> tuple[BackfillCandi
     )
     claim = MemoryClaim(
         claim_type="social_mirror",
-        subject_entity_id=source.episode_id,
+        subject_entity_id=source.subject_entity_id,
         value=SocialMirrorValue(
             evidence_level=SocialMirrorEvidenceLevel.DIRECT_QUOTE,
             text=text,
@@ -222,8 +247,10 @@ def _inspect_raw_transcript(source: BackfillSourceRecord) -> tuple[BackfillCandi
 
 
 def _inspect_derived(source: BackfillSourceRecord) -> tuple[BackfillCandidate, ...]:
-    quoted_spans = tuple(match.group(1).strip() for match in _QUOTED_SPAN.finditer(source.text))
-    quoted_spans = tuple(span for span in quoted_spans if span)
+    quoted_spans = dict.fromkeys(
+        match.group(1).strip() for match in _QUOTED_SPAN.finditer(source.text)
+    )
+    quoted_spans.pop("", None)
     if not quoted_spans:
         return (
             _candidate(
@@ -260,7 +287,7 @@ def dry_run_social_mirror_backfill(
     if start_date is not None and end_date is not None and start_date > end_date:
         raise ValueError("start_date must be <= end_date")
 
-    inspected: list[BackfillCandidate] = []
+    inspected: dict[str, BackfillCandidate] = {}
     ordered_sources = sorted(
         sources,
         key=lambda source: (
@@ -277,8 +304,10 @@ def dry_run_social_mirror_backfill(
             continue
 
         if source.source_kind is BackfillSourceKind.RAW_TRANSCRIPT:
-            inspected.extend(_inspect_raw_transcript(source))
+            candidates = _inspect_raw_transcript(source)
         else:
-            inspected.extend(_inspect_derived(source))
+            candidates = _inspect_derived(source)
+        for candidate in candidates:
+            inspected.setdefault(candidate.candidate_id, candidate)
 
-    return BackfillReport(candidates=tuple(inspected))
+    return BackfillReport(candidates=tuple(inspected.values()))
