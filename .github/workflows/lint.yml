@@ -20,4 +20,4 @@ jobs:
 
       - run: uv sync --only-group dev
       - run: uv run ruff check apps/capture-vrchat/src packages scripts tests infra/systemd
-      - run: uv run ruff format --check apps/capture-vrchat/src packages scripts tests infra/systemd
+      - run: uv run ruff format --check --diff apps/capture-vrchat/src packages scripts tests infra/systemd
