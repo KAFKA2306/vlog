@@ -8,6 +8,14 @@ The Reader is a Next.js application under `apps/reader/`. It presents current di
 
 Implementation changes should consume semantic tokens rather than introducing component-local brand colors or restoring the previous black/cyan neon treatment.
 
+## Public projection inputs
+
+The Reader consumes public projections only. `People Said / 人から言われたこと` reads `data/public/social_mirror.jsonl` when that projection exists.
+
+Each row follows `schemas/social-mirror-public-projection.schema.json`. Reader parsing rejects records that carry raw/private source fields such as `EvidenceRef`, source-object IDs, transcript text, source excerpts, or internal speaker entity IDs. Missing projection files produce an empty state rather than falling back to canonical/private data.
+
+`context` and `reaction` are optional public-projection annotations. Their absence is displayed as absence; the Reader does not infer either value from a quote, Diary, or raw source.
+
 ## Development
 
 Use repository tasks so dependency installation, type checking, linting, and production build remain aligned:
@@ -17,6 +25,8 @@ task web:dev
 task web:build
 task web:start
 ```
+
+Reader contract tests run with Bun and are included in CI.
 
 ## Boundaries
 
