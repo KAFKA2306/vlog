@@ -194,6 +194,14 @@ h2 {
   margin-top: 18px;
 }
 
+.artifact-note {
+  max-width: 40rem;
+  margin-top: 20px;
+  color: var(--color-ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+
 .entry-copy {
   padding-top: 36px;
 }
