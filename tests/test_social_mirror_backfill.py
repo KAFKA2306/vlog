@@ -55,8 +55,7 @@ def test_only_raw_other_utterance_is_verified_quote_candidate() -> None:
     assert verified[0].source_kind is BackfillSourceKind.RAW_TRANSCRIPT
     assert verified[0].text == "詳しすぎる"
     assert (
-        verified[0].suggested_evidence_level
-        is SocialMirrorEvidenceLevel.DIRECT_QUOTE
+        verified[0].suggested_evidence_level is SocialMirrorEvidenceLevel.DIRECT_QUOTE
     )
     assert verified[0].reason == "raw_utterance_verbatim_match"
 
@@ -66,7 +65,8 @@ def test_summary_and_diary_quotes_remain_review_candidates() -> None:
     derived = [
         candidate
         for candidate in report.candidates
-        if candidate.source_kind in {BackfillSourceKind.SUMMARY, BackfillSourceKind.DIARY}
+        if candidate.source_kind
+        in {BackfillSourceKind.SUMMARY, BackfillSourceKind.DIARY}
         and candidate.text is not None
     ]
 
@@ -127,9 +127,7 @@ def test_date_range_is_inclusive() -> None:
         end_date=date(2026, 8, 2),
     )
 
-    assert {item.recorded_at.date() for item in report.candidates} == {
-        date(2026, 8, 2)
-    }
+    assert {item.recorded_at.date() for item in report.candidates} == {date(2026, 8, 2)}
     assert report.total_sources == 2
 
 
