@@ -100,6 +100,33 @@ h2 {
     transform 160ms ease;
 }
 
+.entry-image-frame,
+.day-image-frame {
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.entry-image-frame {
+  aspect-ratio: 16 / 9;
+  margin: -8px -8px 22px;
+  border-radius: 12px;
+}
+
+.entry-image,
+.day-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.day-image-frame {
+  aspect-ratio: 16 / 9;
+  margin-top: 32px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
 .entry-link:hover {
   background: var(--surface-hover);
   border-color: var(--border-strong);
@@ -171,7 +198,7 @@ h2 {
 }
 
 .entry-copy {
-  padding-top: 38px;
+  padding-top: 32px;
 }
 
 .entry-body {
