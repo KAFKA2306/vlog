@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KAFKA2306/vlog/schemas/social-mirror-public-projection.schema.json",
+  "title": "Social Mirror Public Projection",
+  "description": "Rebuildable public projection. Raw transcript text, source excerpts, EvidenceRef objects, and internal speaker entity IDs are intentionally excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "claim_id",
+    "publication_decision_id",
+    "evidence_level",
+    "text",
+    "speaker_label",
+    "published_at"
+  ],
+  "properties": {
+    "claim_id": {"type": "string", "format": "uuid"},
+    "publication_decision_id": {"type": "string", "format": "uuid"},
+    "evidence_level": {
+      "type": "string",
+      "enum": ["direct_quote", "paraphrase", "inferred_impression"]
+    },
+    "text": {"type": "string", "minLength": 1},
+    "speaker_label": {"type": ["string", "null"]},
+    "published_at": {"type": "string", "format": "date-time"}
+  }
+}
