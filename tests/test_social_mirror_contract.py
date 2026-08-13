@@ -23,9 +23,7 @@ from vlog_memory_domain import (  # noqa: E402
 NOW = datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc)
 
 
-def make_evidence(
-    *, episode_id: str, utterance_id: str | None = None
-) -> EvidenceRef:
+def make_evidence(*, episode_id: str, utterance_id: str | None = None) -> EvidenceRef:
     return EvidenceRef(
         source_object_id=str(uuid4()),
         episode_id=episode_id,
@@ -65,9 +63,7 @@ def test_direct_quote_requires_verbatim_raw_utterance_match() -> None:
         text="いや、研究しすぎでしょ",
     )
 
-    validate_social_mirror_claim(
-        claim, utterances_by_id={utterance_id: utterance}
-    )
+    validate_social_mirror_claim(claim, utterances_by_id={utterance_id: utterance})
 
 
 def test_summary_quote_cannot_promote_without_raw_utterance_evidence() -> None:
@@ -106,9 +102,7 @@ def test_direct_quote_rejects_text_that_is_not_verbatim() -> None:
     )
 
     with pytest.raises(ValueError, match="appear verbatim"):
-        validate_social_mirror_claim(
-            claim, utterances_by_id={utterance_id: utterance}
-        )
+        validate_social_mirror_claim(claim, utterances_by_id={utterance_id: utterance})
 
 
 def test_paraphrase_is_evidence_backed_but_not_verbatim() -> None:
@@ -171,7 +165,6 @@ def test_social_mirror_schema_fixes_evidence_levels_and_required_metadata() -> N
 
     social_mirror_rule = schema["allOf"][1]
     assert (
-        social_mirror_rule["if"]["properties"]["claim_type"]["const"]
-        == "social_mirror"
+        social_mirror_rule["if"]["properties"]["claim_type"]["const"] == "social_mirror"
     )
     assert social_mirror_rule["then"]["properties"]["evidence"]["minItems"] == 1
