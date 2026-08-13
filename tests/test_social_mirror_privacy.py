@@ -93,6 +93,9 @@ def test_text_can_be_published_without_speaker_identity() -> None:
     assert projection is not None
     assert projection.text == "詳しすぎると言われた"
     assert projection.speaker_label is None
+    assert projection.occurred_at == claim.valid_from
+    assert projection.context is None
+    assert projection.reaction is None
 
 
 def test_speaker_identity_requires_its_own_explicit_decision() -> None:
@@ -147,7 +150,10 @@ def test_public_projection_excludes_raw_evidence_and_internal_speaker_id() -> No
         "evidence_level",
         "text",
         "speaker_label",
+        "occurred_at",
         "published_at",
+        "context",
+        "reaction",
     }
     assert "evidence" not in payload
     assert "source_excerpt" not in payload
@@ -199,7 +205,10 @@ def test_public_projection_schema_has_no_raw_source_fields() -> None:
         "evidence_level",
         "text",
         "speaker_label",
+        "occurred_at",
         "published_at",
+        "context",
+        "reaction",
     }
     assert properties.isdisjoint(
         {
