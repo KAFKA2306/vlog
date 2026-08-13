@@ -107,4 +107,6 @@ def validate_social_mirror_claim(
 
     if not referenced_utterance:
         raise ValueError("direct_quote requires a referenced raw utterance")
-    raise ValueError("direct_quote text must appear verbatim in referenced raw evidence")
+    raise ValueError(
+        "direct_quote text must appear verbatim in referenced raw evidence"
+    )
