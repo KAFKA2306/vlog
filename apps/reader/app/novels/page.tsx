@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { ARTIFACT_SEMANTICS } from '@/lib/artifact-semantics'
 import { formatDateOnly } from '@/lib/entries'
 import { getPublicNovels, novelPermalink } from '@/lib/novels'
 
@@ -12,10 +13,10 @@ export default async function NovelsPage() {
     <main className="page">
       <div className="wrap">
         <header className="site-header">
-          <p className="eyebrow">NOVEL / 物語</p>
+          <p className="eyebrow">{ARTIFACT_SEMANTICS.novel.label}</p>
           <h1 className="site-title">記憶から生まれた物語</h1>
           <p className="site-intro">
-            日々の記憶をもとに、あとから物語として書いた創作です。事実記録としてではなく、記憶から派生したNarrative Artifactとして読める形で残しています。
+            {ARTIFACT_SEMANTICS.novel.archiveDescription}
           </p>
         </header>
 
