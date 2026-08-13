@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { ARTIFACT_SEMANTICS } from '@/lib/artifact-semantics'
 import {
   formatDateOnly,
   getLatestSummaries,
@@ -37,13 +38,13 @@ export default async function DayPage({ params }: Props) {
         ) : (
           <>
             <header className="day-header">
-              <p className="eyebrow">DIARY / 日記</p>
+              <p className="eyebrow">{ARTIFACT_SEMANTICS.diary.label}</p>
               <h1 className="day-title">{entry.title}</h1>
               <time className="day-date" dateTime={date}>
                 {formatDateOnly(date)}
               </time>
               <p className="artifact-note">
-                その日の出来事を読み返すためにまとめた記録です。会話や写真などの元記録そのものではありません。
+                {ARTIFACT_SEMANTICS.diary.description}
               </p>
             </header>
             <article className="entry-copy">
