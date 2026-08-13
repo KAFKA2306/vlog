@@ -37,7 +37,9 @@ class SocialMirrorValue:
         if not self.text.strip():
             raise ValueError("social mirror text must not be empty")
         if not self.speaker_label.strip():
-            raise ValueError("speaker_label must not be empty; use 'unknown' when unknown")
+            raise ValueError(
+                "speaker_label must not be empty; use 'unknown' when unknown"
+            )
         if self.speaker_entity_id is not None:
             try:
                 UUID(self.speaker_entity_id)
