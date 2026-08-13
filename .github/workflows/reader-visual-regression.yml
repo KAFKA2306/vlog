@@ -1,0 +1,93 @@
+name: Reader Visual Regression
+
+on:
+  pull_request:
+    paths:
+      - 'apps/reader/**'
+      - '.github/workflows/reader-visual-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/reader/**'
+      - '.github/workflows/reader-visual-regression.yml'
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    defaults:
+      run:
+        working-directory: apps/reader
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: visual-fixture-key
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Bun bootstrap prerequisite
+        working-directory: .
+        run: apt-get update && apt-get install -y --no-install-recommends unzip
+      - uses: oven-sh/setup-bun@v2
+      - name: Trust the checked-out repository inside the container
+        working-directory: .
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - run: bun install --frozen-lockfile
+
+      - name: Start deterministic public fixture API
+        run: |
+          node scripts/visual-fixture-server.mjs >/tmp/kaflog-fixture.log 2>&1 &
+          sleep 1
+          node -e "fetch('http://127.0.0.1:54321/fixture-image.svg').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+      - name: Build Reader against fixture API
+        run: bun run build
+
+      - name: Start Reader
+        run: |
+          bun run start --hostname 127.0.0.1 --port 3000 >/tmp/kaflog-next.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            node -e "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && exit 0
+            sleep 1
+          done
+          cat /tmp/kaflog-next.log
+          exit 1
+
+      - name: Capture representative desktop and mobile views
+        run: |
+          out=/tmp/kaflog-visual
+          mkdir -p "$out"
+          shot() {
+            size="$1"
+            route="$2"
+            file="$3"
+            npx -y playwright@1.62.0 screenshot \
+              --browser chromium \
+              --viewport-size="$size" \
+              --wait-for-timeout=300 \
+              --full-page \
+              "http://127.0.0.1:3000$route" \
+              "$out/$file"
+          }
+          shot '1280,960' '/' home-desktop.png
+          shot '1280,960' '/day/2026-08-13' diary-desktop.png
+          shot '1280,960' '/novels' novels-desktop.png
+          shot '1280,960' '/novels/novel-visual-1' novel-detail-desktop.png
+          shot '1280,960' '/people-said' people-said-desktop.png
+          shot '1280,960' '/timeline' timeline-desktop.png
+          shot '390,844' '/' home-mobile.png
+          shot '390,844' '/day/2026-08-13' diary-mobile.png
+          shot '390,844' '/timeline' timeline-mobile.png
+
+      - name: Compare pixel baselines
+        run: |
+          cd /tmp/kaflog-visual
+          sha256sum *.png > /tmp/kaflog-visual.sha256
+          cat /tmp/kaflog-visual.sha256
+          diff -u "$GITHUB_WORKSPACE/apps/reader/visual-fixtures/baselines.sha256" /tmp/kaflog-visual.sha256
+
+      - name: Verify repository checkout stayed clean
+        if: always()
+        working-directory: .
+        run: test -z "$(git status --porcelain --untracked-files=all)"
