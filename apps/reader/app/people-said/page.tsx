@@ -7,6 +7,8 @@ import {
   publicSpeakerLabel,
 } from '@/lib/people-said'
 
+import styles from './page.module.css'
+
 export default async function PeopleSaidPage() {
   const entries = await getPeopleSaidEntries()
 
@@ -17,7 +19,7 @@ export default async function PeopleSaidPage() {
           ← KafLogへ戻る
         </Link>
 
-        <header className="people-said-header">
+        <header className={styles.header}>
           <p className="eyebrow">PEOPLE SAID</p>
           <h1 className="day-title">人から言われたこと</h1>
           <p className="site-intro">
@@ -26,12 +28,12 @@ export default async function PeopleSaidPage() {
         </header>
 
         {entries.length === 0 ? (
-          <div className="empty-state people-said-empty">
+          <div className={`empty-state ${styles.empty}`}>
             <h2>まだ公開された言葉はありません。</h2>
             <p>非公開の記録や元の会話ログは、このReaderには表示されません。</p>
           </div>
         ) : (
-          <ol className="people-said-list">
+          <ol className={styles.list}>
             {entries.map(entry => {
               const date = entry.occurredAt.slice(0, 10)
               const label = evidenceLevelLabel(entry.evidenceLevel)
@@ -39,31 +41,32 @@ export default async function PeopleSaidPage() {
               return (
                 <li key={`${entry.id}:${entry.publicationDecisionId}`}>
                   <article
-                    className={`people-said-card people-said-${entry.evidenceLevel}`}
+                    className={styles.card}
+                    data-evidence-level={entry.evidenceLevel}
                   >
-                    <div className="people-said-meta">
+                    <div className={styles.meta}>
                       <time dateTime={entry.occurredAt}>{formatDateOnly(date)}</time>
-                      <span className="evidence-badge">{label}</span>
+                      <span className={styles.badge}>{label}</span>
                     </div>
 
-                    <p className="people-said-context">
+                    <p className={styles.context}>
                       {entry.context ?? '文脈は公開していません'}
                     </p>
 
                     {entry.evidenceLevel === 'direct_quote' ? (
-                      <blockquote className="people-said-quote">
+                      <blockquote className={styles.quote}>
                         <p>「{entry.text}」</p>
                       </blockquote>
                     ) : (
-                      <p className="people-said-text">{entry.text}</p>
+                      <p className={styles.text}>{entry.text}</p>
                     )}
 
-                    <p className="people-said-speaker">
+                    <p className={styles.speaker}>
                       {publicSpeakerLabel(entry.speakerLabel)}
                     </p>
 
                     {entry.reaction ? (
-                      <aside className="people-said-reaction">
+                      <aside className={styles.reaction}>
                         <span>その時の自分</span>
                         <p>{entry.reaction}</p>
                       </aside>
