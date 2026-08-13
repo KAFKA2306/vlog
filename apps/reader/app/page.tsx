@@ -1,15 +1,16 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { formatDateOnly, getLatestSummaries } from '@/lib/entries'
 
 export default async function Page() {
-  const entries = await getLatestSummaries(60)
+  const entries = await getLatestSummaries()
 
   return (
     <main className="page">
       <div className="wrap">
         <header className="site-header">
-          <p className="eyebrow">RECENT DAYS</p>
+          <p className="eyebrow">PUBLISHED DAYS</p>
           <h1 className="site-title">VRChat Auto Diary</h1>
           <p className="site-intro">
             VRChatで過ごした時間を、日付ごとの記録として読み返せます。
@@ -32,6 +33,18 @@ export default async function Page() {
                     className="entry-link"
                     aria-label={formatDateOnly(entry.date) + 'の日記を読む'}
                   >
+                    {entry.imageUrl ? (
+                      <div className="entry-image-frame">
+                        <Image
+                          src={entry.imageUrl}
+                          alt={`${formatDateOnly(entry.date)}のVRChat記録`}
+                          className="entry-image"
+                          width={640}
+                          height={360}
+                          sizes="(max-width: 720px) 100vw, 440px"
+                        />
+                      </div>
+                    ) : null}
                     <time className="entry-date" dateTime={entry.date}>
                       {formatDateOnly(entry.date)}
                     </time>

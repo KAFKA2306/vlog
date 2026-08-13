@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 import {
   formatDateOnly,
@@ -13,7 +14,7 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  return (await getLatestSummaries(60)).map(entry => ({ date: entry.date }))
+  return (await getLatestSummaries()).map(entry => ({ date: entry.date }))
 }
 
 export const dynamicParams = false
@@ -43,6 +44,18 @@ export default async function DayPage({ params }: Props) {
                 {formatDateOnly(date)}
               </time>
             </header>
+            {entry.imageUrl ? (
+              <div className="day-image-frame">
+                <Image
+                  src={entry.imageUrl}
+                  alt={`${formatDateOnly(date)}のVRChat記録`}
+                  className="day-image"
+                  width={960}
+                  height={540}
+                  sizes="(max-width: 720px) 100vw, 720px"
+                />
+              </div>
+            ) : null}
             <article className="entry-copy">
               <p className="entry-body">{entry.content}</p>
             </article>

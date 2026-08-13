@@ -4,6 +4,7 @@ import path from 'node:path'
 export type Entry = {
   id: string
   date: string
+  imageUrl: string | null
   title: string
   content: string
 }
@@ -13,6 +14,16 @@ const SUMMARY_DIR = path.join(DATA_ROOT, 'summaries')
 const TRANSCRIPT_DIR = path.join(DATA_ROOT, 'transcripts')
 const DAILY_STATE_FILE = path.join(DATA_ROOT, 'daily_state.json')
 const MIN_PUBLISHABLE_BYTES = 50
+const PUBLICATION_START_DATE = '2025-01-01'
+
+const getSupabaseConfig = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+
+  return url && key ? { key, url } : null
+}
 
 type DailyStateEntry = {
   summary_source_files?: string[]
@@ -75,13 +86,62 @@ const readSummary = async (fileName: string): Promise<Entry | null> => {
   if (!(await isPublishableSummary(match[1]))) return null
 
   const date = toDate(match[1])
+  if (date < PUBLICATION_START_DATE) return null
   const content = await readText(path.join(SUMMARY_DIR, fileName))
   return {
     id: `summary:${date}`,
     date,
+    imageUrl: null,
     title: parseTitle(content),
     content: cleanContent(content),
   }
+}
+
+type SupabaseEntry = {
+  id: string
+  date: string
+  title: string
+  content: string
+  image_url: string | null
+}
+
+const fetchSupabase = async (query: Record<string, string>) => {
+  const config = getSupabaseConfig()
+  if (!config) return null
+
+  const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/daily_entries`)
+  Object.entries(query).forEach(([name, value]) => url.searchParams.set(name, value))
+
+  const response = await fetch(url, {
+    headers: {
+      apikey: config.key,
+      Authorization: `Bearer ${config.key}`,
+    },
+    next: { revalidate: 300 },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Supabase request failed: ${response.status}`)
+  }
+
+  return (await response.json()) as SupabaseEntry[]
+}
+
+const getRemoteSummaries = async (): Promise<Entry[] | null> => {
+  const rows = await fetchSupabase({
+    select: 'id,date,title,content,image_url',
+    is_public: 'eq.true',
+    date: `gte.${PUBLICATION_START_DATE}`,
+    order: 'date.desc',
+  })
+
+  return rows?.map(row => ({
+    id: row.id,
+    date: row.date,
+    imageUrl: row.image_url,
+    title: row.title,
+    content: row.content,
+  })) ?? null
 }
 
 export const formatDateOnly = (value: string) => {
@@ -92,7 +152,12 @@ export const formatDateOnly = (value: string) => {
   }).format(new Date(`${value}T00:00:00`))
 }
 
-export const getLatestSummaries = async (limit = 60): Promise<Entry[]> => {
+export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
+  const remoteSummaries = await getRemoteSummaries()
+  if (remoteSummaries !== null) {
+    return limit === undefined ? remoteSummaries : remoteSummaries.slice(0, limit)
+  }
+
   try {
     const files = await readdir(SUMMARY_DIR)
     const summaries = await Promise.all(
@@ -102,13 +167,36 @@ export const getLatestSummaries = async (limit = 60): Promise<Entry[]> => {
         .map(readSummary),
     )
 
-    return summaries.filter((entry): entry is Entry => entry !== null).slice(0, limit)
+    const published = summaries.filter(
+      (entry): entry is Entry => entry !== null,
+    )
+
+    return limit === undefined ? published : published.slice(0, limit)
   } catch {
     return []
   }
 }
 
 export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
+  const remoteSummaries = await fetchSupabase({
+    select: 'id,date,title,content,image_url',
+    is_public: 'eq.true',
+    date: `eq.${date}`,
+    limit: '1',
+  })
+  if (remoteSummaries !== null) {
+    const row = remoteSummaries[0]
+    return row
+      ? {
+          id: row.id,
+          date: row.date,
+          imageUrl: row.image_url,
+          title: row.title,
+          content: row.content,
+        }
+      : null
+  }
+
   try {
     return await readSummary(`${date.replaceAll('-', '')}_summary.txt`)
   } catch {
