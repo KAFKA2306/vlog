@@ -103,11 +103,9 @@ export const formatDateOnly = (value: string) => {
 
 export const diaryPermalink = (date: string) => `/day/${encodeURIComponent(date)}`
 
-export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
+export const getLatestSummaries = async (_legacyLimit?: number): Promise<Entry[]> => {
   const remoteEntries = await getRemotePublicArchiveEntries('diary')
-  if (remoteEntries !== null) {
-    return limit === undefined ? remoteEntries : remoteEntries.slice(0, limit)
-  }
+  if (remoteEntries !== null) return remoteEntries
 
   try {
     const files = await readdir(SUMMARY_DIR)
@@ -117,8 +115,7 @@ export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
         .sort((a, b) => b.localeCompare(a))
         .map(readSummary),
     )
-    const published = summaries.filter((entry): entry is Entry => entry !== null)
-    return limit === undefined ? published : published.slice(0, limit)
+    return summaries.filter((entry): entry is Entry => entry !== null)
   } catch {
     return []
   }
