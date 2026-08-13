@@ -35,6 +35,18 @@
     {
       "if": {"properties": {"status": {"const": "accepted"}}, "required": ["status"]},
       "then": {"properties": {"evidence": {"minItems": 1}}}
+    },
+    {
+      "if": {
+        "properties": {"claim_type": {"const": "social_mirror"}},
+        "required": ["claim_type"]
+      },
+      "then": {
+        "properties": {
+          "value": {"$ref": "#/$defs/socialMirrorValue"},
+          "evidence": {"minItems": 1}
+        }
+      }
     }
   ],
   "$defs": {
@@ -48,6 +60,20 @@
         "utterance_id": {"type": ["string", "null"], "format": "uuid"},
         "start_ms": {"type": ["integer", "null"], "minimum": 0},
         "end_ms": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "socialMirrorValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_level", "text", "speaker_label"],
+      "properties": {
+        "evidence_level": {
+          "type": "string",
+          "enum": ["direct_quote", "paraphrase", "inferred_impression"]
+        },
+        "text": {"type": "string", "minLength": 1},
+        "speaker_label": {"type": "string", "minLength": 1},
+        "speaker_entity_id": {"type": ["string", "null"], "format": "uuid"}
       }
     }
   }
