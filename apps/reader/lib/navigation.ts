@@ -21,7 +21,7 @@ export const PRIMARY_NAVIGATION: readonly NavigationItem[] = [
   {
     key: 'novels',
     label: 'Novels',
-    href: null,
+    href: '/novels',
     activePrefixes: ['/novels'],
   },
   {
