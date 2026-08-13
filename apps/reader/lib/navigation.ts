@@ -9,7 +9,7 @@ export const PRIMARY_NAVIGATION: readonly NavigationItem[] = [
   {
     key: 'timeline',
     label: 'Timeline',
-    href: null,
+    href: '/timeline',
     activePrefixes: ['/timeline'],
   },
   {
