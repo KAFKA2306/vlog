@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app lib next.config.ts"
+    "lint": "eslint app lib next.config.ts",
+    "design:check": "node scripts/check-design-contract.mjs"
   },
   "dependencies": {
     "next": "^16.1.0",
