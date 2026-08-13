@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { formatDateOnly, getLatestSummaries } from '@/lib/entries'
+import { HOME_COPY } from '@/lib/site-copy'
 
 export default async function Page() {
   const entries = await getLatestSummaries(60)
@@ -9,11 +10,9 @@ export default async function Page() {
     <main className="page">
       <div className="wrap">
         <header className="site-header">
-          <p className="eyebrow">RECENT DAYS</p>
-          <h1 className="site-title">VRChat Auto Diary</h1>
-          <p className="site-intro">
-            VRChatで過ごした時間を、日付ごとの記録として読み返せます。
-          </p>
+          <p className="eyebrow">{HOME_COPY.eyebrow}</p>
+          <h1 className="site-title">{HOME_COPY.title}</h1>
+          <p className="site-intro">{HOME_COPY.intro}</p>
         </header>
 
         {entries.length === 0 ? (
