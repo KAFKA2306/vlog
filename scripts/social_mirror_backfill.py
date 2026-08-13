@@ -25,7 +25,9 @@ def _parse_date(value: str | None) -> date | None:
 
 def _load_jsonl(path: Path) -> tuple[BackfillSourceRecord, ...]:
     records: list[BackfillSourceRecord] = []
-    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, raw_line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         line = raw_line.strip()
         if not line:
             continue
@@ -35,6 +37,7 @@ def _load_jsonl(path: Path) -> tuple[BackfillSourceRecord, ...]:
                 BackfillSourceRecord(
                     source_object_id=payload["source_object_id"],
                     episode_id=payload["episode_id"],
+                    subject_entity_id=payload["subject_entity_id"],
                     recorded_at=datetime.fromisoformat(payload["recorded_at"]),
                     source_kind=BackfillSourceKind(payload["source_kind"]),
                     text=payload["text"],
