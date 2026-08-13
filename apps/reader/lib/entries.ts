@@ -1,9 +1,15 @@
 import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
+import {
+  PUBLICATION_START_DATE,
+  getRemotePublicArchiveEntries,
+} from './public-archive'
+
 export type Entry = {
   id: string
   date: string
+  imageUrl: string | null
   title: string
   content: string
 }
@@ -72,13 +78,16 @@ const cleanContent = (content: string) => {
 const readSummary = async (fileName: string): Promise<Entry | null> => {
   const match = fileName.match(SUMMARY_FILE)
   if (!match) return null
-  if (!(await isPublishableSummary(match[1]))) return null
 
   const date = toDate(match[1])
+  if (date < PUBLICATION_START_DATE) return null
+  if (!(await isPublishableSummary(match[1]))) return null
+
   const content = await readText(path.join(SUMMARY_DIR, fileName))
   return {
     id: `summary:${date}`,
     date,
+    imageUrl: null,
     title: parseTitle(content),
     content: cleanContent(content),
   }
@@ -92,7 +101,12 @@ export const formatDateOnly = (value: string) => {
   }).format(new Date(`${value}T00:00:00`))
 }
 
-export const getLatestSummaries = async (limit = 60): Promise<Entry[]> => {
+export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
+  const remoteEntries = await getRemotePublicArchiveEntries('diary')
+  if (remoteEntries !== null) {
+    return limit === undefined ? remoteEntries : remoteEntries.slice(0, limit)
+  }
+
   try {
     const files = await readdir(SUMMARY_DIR)
     const summaries = await Promise.all(
@@ -101,14 +115,21 @@ export const getLatestSummaries = async (limit = 60): Promise<Entry[]> => {
         .sort((a, b) => b.localeCompare(a))
         .map(readSummary),
     )
-
-    return summaries.filter((entry): entry is Entry => entry !== null).slice(0, limit)
+    const published = summaries.filter((entry): entry is Entry => entry !== null)
+    return limit === undefined ? published : published.slice(0, limit)
   } catch {
     return []
   }
 }
 
 export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
+  if (date < PUBLICATION_START_DATE) return null
+
+  const remoteEntries = await getRemotePublicArchiveEntries('diary')
+  if (remoteEntries !== null) {
+    return remoteEntries.find(entry => entry.date === date) ?? null
+  }
+
   try {
     return await readSummary(`${date.replaceAll('-', '')}_summary.txt`)
   } catch {
