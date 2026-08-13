@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 import { formatDateOnly } from '@/lib/entries'
-import { getPublicNovels } from '@/lib/novels'
+import { getPublicNovels, novelPermalink } from '@/lib/novels'
 
 import styles from './page.module.css'
 
@@ -32,7 +32,7 @@ export default async function NovelsPage() {
               return (
                 <li key={novel.id}>
                   <Link
-                    href={`/novels/${novel.id}`}
+                    href={novelPermalink(novel.id)}
                     className={`${styles.novelCard} entry-link`}
                     aria-label={`${formatDateOnly(novel.date)}の物語「${novel.title}」を読む`}
                   >
