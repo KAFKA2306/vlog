@@ -26,7 +26,13 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: visual-fixture-key
     steps:
       - uses: actions/checkout@v4
+      - name: Install Bun bootstrap prerequisite
+        working-directory: .
+        run: apt-get update && apt-get install -y --no-install-recommends unzip
       - uses: oven-sh/setup-bun@v2
+      - name: Trust the checked-out repository inside the container
+        working-directory: .
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - run: bun install --frozen-lockfile
 
       - name: Start deterministic public fixture API
