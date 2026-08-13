@@ -69,7 +69,10 @@ class SocialMirrorPublicProjection:
     evidence_level: SocialMirrorEvidenceLevel
     text: str
     speaker_label: str | None
+    occurred_at: datetime
     published_at: datetime
+    context: str | None = None
+    reaction: str | None = None
 
 
 def project_social_mirror_claim(
@@ -106,5 +109,6 @@ def project_social_mirror_claim(
         evidence_level=claim.value.evidence_level,
         text=claim.value.text,
         speaker_label=speaker_label,
+        occurred_at=claim.valid_from,
         published_at=decision.decided_at,
     )
