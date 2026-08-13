@@ -30,6 +30,7 @@ def load_fixture() -> tuple[BackfillSourceRecord, ...]:
             BackfillSourceRecord(
                 source_object_id=payload["source_object_id"],
                 episode_id=payload["episode_id"],
+                subject_entity_id=payload["subject_entity_id"],
                 utterance_id=payload.get("utterance_id"),
                 recorded_at=datetime.fromisoformat(payload["recorded_at"]),
                 source_kind=BackfillSourceKind(payload["source_kind"]),
