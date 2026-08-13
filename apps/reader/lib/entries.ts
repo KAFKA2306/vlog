@@ -1,10 +1,13 @@
 import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
+export type EntrySource = 'summary' | 'novel'
+
 export type Entry = {
   id: string
   date: string
   imageUrl: string | null
+  source: EntrySource
   title: string
   content: string
 }
@@ -92,6 +95,7 @@ const readSummary = async (fileName: string): Promise<Entry | null> => {
     id: `summary:${date}`,
     date,
     imageUrl: null,
+    source: 'summary',
     title: parseTitle(content),
     content: cleanContent(content),
   }
@@ -105,11 +109,14 @@ type SupabaseEntry = {
   image_url: string | null
 }
 
-const fetchSupabase = async (query: Record<string, string>) => {
+const fetchSupabase = async (
+  table: 'daily_entries' | 'novels',
+  query: Record<string, string>,
+) => {
   const config = getSupabaseConfig()
   if (!config) return null
 
-  const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/daily_entries`)
+  const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/${table}`)
   Object.entries(query).forEach(([name, value]) => url.searchParams.set(name, value))
 
   const response = await fetch(url, {
@@ -127,22 +134,43 @@ const fetchSupabase = async (query: Record<string, string>) => {
   return (await response.json()) as SupabaseEntry[]
 }
 
-const getRemoteSummaries = async (): Promise<Entry[] | null> => {
-  const rows = await fetchSupabase({
-    select: 'id,date,title,content,image_url',
-    is_public: 'eq.true',
-    date: `gte.${PUBLICATION_START_DATE}`,
-    order: 'date.desc',
-  })
+const getRemoteEntries = async (
+  table: 'daily_entries' | 'novels',
+  source: EntrySource,
+): Promise<Entry[] | null> => {
+  const pageSize = 100
+  const rows: SupabaseEntry[] = []
+  let offset = 0
 
-  return rows?.map(row => ({
+  while (true) {
+    const page = await fetchSupabase(table, {
+      select: 'id,date,title,content,image_url',
+      is_public: 'eq.true',
+      date: `gte.${PUBLICATION_START_DATE}`,
+      order: 'date.desc',
+      limit: String(pageSize),
+      offset: String(offset),
+    })
+
+    if (page === null) return null
+    rows.push(...page)
+    if (page.length < pageSize) break
+    offset += pageSize
+  }
+
+  return rows.map(row => ({
     id: row.id,
     date: row.date,
     imageUrl: row.image_url,
+    source,
     title: row.title,
     content: row.content,
   })) ?? null
 }
+
+const getRemoteSummaries = () => getRemoteEntries('daily_entries', 'summary')
+
+const getRemoteNovels = () => getRemoteEntries('novels', 'novel')
 
 export const formatDateOnly = (value: string) => {
   return new Intl.DateTimeFormat(undefined, {
@@ -177,8 +205,22 @@ export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
   }
 }
 
+export const getPublishedEntries = async (): Promise<Entry[]> => {
+  const [summaries, novels] = await Promise.all([
+    getRemoteSummaries(),
+    getRemoteNovels(),
+  ])
+
+  if (summaries === null || novels === null) return getLatestSummaries()
+
+  return [...summaries, ...novels].sort(
+    (left, right) =>
+      new Date(right.date).getTime() - new Date(left.date).getTime(),
+  )
+}
+
 export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
-  const remoteSummaries = await fetchSupabase({
+  const remoteSummaries = await fetchSupabase('daily_entries', {
     select: 'id,date,title,content,image_url',
     is_public: 'eq.true',
     date: `eq.${date}`,
@@ -191,6 +233,7 @@ export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
           id: row.id,
           date: row.date,
           imageUrl: row.image_url,
+          source: 'summary',
           title: row.title,
           content: row.content,
         }
@@ -202,4 +245,51 @@ export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
   } catch {
     return null
   }
+}
+
+export const getEntryById = async (id: string): Promise<Entry | null> => {
+  const [summaries, novels] = await Promise.all([
+    fetchSupabase('daily_entries', {
+      select: 'id,date,title,content,image_url',
+      is_public: 'eq.true',
+      id: `eq.${id}`,
+      limit: '1',
+    }),
+    fetchSupabase('novels', {
+      select: 'id,date,title,content,image_url',
+      is_public: 'eq.true',
+      id: `eq.${id}`,
+      limit: '1',
+    }),
+  ])
+
+  const row = summaries?.[0]
+  if (row) {
+    return {
+      id: row.id,
+      date: row.date,
+      imageUrl: row.image_url,
+      source: 'summary',
+      title: row.title,
+      content: row.content,
+    }
+  }
+
+  const novel = novels?.[0]
+  if (novel) {
+    return {
+      id: novel.id,
+      date: novel.date,
+      imageUrl: novel.image_url,
+      source: 'novel',
+      title: novel.title,
+      content: novel.content,
+    }
+  }
+
+  if (summaries === null && novels === null && id.startsWith('summary:')) {
+    return getSummaryByDate(id.slice('summary:'.length))
+  }
+
+  return null
 }

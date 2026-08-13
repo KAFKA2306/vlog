@@ -147,6 +147,27 @@ h2 {
   letter-spacing: 0.04em;
 }
 
+.entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.entry-type {
+  padding: 4px 8px;
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+}
+
+.entry-type.novel {
+  color: #ffd58a;
+  border-color: rgba(255, 213, 138, 0.42);
+}
+
 .entry-title {
   margin-top: 16px;
   font-size: 1.25rem;
