@@ -1,9 +1,11 @@
 import './globals.css'
 import type { Metadata } from 'next'
 
+import { SITE_METADATA } from '@/lib/site-copy'
+
 export const metadata: Metadata = {
-  title: 'VRChat Auto Diary',
-  description: 'VRChatで過ごした時間を読み返す日記',
+  title: SITE_METADATA.title,
+  description: SITE_METADATA.description,
 }
 
 export default function RootLayout({
