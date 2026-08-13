@@ -47,7 +47,7 @@ export const parsePublicNovel = (value: unknown): PublicNovel | null => {
 }
 
 export const getPublicNovels = async (
-  limit?: number,
+  _legacyLimit?: number,
   fetchImpl: FetchLike = fetch,
 ): Promise<PublicNovel[]> => {
   const config = getSupabaseConfig()
@@ -58,8 +58,7 @@ export const getPublicNovels = async (
     fetchImpl,
     kind: 'novel',
   })
-  const novels = entries.map(entry => ({ ...entry, tags: [] }))
-  return limit === undefined ? novels : novels.slice(0, limit)
+  return entries.map(entry => ({ ...entry, tags: [] }))
 }
 
 export const getPublicNovelById = async (id: string): Promise<PublicNovel | null> => {
