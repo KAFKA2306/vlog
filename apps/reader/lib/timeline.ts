@@ -81,7 +81,7 @@ const fromPeopleSaid = (entry: PeopleSaidEntry): TimelineArtifact => ({
   title: publicSpeakerLabel(entry.speakerLabel),
   text: entry.text,
   imageUrl: null,
-  href: `/people-said#claim-${encodeURIComponent(entry.id)}`,
+  href: '/people-said',
   occurredAt: entry.occurredAt,
 })
 
