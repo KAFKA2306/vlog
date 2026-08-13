@@ -2,6 +2,12 @@
 
 The Reader is a Next.js application under `apps/reader/`. It presents current diary and narrative projections while the v2 review and publication model is being built.
 
+## Design system
+
+`DESIGN.md` is the canonical visual contract for the public KafLog Reader. It defines the Quiet Memory / Editorial Archive direction, semantic color tokens, typography, content-type semantics, interaction rules, accessibility targets, and representative visual-regression views.
+
+Implementation changes should consume semantic tokens rather than introducing component-local brand colors or restoring the previous black/cyan neon treatment.
+
 ## Development
 
 Use repository tasks so dependency installation, type checking, linting, and production build remain aligned:
