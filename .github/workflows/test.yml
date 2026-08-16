@@ -34,6 +34,8 @@ jobs:
         run: uv run --no-sync python -m compileall -q apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Lint Python sources
         run: uvx ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - name: Check Python formatting
+        run: uvx ruff format --check apps/capture-vrchat/src packages scripts tests infra/systemd
       - name: Enforce canonical repository ratchet
         run: |
           grep -Fq 'Evidence -> Human Memory -> Narrative Artifact -> Public Projection' docs/architecture/human-memory-v2.md
