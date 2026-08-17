@@ -1,5 +1,9 @@
 # VLog Human Memory Engine
 
+[![Test and Security Audit](https://github.com/KAFKA2306/vlog/actions/workflows/test.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/test.yml)
+[![Reader Visual Regression](https://github.com/KAFKA2306/vlog/actions/workflows/reader-visual-regression.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/reader-visual-regression.yml)
+[![Companion Pages](https://github.com/KAFKA2306/vlog/actions/workflows/companion-pages.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/companion-pages.yml)
+
 VLogは、VRChatで生じた音声、写真、会話、出来事を証拠として保存し、人間が確認できる記憶、日記、物語、公開物へ段階的に変換するための公開OSSエンジンです。
 
 このリポジトリの目的は、録音から日記を自動生成することだけではありません。**原証拠、人間の記憶、AIが生成した物語、公開物を別の層として扱い、根拠、訂正、非公開境界、公開判断を追跡できるHuman Memory Repository**へ移行しています。
