@@ -12,7 +12,7 @@ The interface should feel closer to reading a personal archive than operating an
 
 1. **Content first** — dates, photographs, diary text, stories, and remembered words are the visual hierarchy.
 2. **Quiet hierarchy** — use spacing, typography, and subtle tone changes before shadows, animation, or decoration.
-3. **Warm paper, not cyber glass** — the canonical appearance is a light editorial surface with warm neutrals.
+3. **Soft paper, not cyber glass** — the canonical appearance is a light editorial surface with low-saturation blue, lavender, and pink accents.
 4. **Meaning before color** — Diary, Novel, People Said, and Timeline must remain distinguishable without color perception.
 5. **Long-form comfort** — typography and measure are optimized for Japanese prose and repeated reading.
 6. **Evidence-aware presentation** — visual polish must never make generated narrative look like canonical evidence.
@@ -35,40 +35,42 @@ Components must consume semantic tokens. Do not scatter raw hexadecimal values t
 ```css
 :root {
   /* Foundations */
-  --color-canvas: #f5f4ef;
+  --color-canvas: #f7f8fc;
   --color-paper: #ffffff;
-  --color-paper-soft: #fcfbf8;
+  --color-paper-soft: #f3f5fb;
 
   /* Text */
   --color-ink: #1a1c20;
-  --color-ink-muted: #5f6f82;
+  --color-ink-muted: #5e6e86;
   --color-ink-subtle: #6b7280;
 
   /* Primary identity */
-  --color-accent: #0f766e;
-  --color-accent-soft: rgba(15, 118, 110, 0.07);
+  --color-accent: #466a9f;
+  --color-accent-soft: rgba(123, 167, 225, 0.16);
 
   /* Structure */
-  --color-border: rgba(26, 28, 32, 0.12);
-  --color-border-strong: rgba(15, 118, 110, 0.36);
+  --color-border: rgba(79, 111, 159, 0.18);
+  --color-border-strong: rgba(79, 111, 159, 0.42);
 
   /* Content semantics */
-  --color-diary: #0f766e;
-  --color-novel: #8a5a2f;
-  --color-people-said: #76537a;
+  --color-diary: #466a9f;
+  --color-novel: #6554a4;
+  --color-people-said: #8a4f6a;
 
   /* States */
-  --color-focus: #0f766e;
+  --color-focus: #466a9f;
   --color-danger: #9f2d2d;
 }
 ```
+
+The visual identity is based on the established low-saturation KAFKA palette: pastel blue `#7BA7E1`, lavender `#B8A7E6`, and pink `#F7B7C1`. Normal-size text and focus indicators use darker derivatives so the rendered foreground/background pair can satisfy contrast requirements.
 
 ### Contrast notes
 
 The canonical text colors are chosen so that normal-size text can meet WCAG 2.2 Contrast (Minimum) when used on the intended paper/canvas surfaces.
 
 - `--color-ink` is the default body text.
-- `--color-ink-muted` is the minimum muted text color intended for normal-size text on the warm canvas.
+- `--color-ink-muted` is the minimum muted text color intended for normal-size text on the light canvas.
 - `--color-ink-subtle` may be used only where the actual foreground/background pair is mechanically verified; do not assume it is suitable everywhere.
 - content-semantic colors may be used as text/markers only when the concrete foreground/background pair passes the required contrast.
 
@@ -82,21 +84,21 @@ All content types belong to one archive. They are not separate product themes.
 
 - Label: `Diary / 日記`
 - Default paper surface.
-- Teal semantic marker.
+- Deep blue semantic marker derived from the primary pastel blue.
 - Date and prose are primary; metadata remains secondary.
 - A Diary is a narrative artifact, not raw evidence.
 
 ### Novel
 
 - Label: `Novel / 物語`
-- Warm brown semantic marker.
+- Deep lavender semantic marker.
 - Must include a textual explanation that it is a creative/narrative derivative.
 - Typography may feel slightly more literary, but must remain in the same KafLog system.
 
 ### People Said
 
 - Label: `People Said / 人から言われたこと`
-- Muted plum semantic marker.
+- Muted rose semantic marker.
 - Quote/paraphrase/inference must be identified with explicit text labels or badges.
 - Do not use quotation styling to imply that a paraphrase or inference is a verified direct quote.
 - Speaker identity and publication state remain separate concerns from visual styling.
@@ -155,9 +157,9 @@ Use a 4px base unit with a restrained scale:
 
 ## 6. Surfaces, borders, and radius
 
-- Canvas: warm neutral.
+- Canvas: very light cool neutral.
 - Primary reading surface: white paper.
-- Secondary/quiet surface: warm off-white.
+- Secondary/quiet surface: cool off-white with a restrained blue tint.
 - Borders are the primary method of separating interactive surfaces.
 - Shadows are optional and extremely light; a border-only treatment is preferred.
 
