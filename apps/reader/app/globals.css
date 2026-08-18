@@ -1,18 +1,18 @@
 :root {
-  --color-canvas: #f5f4ef;
+  --color-canvas: #f7f8fc;
   --color-paper: #ffffff;
-  --color-paper-soft: #fcfbf8;
+  --color-paper-soft: #f3f5fb;
   --color-ink: #1a1c20;
-  --color-ink-muted: #5f6f82;
+  --color-ink-muted: #5e6e86;
   --color-ink-subtle: #6b7280;
-  --color-accent: #0f766e;
-  --color-accent-soft: rgba(15, 118, 110, 0.07);
-  --color-border: rgba(26, 28, 32, 0.12);
-  --color-border-strong: rgba(15, 118, 110, 0.36);
-  --color-diary: #0f766e;
-  --color-novel: #8a5a2f;
-  --color-people-said: #76537a;
-  --color-focus: #0f766e;
+  --color-accent: #466a9f;
+  --color-accent-soft: rgba(123, 167, 225, 0.16);
+  --color-border: rgba(79, 111, 159, 0.18);
+  --color-border-strong: rgba(79, 111, 159, 0.42);
+  --color-diary: #466a9f;
+  --color-novel: #6554a4;
+  --color-people-said: #8a4f6a;
+  --color-focus: #466a9f;
   --color-danger: #9f2d2d;
 
   --font-body: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
