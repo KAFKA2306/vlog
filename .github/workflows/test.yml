@@ -6,7 +6,53 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  migrate-workspace:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/portability-2026'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.12.5'
+      - name: Apply deterministic workspace migration
+        run: python scripts/_migrate_python_workspace.py
+      - name: Regenerate lock
+        run: uv lock
+      - name: Verify base workspace sync
+        run: uv sync --locked
+      - name: Format migrated Python
+        run: uv run ruff format apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - name: Lint migrated Python
+        run: uv run ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - name: Verify entry points
+        env:
+          GOOGLE_API_KEY: test-key
+        run: |
+          uv run vlog --help
+          uv run python -c "import vlog_capture, vlog_memory_domain, vlog_ingestion, vlog_companion, vlog_privacy, vlog_vrchat_osc"
+      - name: Commit generated migration
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "Migration is already applied."
+            exit 0
+          fi
+          git commit -m "refactor(runtime): migrate to uv workspace and named packages"
+          git push origin HEAD:${{ github.head_ref }}
+
   portability:
     name: Portability (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
