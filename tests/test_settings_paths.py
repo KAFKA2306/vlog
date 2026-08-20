@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from src.infrastructure.settings import (
+from vlog_capture.infrastructure.settings import (
     Settings,
     _get_project_root,
     is_posix_path_invalid_on_windows,

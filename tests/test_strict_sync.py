@@ -1,5 +1,5 @@
 import pytest
-from src.infrastructure.strict_sync import StrictSupabaseSync
+from vlog_capture.infrastructure.strict_sync import StrictSupabaseSync
 
 
 class Response:

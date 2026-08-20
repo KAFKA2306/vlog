@@ -8,8 +8,7 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=@VLOG_ROOT@
 EnvironmentFile=@VLOG_ROOT@/.env
-Environment=PYTHONPATH=@VLOG_PYTHONPATH@
-ExecStart=@VLOG_UV@ run python -m src.daily
+ExecStart=@VLOG_UV@ run vlog-daily
 Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 NoNewPrivileges=yes

@@ -68,7 +68,7 @@ Portable target locations are:
 - Windows config: roaming AppData `VLog`
 - Windows state/cache: local AppData `VLog`
 
-`apps/capture-vrchat/src/portability.py` resolves these locations without creating them. Legacy repo-local `data/` remains an explicit migration state until #84/#73 cut it over non-destructively.
+`apps/capture-vrchat/src/vlog_capture/portability.py` resolves these locations without creating them. Legacy repo-local `data/` remains an explicit migration state until #84/#73 cut it over non-destructively.
 
 ## Executables and toolchains
 

@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 import google.generativeai as genai
-from src.infrastructure.settings import settings
+from vlog_capture.infrastructure.settings import settings
 
 
 def distill():

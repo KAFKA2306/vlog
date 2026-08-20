@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.portability import (
+from vlog_capture.portability import (
     PathFlavor,
     classify_path,
     foreign_absolute_reason,

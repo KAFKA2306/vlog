@@ -91,7 +91,11 @@ def build_companion_daily_view(
     )
     parse_issues = sum(len(item.parsed.issues) for item in observed)
 
-    counts = current_counts if current_counts is not None else _counts_from_observations(observed)
+    counts = (
+        current_counts
+        if current_counts is not None
+        else _counts_from_observations(observed)
+    )
     frequent_terms = tuple(
         sorted(
             (

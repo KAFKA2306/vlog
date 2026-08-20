@@ -50,16 +50,8 @@ def render_units(
 
     uv = resolve_uv_path(uv_path)
     escaped_root = escape_unit_value(str(root))
-    pythonpath = ":".join(
-        (
-            f"{root}/apps/capture-vrchat",
-            f"{root}/packages/memory-domain/src",
-            f"{root}/packages/ingestion/src",
-        )
-    )
     replacements = {
         "@VLOG_ROOT@": escaped_root,
-        "@VLOG_PYTHONPATH@": escape_unit_value(pythonpath),
         "@VLOG_UV@": escape_unit_value(str(uv)),
     }
     output.mkdir(parents=True, exist_ok=True)

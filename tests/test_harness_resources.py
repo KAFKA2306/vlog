@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
-from src.domain.harness import TaskWeight
-from src.infrastructure import harness
+from vlog_capture.domain.harness import TaskWeight
+from vlog_capture.infrastructure import harness
 
 
 class StubProcessMonitor:

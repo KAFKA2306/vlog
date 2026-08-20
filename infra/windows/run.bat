@@ -23,7 +23,6 @@ set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"
 set "UV_PYTHON=3.12"
 set "PYTHONIOENCODING=utf-8"
-set "PYTHONPATH=%CD%\apps\capture-vrchat;%CD%\packages\memory-domain\src;%CD%\packages\ingestion\src"
 
 if not defined VLOG_UV_EXE (
   for /f "delims=" %%I in ('where uv.exe 2^>nul') do if not defined VLOG_UV_EXE set "VLOG_UV_EXE=%%I"
@@ -51,7 +50,7 @@ set "BOOTSTRAP_LOG=data\logs\windows-bootstrap.log"
 >> "%BOOTSTRAP_LOG%" echo working_dir=%CD%
 >> "%BOOTSTRAP_LOG%" echo uv_executable=%VLOG_UV_EXE%
 
-"%VLOG_UV_EXE%" run --frozen python -m src.main >> "%BOOTSTRAP_LOG%" 2>&1
+"%VLOG_UV_EXE%" run --frozen vlog-service >> "%BOOTSTRAP_LOG%" 2>&1
 set "EXIT_CODE=%ERRORLEVEL%"
 >> "%BOOTSTRAP_LOG%" echo exit_code=%EXIT_CODE%
 popd

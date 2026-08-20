@@ -24,12 +24,18 @@ class VrchatOsc:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def send_int(self, name: str, value: int) -> None:
-        self.socket.sendto(osc_message(f"/avatar/parameters/{name}", value), self.target)
+        self.socket.sendto(
+            osc_message(f"/avatar/parameters/{name}", value), self.target
+        )
 
     def send_bool(self, name: str, value: bool) -> None:
-        self.socket.sendto(osc_message(f"/avatar/parameters/{name}", value), self.target)
+        self.socket.sendto(
+            osc_message(f"/avatar/parameters/{name}", value), self.target
+        )
 
-    def speak(self, chars: list[int], mood: int = 0, pulse_seconds: float = 0.18) -> None:
+    def speak(
+        self, chars: list[int], mood: int = 0, pulse_seconds: float = 0.18
+    ) -> None:
         for index, value in enumerate(normalize_chars(chars)):
             self.send_int(f"PetChar{index}", value)
         self.send_int("PetMood", max(0, min(255, mood)))

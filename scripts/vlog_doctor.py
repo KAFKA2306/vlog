@@ -18,7 +18,7 @@ SCRIPT_ROOT = Path(__file__).resolve().parents[1]
 CAPTURE_ROOT = SCRIPT_ROOT / "apps" / "capture-vrchat"
 sys.path.insert(0, str(CAPTURE_ROOT))
 
-from src.portability import (  # noqa: E402
+from vlog_capture.portability import (  # noqa: E402
     classify_path,
     foreign_absolute_reason,
     runtime_directories,

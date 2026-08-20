@@ -14,10 +14,9 @@ TimeoutStartSec=30s
 TimeoutStopSec=60s
 WorkingDirectory=@VLOG_ROOT@
 EnvironmentFile=-@VLOG_ROOT@/.env
-Environment=PYTHONPATH=@VLOG_PYTHONPATH@
 Environment=PYTHONUNBUFFERED=1
 Environment=VLOG_SERVICE_NAME=vlog-monitor
-ExecStart=@VLOG_UV@ run python -m src.main
+ExecStart=@VLOG_UV@ run vlog-service
 Restart=on-failure
 RestartSec=10s
 UMask=0077

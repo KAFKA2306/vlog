@@ -1,8 +1,12 @@
 import json
 from pathlib import Path
 
-from src.infrastructure.observability import EventStatus, OperationalEventLog, Severity
-from src.operations import OperationsLoader, build_report, render_html
+from vlog_capture.infrastructure.observability import (
+    EventStatus,
+    OperationalEventLog,
+    Severity,
+)
+from vlog_capture.operations import OperationsLoader, build_report, render_html
 
 
 def test_success_does_not_resolve_failure(tmp_path: Path, monkeypatch):
