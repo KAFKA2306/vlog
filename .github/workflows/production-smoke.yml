@@ -1,0 +1,101 @@
+name: Production Smoke
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/production-smoke.yml'
+      - 'docs/SPEC.md'
+      - 'apps/reader/app/api/health/route.ts'
+      - 'apps/reader/tests/health-route.test.ts'
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  kaflog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: https://kaflog.vercel.app
+    steps:
+      - name: Verify deployment health metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          body="$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            "$BASE_URL/api/health")"
+
+          printf '%s' "$body" > /tmp/kaflog-health.json
+
+          python3 - <<'PY'
+          import json
+
+          with open('/tmp/kaflog-health.json', encoding='utf-8') as handle:
+              payload = json.load(handle)
+
+          assert payload.get('status') == 'ok', payload
+          assert payload.get('environment') == 'production', payload
+
+          deployment_id = payload.get('deploymentId')
+          assert isinstance(deployment_id, str) and deployment_id.startswith('dpl_'), payload
+
+          sha = payload.get('gitCommitSha') or None
+          ref = payload.get('gitCommitRef') or None
+          if sha is not None or ref is not None:
+              assert isinstance(sha, str) and len(sha) >= 7, payload
+              assert ref == 'main', payload
+              print(f"production commit: {sha}")
+          else:
+              print('::warning::production deployment has no Git commit provenance')
+
+          print(f"deployment id: {deployment_id}")
+          PY
+
+      - name: Verify public Reader routes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for route in / /timeline /novels /people-said; do
+            output="$(mktemp)"
+            code="$(curl \
+              --silent \
+              --show-error \
+              --location \
+              --retry 3 \
+              --retry-all-errors \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --output "$output" \
+              --write-out '%{http_code}' \
+              "$BASE_URL$route")"
+
+            if [[ "$code" -lt 200 || "$code" -ge 400 ]]; then
+              echo "route failed: $route -> HTTP $code" >&2
+              cat "$output" >&2
+              exit 1
+            fi
+
+            if ! grep -qi '<html' "$output"; then
+              echo "route did not return HTML: $route" >&2
+              exit 1
+            fi
+
+            echo "route ok: $route -> HTTP $code"
+          done

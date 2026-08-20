@@ -1,13 +1,20 @@
 export const dynamic = 'force-dynamic'
 
+function optionalEnv(name: string) {
+  const value = process.env[name]?.trim()
+  return value ? value : null
+}
+
 export async function GET() {
   return Response.json(
     {
       status: 'ok',
-      gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
-      gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF ?? null,
-      deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
-      environment: process.env.VERCEL_ENV ?? null,
+      gitCommitSha:
+        optionalEnv('VLOG_DEPLOY_GIT_SHA') ?? optionalEnv('VERCEL_GIT_COMMIT_SHA'),
+      gitCommitRef:
+        optionalEnv('VLOG_DEPLOY_GIT_REF') ?? optionalEnv('VERCEL_GIT_COMMIT_REF'),
+      deploymentId: optionalEnv('VERCEL_DEPLOYMENT_ID'),
+      environment: optionalEnv('VERCEL_ENV'),
     },
     {
       headers: {

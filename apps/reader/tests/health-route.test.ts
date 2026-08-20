@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { GET } from '../app/api/health/route'
 
 const ENV_KEYS = [
+  'VLOG_DEPLOY_GIT_SHA',
+  'VLOG_DEPLOY_GIT_REF',
   'VERCEL_GIT_COMMIT_SHA',
   'VERCEL_GIT_COMMIT_REF',
   'VERCEL_DEPLOYMENT_ID',
@@ -42,6 +44,44 @@ describe('GET /api/health', () => {
       gitCommitRef: 'main',
       deploymentId: 'dpl_example',
       environment: 'production',
+    })
+  })
+
+  it('prefers explicit deployment provenance for CLI deployments', async () => {
+    process.env.VLOG_DEPLOY_GIT_SHA = 'fedcba9876543210'
+    process.env.VLOG_DEPLOY_GIT_REF = 'main'
+    process.env.VERCEL_GIT_COMMIT_SHA = ''
+    process.env.VERCEL_GIT_COMMIT_REF = ''
+    process.env.VERCEL_DEPLOYMENT_ID = 'dpl_cli'
+    process.env.VERCEL_ENV = 'production'
+
+    const response = await GET()
+    const payload = await response.json()
+
+    expect(payload).toEqual({
+      status: 'ok',
+      gitCommitSha: 'fedcba9876543210',
+      gitCommitRef: 'main',
+      deploymentId: 'dpl_cli',
+      environment: 'production',
+    })
+  })
+
+  it('normalizes blank optional deployment metadata to null', async () => {
+    process.env.VERCEL_GIT_COMMIT_SHA = '   '
+    process.env.VERCEL_GIT_COMMIT_REF = ''
+    process.env.VERCEL_DEPLOYMENT_ID = ''
+    process.env.VERCEL_ENV = ''
+
+    const response = await GET()
+    const payload = await response.json()
+
+    expect(payload).toEqual({
+      status: 'ok',
+      gitCommitSha: null,
+      gitCommitRef: null,
+      deploymentId: null,
+      environment: null,
     })
   })
 
