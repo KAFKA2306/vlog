@@ -15,13 +15,13 @@ from pathlib import Path
 from typing import Any, Iterator, Mapping
 from uuid import uuid4
 
+from vlog_capture.portability import runtime_directories
+
 try:
     import fcntl
 except ImportError:  # pragma: no cover - production is WSL/Linux
     fcntl: Any = None
 
-_DEFAULT_EVENT_PATH = Path("data/error_events.jsonl")
-_DEFAULT_HEARTBEAT_DIR = Path("data/heartbeats")
 _DEFAULT_MAX_BYTES = 10 * 1024 * 1024
 _DEFAULT_BACKUPS = 7
 _DEFAULT_RETENTION_DAYS = 90
@@ -149,11 +149,14 @@ def _exclusive_lock(path: Path) -> Iterator[None]:
 
 
 class OperationalEventLog:
-    """Append-only, privacy-aware structured event log for WSL services."""
+    """Append-only, privacy-aware structured event log."""
 
     def __init__(self, path: Path | str | None = None) -> None:
-        configured = os.environ.get("VLOG_ERROR_EVENT_FILE")
-        self.path = Path(path or configured or _DEFAULT_EVENT_PATH)
+        configured = os.environ.get("VLOG_ERROR_EVENT_FILE") or os.environ.get(
+            "VLOG_ERROR_LOG_FILE"
+        )
+        default_path = runtime_directories().state / "error_events.jsonl"
+        self.path = Path(path or configured or default_path)
         self.max_bytes = int(
             os.environ.get("VLOG_EVENT_MAX_BYTES", str(_DEFAULT_MAX_BYTES))
         )
@@ -303,9 +306,8 @@ class OperationalEventLog:
         status: str = "healthy",
         context: Mapping[str, Any] | None = None,
     ) -> Path:
-        heartbeat_dir = Path(
-            os.environ.get("VLOG_HEARTBEAT_DIR", str(_DEFAULT_HEARTBEAT_DIR))
-        )
+        default_dir = runtime_directories().state / "heartbeats"
+        heartbeat_dir = Path(os.environ.get("VLOG_HEARTBEAT_DIR", str(default_dir)))
         target = heartbeat_dir / f"{component}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         payload = {
