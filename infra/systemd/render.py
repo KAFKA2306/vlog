@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 from pathlib import Path
+
+from platformdirs import PlatformDirs
 
 TEMPLATE_DIR = Path(__file__).resolve().parent
 UNIT_SUFFIXES = (".service.in", ".timer.in")
@@ -39,6 +42,33 @@ def resolve_uv_path(explicit: Path | None = None) -> Path:
     return resolved
 
 
+def resolve_runtime_homes() -> dict[str, Path]:
+    roaming = PlatformDirs(appname="vlog", appauthor=False, roaming=True)
+    local = PlatformDirs(appname="vlog", appauthor=False)
+    defaults = {
+        "config": Path(roaming.user_config_dir),
+        "data": Path(local.user_data_dir),
+        "state": Path(roaming.user_state_dir),
+        "cache": Path(local.user_cache_dir),
+    }
+    return {
+        name: Path(os.environ.get(f"VLOG_{name.upper()}_HOME", default))
+        .expanduser()
+        .resolve()
+        for name, default in defaults.items()
+    }
+
+
+def env_file_directive() -> str:
+    raw = os.environ.get("VLOG_ENV_FILE")
+    if not raw:
+        return "# VLOG_ENV_FILE is not configured"
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        raise ValueError("VLOG_ENV_FILE must be an absolute path")
+    return f"EnvironmentFile=-{escape_unit_value(str(path.resolve()))}"
+
+
 def render_units(
     root: Path,
     output: Path,
@@ -49,10 +79,15 @@ def render_units(
         raise ValueError(f"not a VLog repository: {root}")
 
     uv = resolve_uv_path(uv_path)
-    escaped_root = escape_unit_value(str(root))
+    homes = resolve_runtime_homes()
     replacements = {
-        "@VLOG_ROOT@": escaped_root,
+        "@VLOG_ROOT@": escape_unit_value(str(root)),
         "@VLOG_UV@": escape_unit_value(str(uv)),
+        "@VLOG_CONFIG_HOME@": escape_unit_value(str(homes["config"])),
+        "@VLOG_DATA_HOME@": escape_unit_value(str(homes["data"])),
+        "@VLOG_STATE_HOME@": escape_unit_value(str(homes["state"])),
+        "@VLOG_CACHE_HOME@": escape_unit_value(str(homes["cache"])),
+        "@VLOG_ENV_FILE_DIRECTIVE@": env_file_directive(),
     }
     output.mkdir(parents=True, exist_ok=True)
 
