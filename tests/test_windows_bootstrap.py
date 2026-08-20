@@ -46,9 +46,11 @@ def test_task_registration_sets_absolute_action_and_working_directory() -> None:
     assert "requires a Windows-native checkout" in script
 
 
-def test_windows_guide_documents_native_checkout_and_legacy_data_bridge() -> None:
+def test_windows_guide_documents_native_checkout_and_runtime_home_contract() -> None:
     guide = _read("README.md")
     assert "Windows native drive" in guide
     assert "Git commit SHA" in guide
-    assert "legacy `data/` bridge" in guide
-    assert "shared **code checkout**" in guide
+    assert "root uv workspace" in guide
+    assert "repo-local runtime `data/` は作らない" in guide
+    assert "%LOCALAPPDATA%\\VLog\\Data" in guide
+    assert "VLOG_STATE_HOME" in guide
