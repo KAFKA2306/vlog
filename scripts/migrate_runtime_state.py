@@ -131,7 +131,9 @@ def write_manifest(records: list[MigrationRecord], homes: RuntimeDirectories) ->
         "files": len(records),
         "bytes": sum(record.size_bytes for record in records),
     }
-    manifest.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    manifest.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return manifest
 
 

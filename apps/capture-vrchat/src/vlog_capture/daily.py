@@ -93,7 +93,9 @@ class DailyPipeline:
             for target in dates:
                 date_str = target.strftime("%Y%m%d")
                 for audio_path in self._recordings(date_str):
-                    transcript = self.data_root / "transcripts" / f"{audio_path.stem}.txt"
+                    transcript = (
+                        self.data_root / "transcripts" / f"{audio_path.stem}.txt"
+                    )
                     self._stage(
                         run_id,
                         f"transcribe:{audio_path.stem}",

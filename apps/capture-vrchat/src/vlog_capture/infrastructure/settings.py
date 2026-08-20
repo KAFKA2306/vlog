@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Set
 import yaml
 from pydantic import AliasChoices, Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from vlog_capture.portability import (
     PathFlavor,
     classify_path,

@@ -22,6 +22,7 @@ from vlog_capture.infrastructure.observability import (
     make_fingerprint,
     sanitize,
 )
+from vlog_capture.portability import runtime_directories
 
 CATEGORY_ORDER = [
     "monitoring",
@@ -91,13 +92,16 @@ class OperationsReport:
 
 
 class OperationsLoader:
-    def __init__(self, root: Path = Path.cwd()) -> None:
-        self.root = root.resolve()
+    def __init__(self, root: Path | None = None) -> None:
+        # Explicit roots preserve the legacy test/import layout; production uses state home.
+        self.root = (
+            (root / "data") if root is not None else runtime_directories().state
+        ).resolve()
 
     def load(self, days: int) -> list[dict[str, Any]]:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         events: list[dict[str, Any]] = []
-        event_path = self.root / "data/error_events.jsonl"
+        event_path = self.root / "error_events.jsonl"
         rotated = sorted(
             event_path.parent.glob(event_path.name + ".*"),
             key=self._rotation_index,
@@ -108,9 +112,9 @@ class OperationsLoader:
                 continue
             events.extend(self._load_jsonl(path))
         events.extend(self._load_jsonl(event_path))
-        events.extend(self._load_incidents(self.root / "data/incidents.jsonl"))
-        events.extend(self._load_daily_runs(self.root / "data/daily_runs.jsonl"))
-        events.extend(self._load_legacy_log(self.root / "data/logs/vlog.log"))
+        events.extend(self._load_incidents(self.root / "incidents.jsonl"))
+        events.extend(self._load_daily_runs(self.root / "daily_runs.jsonl"))
+        events.extend(self._load_legacy_log(self.root / "logs/vlog.log"))
         filtered = [event for event in events if self._timestamp(event) >= cutoff]
         filtered.sort(key=self._timestamp)
         return self._dedupe(filtered)
@@ -562,7 +566,8 @@ def write_report_files(
 
 
 def run_doctor(root: Path) -> int:
-    log = OperationalEventLog(root / "data/error_events.jsonl")
+    state_root = runtime_directories().state
+    log = OperationalEventLog(state_root / "error_events.jsonl")
     daily_text = (
         (root / "infra/systemd/vlog-daily.service.in").read_text(encoding="utf-8")
         if (root / "infra/systemd/vlog-daily.service.in").exists()
@@ -580,15 +585,15 @@ def run_doctor(root: Path) -> int:
             shutil.which("uv") or "not found",
         ),
         (
-            "project data writable",
-            os.access(root / "data", os.W_OK)
-            if (root / "data").exists()
-            else os.access(root, os.W_OK),
-            str(root / "data"),
+            "runtime state writable",
+            os.access(state_root, os.W_OK)
+            if state_root.exists()
+            else os.access(state_root.parent, os.W_OK),
+            str(state_root),
         ),
         (
             "daily ExecStart",
-            "uv run python -m src.daily" in daily_text,
+            "uv run --frozen vlog-daily" in daily_text,
             "repo-relative uv daily runner",
         ),
         (
@@ -607,13 +612,14 @@ def run_doctor(root: Path) -> int:
             f"{log.max_bytes} bytes / {log.backups} backups / {log.retention_days} days",
         ),
     ]
-    for key in ("GOOGLE_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"):
+    for canonical, fallback in (
+        ("VLOG_GEMINI_API_KEY", "GOOGLE_API_KEY"),
+        ("VLOG_SUPABASE_URL", "SUPABASE_URL"),
+        ("VLOG_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"),
+    ):
+        configured = bool(os.environ.get(canonical) or os.environ.get(fallback))
         checks.append(
-            (
-                key,
-                bool(os.environ.get(key)),
-                "configured" if os.environ.get(key) else "missing",
-            )
+            (canonical, configured, "configured" if configured else "missing")
         )
 
     failed = 0
@@ -682,7 +688,7 @@ def record_service_failure(unit: str, root: Path) -> int:
         context["journal_tail"] = journal.stdout[-12000:]
     except (OSError, subprocess.SubprocessError) as exc:
         context["collection_error"] = f"{type(exc).__name__}: {exc}"
-    OperationalEventLog(root / "data/error_events.jsonl").emit(
+    OperationalEventLog(runtime_directories().state / "error_events.jsonl").emit(
         category="scheduler",
         component="systemd",
         operation="service_run",
@@ -703,8 +709,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sub = parser.add_subparsers(dest="command")
     report = sub.add_parser("report")
     report.add_argument("--days", type=int, default=90)
-    report.add_argument("--html", default="data/reports/operations.html")
-    report.add_argument("--json", default="data/reports/operations.json")
+    report.add_argument("--html", default="reports/operations.html")
+    report.add_argument("--json", default="reports/operations.json")
     report.add_argument("--open", action="store_true")
     emit = sub.add_parser("emit")
     for name in ("category", "component", "operation", "status", "message"):
@@ -729,8 +735,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         args.command, args.days, args.html, args.json, args.open = (
             "report",
             90,
-            "data/reports/operations.html",
-            "data/reports/operations.json",
+            "reports/operations.html",
+            "reports/operations.json",
             False,
         )
     return args
@@ -773,9 +779,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "service-failure":
         return record_service_failure(args.unit, Path(args.root).resolve())
 
-    root = Path.cwd()
-    report = build_report(OperationsLoader(root).load(args.days), args.days)
-    html_path, json_path = root / args.html, root / args.json
+    state_root = runtime_directories().state
+    report = build_report(OperationsLoader().load(args.days), args.days)
+    html_arg, json_arg = Path(args.html), Path(args.json)
+    html_path = html_arg if html_arg.is_absolute() else state_root / html_arg
+    json_path = json_arg if json_arg.is_absolute() else state_root / json_arg
     write_report_files(report, html_path, json_path)
     print_report(report)
     print(f"HTML: {html_path}")

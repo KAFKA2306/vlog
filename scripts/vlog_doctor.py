@@ -72,7 +72,9 @@ def tool(name: str) -> dict[str, str | None]:
                 text=True,
                 timeout=5,
             )
-            version = result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
+            version = (
+                result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
+            )
         except (OSError, subprocess.TimeoutExpired):
             version = None
     return {"path": path, "version": version}
