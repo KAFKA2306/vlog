@@ -15,7 +15,15 @@ function Write-WatchdogLog([string]$Message) {
     Add-Content -Path $logPath -Value $line -Encoding UTF8
 }
 
-$escapedProject = $ProjectPath.Replace("'", "'\"'\"'")
+if (-not $ProjectPath.StartsWith("/")) {
+    throw "ProjectPath must be the Linux-native absolute path of the WSL checkout: $ProjectPath"
+}
+if ($ProjectPath -match '^/mnt/[A-Za-z](?:/|$)') {
+    throw "ProjectPath must not use a Windows-mounted /mnt/<drive> code checkout: $ProjectPath"
+}
+
+# Escape a single quote for a Bash single-quoted literal: ' -> '\''
+$escapedProject = $ProjectPath.Replace("'", "'\''")
 $probe = @"
 set -u
 PROJECT='$escapedProject'
