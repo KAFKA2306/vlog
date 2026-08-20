@@ -77,6 +77,27 @@ def _runtime_default(kind: str, *parts: str) -> Path:
     return getattr(directories, kind).joinpath(*parts)
 
 
+def _normalize_legacy_environment() -> None:
+    """Map legacy process variable names to the canonical VLOG_* namespace once.
+
+    This is a name-compatibility bridge, not another configuration parser. Process
+    environment still outranks VLOG_ENV_FILE, and an explicitly supplied canonical
+    variable always wins over its legacy spelling.
+    """
+
+    aliases = {
+        "GOOGLE_API_KEY": "VLOG_GEMINI_API_KEY",
+        "GOOGLE_JULES_API_KEY": "VLOG_JULES_API_KEY",
+        "SUPABASE_URL": "VLOG_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY": "VLOG_SUPABASE_SERVICE_ROLE_KEY",
+        "DISCORD_WEBHOOK_URL": "VLOG_DISCORD_WEBHOOK_URL",
+        "VLOG_ERROR_EVENT_FILE": "VLOG_ERROR_LOG_FILE",
+    }
+    for legacy, canonical in aliases.items():
+        if canonical not in os.environ and legacy in os.environ:
+            os.environ[canonical] = os.environ[legacy]
+
+
 def _settings_env_file() -> Path | None:
     """Return the one explicitly authorized dotenv file, if configured."""
 
@@ -293,6 +314,7 @@ class Settings(BaseSettings):
         return {name.strip() for name in value if name.strip()}
 
 
+_normalize_legacy_environment()
 settings = Settings(
     _env_file=_settings_env_file(),
     _env_file_encoding="utf-8",
