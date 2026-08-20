@@ -44,7 +44,7 @@ def path_violations(path: str) -> list[str]:
 
 def validate_paths(paths: Iterable[str]) -> dict[str, list[str]]:
     failures: dict[str, list[str]] = {}
-    folded_prefixes: dict[str, str] = {}
+    folded_prefixes: dict[str, tuple[str, str]] = {}
     for path in paths:
         reasons = path_violations(path)
         parts = path.split("/")
@@ -52,13 +52,16 @@ def validate_paths(paths: Iterable[str]) -> dict[str, list[str]]:
             prefix = "/".join(parts[: index + 1])
             key = prefix.casefold()
             previous = folded_prefixes.get(key)
-            if previous is not None and previous != prefix:
-                reasons.append(f"case-fold collision at {prefix!r} with {previous!r}")
-                failures.setdefault(previous, []).append(
+            if previous is not None and previous[0] != prefix:
+                previous_prefix, previous_path = previous
+                reasons.append(
+                    f"case-fold collision at {prefix!r} with {previous_prefix!r}"
+                )
+                failures.setdefault(previous_path, []).append(
                     f"case-fold collision with {prefix!r}"
                 )
             else:
-                folded_prefixes[key] = prefix
+                folded_prefixes[key] = (prefix, path)
         if reasons:
             failures.setdefault(path, []).extend(reasons)
     return failures
