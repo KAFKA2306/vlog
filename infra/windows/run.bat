@@ -19,6 +19,12 @@ if not exist "pyproject.toml" (
   exit /b 1
 )
 
+set "VLOG_PROJECT_ROOT=%CD%"
+if not defined VLOG_CONFIG_HOME set "VLOG_CONFIG_HOME=%APPDATA%\VLog"
+if not defined VLOG_DATA_HOME set "VLOG_DATA_HOME=%LOCALAPPDATA%\VLog\Data"
+if not defined VLOG_STATE_HOME set "VLOG_STATE_HOME=%LOCALAPPDATA%\VLog\State"
+if not defined VLOG_CACHE_HOME set "VLOG_CACHE_HOME=%LOCALAPPDATA%\VLog\Cache"
+
 set "UV_PROJECT_ENVIRONMENT=.venv-win"
 set "UV_LINK_MODE=copy"
 set "UV_PYTHON=3.12"
@@ -43,12 +49,17 @@ for /f "usebackq delims=" %%I in (`"%VLOG_UV_EXE%" run --frozen python -c "impor
 if defined CUDNN_BIN set "PATH=%CUDNN_BIN%;%PATH%"
 if defined CUBLAS_BIN set "PATH=%CUBLAS_BIN%;%PATH%"
 
-if not exist "data\logs" mkdir "data\logs"
-set "BOOTSTRAP_LOG=data\logs\windows-bootstrap.log"
+if not exist "%VLOG_CONFIG_HOME%" mkdir "%VLOG_CONFIG_HOME%"
+if not exist "%VLOG_DATA_HOME%" mkdir "%VLOG_DATA_HOME%"
+if not exist "%VLOG_STATE_HOME%\logs" mkdir "%VLOG_STATE_HOME%\logs"
+if not exist "%VLOG_CACHE_HOME%" mkdir "%VLOG_CACHE_HOME%"
+set "BOOTSTRAP_LOG=%VLOG_STATE_HOME%\logs\windows-bootstrap.log"
 > "%BOOTSTRAP_LOG%" echo timestamp=%DATE% %TIME%
 >> "%BOOTSTRAP_LOG%" echo resolved_path=%CD%
 >> "%BOOTSTRAP_LOG%" echo working_dir=%CD%
 >> "%BOOTSTRAP_LOG%" echo uv_executable=%VLOG_UV_EXE%
+>> "%BOOTSTRAP_LOG%" echo data_home=%VLOG_DATA_HOME%
+>> "%BOOTSTRAP_LOG%" echo state_home=%VLOG_STATE_HOME%
 
 "%VLOG_UV_EXE%" run --frozen vlog-service >> "%BOOTSTRAP_LOG%" 2>&1
 set "EXIT_CODE=%ERRORLEVEL%"
