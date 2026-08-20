@@ -1,86 +1,81 @@
 # Windows 環境ガイド
 
-Windows は VRChat プロセスの検知と録音を担当し、WSL は日次処理と成果物生成を担当する。Windows と WSL は同じリポジトリの data ディレクトリを共有する。
+Windows は VRChat プロセス検知・物理 audio capture・Task Scheduler を担当する。WSL/Linux は Linux-native processing と systemd を担当する。
+
+## 2026 portability contract
+
+- Windows の production checkout は Windows native drive 上に置く。
+- WSL/Linux の production checkout は Linux filesystem 上に別 clone を置く。
+- `\\wsl$`, `\\wsl.localhost`, 一般 UNC を Windows production checkout の正本にしない。
+- `/mnt/c/...` を WSL/Linux production checkout の正本にしない。
+- 2つの checkout の同一性は physical path ではなく Git commit SHA で確認する。
+- machine-local absolute path は Evidence identity ではない。
+- Evidence transport の object-storage cutover (#73) が完了するまで、legacy `data/` bridge は明示的な互換境界として扱う。shared **code checkout** に戻してはいけない。
+
+正準設計は [`../../docs/architecture/portability.md`](../../docs/architecture/portability.md) を参照する。
 
 ## 初回セットアップ
 
-管理者権限のコマンドプロンプトでプロジェクトルートから実行する。
+Windows native checkout のプロジェクトルートから実行する。
 
     bootstrap.bat
 
-リポジトリ直下の `bootstrap.bat` は、Windows 用実体を呼び出すランチャーである。
+リポジトリ直下の `bootstrap.bat` は `infra/windows/bootstrap.bat` を呼び出す。
 
-bootstrap.bat は次を実行する。
-
-1. .env.example から .env を作成する。
-2. data/recordings、data/transcripts、data/summaries、data/archives、data/logs を作成する。
-3. .venv-win に uv.lock 固定の依存関係を同期する。
-4. VlogAutoDiary をローカル cmd.exe 経由のログオン時タスクとして登録する。
-5. 異常終了時は 1 分後に再起動するよう設定する。
-6. 登録したタスクを起動する。
-
-.env には実値を設定してから起動する。
+bootstrap は `.env`、legacy data directories、`.venv-win` を準備し、`VlogAutoDiary` を登録する。Task登録時に `cmd.exe` と `uv.exe` の実体を解決し、Actionの `WorkingDirectory` を現在のWindows native checkoutへ固定する。
 
 ## 手動起動
 
     run.bat
 
-リポジトリ直下の `run.bat` は、Windows 用実体を呼び出すランチャーである。
+`run.bat` は `%~dp0` からproject rootを解決する。UNC/WSL share上のcode checkoutはfail-fastする。Task Schedulerから渡されたabsolute `VLOG_UV_EXE` を優先し、interactive PATH/profileに依存しない。
 
-run.bat は UNC パスを一時ドライブへ割り当て、.venv-win と Python 3.12 と `apps/capture-vrchat` を含む `PYTHONPATH` で `src.main` を実行する。相対パスは必ずプロジェクトルート基準で解決される。依存関係は uv.lock から変更しない。
+現在のPython application packageはmigration互換のため `src` のままであり、`PYTHONPATH` も残る。これは #82 のuv workspace移行までのlegacy compatibilityであり、正準設計ではない。
+
+CUDA/cuDNN/cuBLASのWindows DLL directoryは `.venv-win` のPython minor versionを文字列で組み立てず、installed `nvidia` packageからruntime discoveryする。
 
 ## 状態確認
 
-Windows タスクの状態を確認する。
-
     schtasks /Query /TN VlogAutoDiary /V /FO LIST
+    python scripts/vlog_doctor.py
 
-WSL 側から全体状態を確認する。
+確認する項目:
 
-    task status
+- Task Action executableがabsolute `cmd.exe` である。
+- Task WorkingDirectoryが現在のWindows native checkoutである。
+- `uv.exe` のresolved pathがregistration時と一致する。
+- VRChat起動後に実録音transitionが発生する。
+- commit SHA・Windows version・実行日時を実機E2E Issue #70へ記録する。
 
-正常時は次を満たす。
-
-- VlogAutoDiary が Running である。
-- Windows に uv.exe と .venv-win/Scripts/python.exe のプロセスが存在する。
-- VRChat 起動後に data/recordings へ 44 バイトを超える FLAC が作成される。
-- data/logs/windows-bootstrap.log に起動パスが記録される。
-- data/logs/vlog.log に Application started と録音開始・停止が記録される。
+repository CIやPowerShell parser PASSは、Task Scheduler・VRChat・audio deviceの実機動作保証を代替しない。
 
 ## ログ
 
     Get-Content data/logs/windows-bootstrap.log -Tail 50
     Get-Content data/logs/vlog.log -Tail 50
 
-windows-bootstrap.log は起動ごとに初期化され、起動時刻、解決済みパス、作業ディレクトリ、異常終了時の終了コードを記録する。
-
-`vlog.log` は起動時に加えて、VRChat が待機中・検出中であることを状態変更時に記録し、同じ状態が続く場合は 5 分ごとに heartbeat を記録する。30 秒ごとの内部 heartbeat は `data/heartbeats/vlog-service.json` を更新する。
+legacy runtimeではログがrepo-local `data/` に残る。config/state/cacheをOS標準directoryへ分離する移行は #84 で追跡する。
 
 ## 停止と再起動
 
     schtasks /End /TN VlogAutoDiary
     schtasks /Run /TN VlogAutoDiary
 
-自動起動を無効化する場合はタスクスケジューラで VlogAutoDiary を無効化する。
-
 ## トラブルシューティング
 
-### タスクが Running なのに録音されない
+### checkoutがUNC/WSL shareにある
 
-1. data/logs/windows-bootstrap.log の exit_code を確認する。
-2. data/logs/vlog.log の最新 Application started を確認する。
-3. Get-Process VRChat で Windows 側の VRChat を確認する。
-4. data/recordings の最新 FLAC のサイズと更新時刻を確認する。
+code checkoutをlocal Windows driveへcloneし直す。path mappingや`pushd`による一時drive化をproductionの正解にしない。
+
+### Taskではuvが見つからない
+
+`register_task.ps1` を再実行し、registration時に解決された `uv.exe` を確認する。PowerShell profile aliasやinteractive shellだけのPATHをTaskの前提にしない。
 
 ### 依存関係が再現できない
-
-uv.lock と pyproject.toml を同期した状態で再実行する。
 
     set UV_PROJECT_ENVIRONMENT=.venv-win
     set UV_LINK_MODE=copy
     set UV_PYTHON=3.12
     uv sync --frozen
 
-### UNC パスで起動できない
-
-bootstrap.bat を管理者権限で再実行する。タスクはローカルの cmd.exe を起動し、run.bat 内の pushd が UNC を一時ドライブへ変換する。タスクの直接実行先に UNC 上の run.bat を指定しない。
+Python support contract自体は #95、package/workspace移行は #82 で追跡する。

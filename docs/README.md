@@ -9,6 +9,7 @@ This directory separates current executable behavior, target architecture, opera
 | [`../README.md`](../README.md) | repository entry point, setup, and current migration status |
 | [`overview.md`](overview.md) | product purpose and scope |
 | [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md) | target architecture, canonical stores, and migration phases |
+| [`architecture/portability.md`](architecture/portability.md) | cross-platform path/env/filesystem/tool execution contract |
 | [`architecture.md`](architecture.md) | current file-based runtime and deployable boundaries |
 | [`daily_pipeline_contract.md`](daily_pipeline_contract.md) | current legacy-compatible scheduled execution contract |
 | [`OPERATIONS.md`](OPERATIONS.md) | diagnosis, supervision, incident evidence, and recovery |
@@ -16,6 +17,7 @@ This directory separates current executable behavior, target architecture, opera
 | [`operations/phase0-inventory.md`](operations/phase0-inventory.md) | non-destructive inventory before data migration |
 | [`image.md`](image.md) | current illustration-generation boundary |
 | [`adr/README.md`](adr/README.md) | architecture decision index and status |
+| [`references/portability-2026.md`](references/portability-2026.md) | checked primary references behind portability decisions |
 | [`incidents/`](incidents/) | dated historical incident records, not current status |
 | [`markdown-governance.md`](markdown-governance.md) | Markdown ownership, retention, and validation rules |
 
@@ -24,7 +26,7 @@ This directory separates current executable behavior, target architecture, opera
 When documents conflict, use this order:
 
 1. schemas, tests, package manifests, Taskfile, and implementation;
-2. target architecture for intended state;
+2. target architecture and explicit architecture contracts for intended state;
 3. component-specific runbooks for current operation;
 4. current runtime architecture and pipeline contract;
 5. ADRs for decision rationale;

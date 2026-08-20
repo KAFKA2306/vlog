@@ -7,6 +7,40 @@ on:
   workflow_dispatch:
 
 jobs:
+  portability:
+    name: Portability (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reject non-portable tracked paths
+        run: python scripts/check_portable_paths.py
+      - name: Compile portability tools
+        run: python -m compileall -q apps/capture-vrchat/src/portability.py scripts/check_portable_paths.py scripts/vlog_doctor.py
+      - name: Run read-only portability doctor
+        run: python scripts/vlog_doctor.py --json --redact
+      - name: Parse Windows PowerShell assets
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem infra/windows -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object { Write-Error "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+
   python:
     runs-on: ubuntu-latest
     env:
@@ -41,7 +75,9 @@ jobs:
           grep -Fq 'Evidence -> Human Memory -> Narrative Artifact -> Public Projection' docs/architecture/human-memory-v2.md
           grep -Fq 'Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections' docs/architecture/human-memory-v2.md
           grep -Fq '## 5. 動作保証' docs/SPEC.md
+          grep -Fq 'physical path is not authority' docs/architecture/portability.md
           grep -Fq 'https://kaflog.vercel.app' .github/workflows/production-smoke.yml
+          python scripts/check_portable_paths.py
           test ! -e .github/workflows/weekly-repo-research.yml
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py

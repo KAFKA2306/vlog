@@ -1,10 +1,15 @@
 @echo off
 setlocal
 set "PROJECT_ROOT=%~dp0..\.."
+
+if "%PROJECT_ROOT:~0,2%"=="\\" (
+  echo ERROR: VLog production Windows checkout must be on a Windows-native drive, not UNC or a WSL share: "%PROJECT_ROOT%" 1>&2
+  exit /b 1
+)
+
 pushd "%PROJECT_ROOT%" 2>nul
 if errorlevel 1 (
   echo ERROR: Could not open the project directory: "%PROJECT_ROOT%" 1>&2
-  echo If the repository is on a UNC or WSL share, map it to a Windows drive or copy it to a local Windows path, then run this script again. 1>&2
   exit /b 1
 )
 
@@ -20,18 +25,33 @@ set "UV_PYTHON=3.12"
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONPATH=%CD%\apps\capture-vrchat;%CD%\packages\memory-domain\src;%CD%\packages\ingestion\src"
 
-set "NVIDIA_BIN=%CD%\.venv-win\Lib\site-packages\nvidia"
-set "CUDNN_BIN=%NVIDIA_BIN%\cudnn\bin"
-set "CUBLAS_BIN=%NVIDIA_BIN%\cublas\bin"
-set "PATH=%CUDNN_BIN%;%CUBLAS_BIN%;%PATH%"
+if not defined VLOG_UV_EXE (
+  for /f "delims=" %%I in ('where uv.exe 2^>nul') do if not defined VLOG_UV_EXE set "VLOG_UV_EXE=%%I"
+)
+if not defined VLOG_UV_EXE (
+  echo ERROR: uv.exe could not be resolved. Re-run bootstrap/register_task.ps1. 1>&2
+  popd
+  exit /b 1
+)
+if not exist "%VLOG_UV_EXE%" (
+  echo ERROR: Resolved uv.exe does not exist: "%VLOG_UV_EXE%" 1>&2
+  popd
+  exit /b 1
+)
+
+for /f "usebackq delims=" %%I in (`"%VLOG_UV_EXE%" run --frozen python -c "import pathlib,nvidia.cudnn; print(pathlib.Path(nvidia.cudnn.__file__).parent/'bin')"`) do set "CUDNN_BIN=%%I"
+for /f "usebackq delims=" %%I in (`"%VLOG_UV_EXE%" run --frozen python -c "import pathlib,nvidia.cublas; print(pathlib.Path(nvidia.cublas.__file__).parent/'bin')"`) do set "CUBLAS_BIN=%%I"
+if defined CUDNN_BIN set "PATH=%CUDNN_BIN%;%PATH%"
+if defined CUBLAS_BIN set "PATH=%CUBLAS_BIN%;%PATH%"
 
 if not exist "data\logs" mkdir "data\logs"
 set "BOOTSTRAP_LOG=data\logs\windows-bootstrap.log"
 > "%BOOTSTRAP_LOG%" echo timestamp=%DATE% %TIME%
 >> "%BOOTSTRAP_LOG%" echo resolved_path=%CD%
 >> "%BOOTSTRAP_LOG%" echo working_dir=%CD%
+>> "%BOOTSTRAP_LOG%" echo uv_executable=%VLOG_UV_EXE%
 
-uv run --frozen python -m src.main >> "%BOOTSTRAP_LOG%" 2>&1
+"%VLOG_UV_EXE%" run --frozen python -m src.main >> "%BOOTSTRAP_LOG%" 2>&1
 set "EXIT_CODE=%ERRORLEVEL%"
 >> "%BOOTSTRAP_LOG%" echo exit_code=%EXIT_CODE%
 popd
