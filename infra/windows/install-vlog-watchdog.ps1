@@ -1,6 +1,7 @@
 param(
     [string]$Distro = "Ubuntu-22.04",
-    [string]$ProjectPath = $env:VLOG_WSL_PROJECT_ROOT
+    [string]$ProjectPath = $env:VLOG_WSL_PROJECT_ROOT,
+    [string]$StatePath = $env:VLOG_WSL_STATE_HOME
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,9 +16,15 @@ if (-not $ProjectPath.StartsWith("/")) {
 if ($ProjectPath -match '^/mnt/[A-Za-z](?:/|$)') {
     throw "ProjectPath must be a Linux-native checkout, not /mnt/<drive>: $ProjectPath"
 }
+if (-not [string]::IsNullOrWhiteSpace($StatePath) -and -not $StatePath.StartsWith("/")) {
+    throw "StatePath must be an absolute POSIX path inside WSL: $StatePath"
+}
 
 $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
 $arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" -Distro `"$Distro`" -ProjectPath `"$ProjectPath`""
+if (-not [string]::IsNullOrWhiteSpace($StatePath)) {
+    $arguments += " -StatePath `"$StatePath`""
+}
 $action = New-ScheduledTaskAction `
     -Execute $powershell `
     -Argument $arguments `
@@ -50,3 +57,9 @@ Write-Host "Installed scheduled task: VLog External Watchdog"
 Write-Host "Watchdog script: $scriptPath"
 Write-Host "PowerShell: $powershell"
 Write-Host "WSL native project path: $ProjectPath"
+if (-not [string]::IsNullOrWhiteSpace($StatePath)) {
+    Write-Host "WSL runtime state path: $StatePath"
+}
+else {
+    Write-Host "WSL runtime state path: discovered from platformdirs at watchdog runtime"
+}
