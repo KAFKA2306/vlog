@@ -154,7 +154,8 @@ class Settings(BaseSettings):
     )
 
     gemini_api_key: str = Field(
-        validation_alias=AliasChoices("VLOG_GEMINI_API_KEY", "GOOGLE_API_KEY")
+        default="",
+        validation_alias=AliasChoices("VLOG_GEMINI_API_KEY", "GOOGLE_API_KEY"),
     )
     gemini_model: str = _config.get("gemini", {}).get("model", _DEFAULT_LLM_MODEL)
     novel_model: str = _config.get("novel", {}).get("model", _DEFAULT_LLM_MODEL)
