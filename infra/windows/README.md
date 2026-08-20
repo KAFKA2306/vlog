@@ -10,7 +10,8 @@ Windows は VRChat プロセス検知・物理 audio capture・Task Scheduler �
 - `/mnt/c/...` を WSL/Linux production checkout の正本にしない。
 - 2つの checkout の同一性は physical path ではなく Git commit SHA で確認する。
 - machine-local absolute path は Evidence identity ではない。
-- Evidence transport の object-storage cutover (#73) が完了するまで、legacy `data/` bridge は明示的な互換境界として扱う。shared **code checkout** に戻してはいけない。
+- Python runtime は uv workspace の named packages / console entrypoints を使う。
+- mutable runtime state は Git checkout ではなく OS 標準の VLog config/data/state/cache home に置く。
 
 正準設計は [`../../docs/architecture/portability.md`](../../docs/architecture/portability.md) を参照する。
 
@@ -22,28 +23,29 @@ Windows native checkout のプロジェクトルートから実行する。
 
 リポジトリ直下の `bootstrap.bat` は `infra/windows/bootstrap.bat` を呼び出す。
 
-bootstrap は `.env`、legacy data directories、`.venv-win` を準備し、`VlogAutoDiary` を登録する。Task登録時に `cmd.exe` と `uv.exe` の実体を解決し、Actionの `WorkingDirectory` を現在のWindows native checkoutへ固定する。
+bootstrap は Python 3.12 の locked uv workspace と GPU extra を同期し、`%APPDATA%\VLog` / `%LOCALAPPDATA%\VLog\Data` / `State` / `Cache` を準備して `VlogAutoDiary` を登録する。repo `.env` や repo-local runtime `data/` は作らない。Task登録時に `cmd.exe` と `uv.exe` の実体を解決し、Actionの `WorkingDirectory` を現在のWindows native checkoutへ固定する。
+
+secret/configをdotenvから供給する必要がある場合は、repo外のabsolute fileを用意して `VLOG_ENV_FILE` として明示する。
 
 ## 手動起動
 
     run.bat
 
-`run.bat` は `%~dp0` からproject rootを解決する。UNC/WSL share上のcode checkoutはfail-fastする。Task Schedulerから渡されたabsolute `VLOG_UV_EXE` を優先し、interactive PATH/profileに依存しない。
-
-現在のPython application packageはmigration互換のため `src` のままであり、`PYTHONPATH` も残る。これは #82 のuv workspace移行までのlegacy compatibilityであり、正準設計ではない。
+`run.bat` は `%~dp0` からproject rootを解決する。UNC/WSL share上のcode checkoutはfail-fastする。Task Schedulerから渡されたabsolute `VLOG_UV_EXE` を優先し、interactive PATH/profileに依存しない。アプリ起動はinstalled `vlog-service` entrypointを使う。
 
 CUDA/cuDNN/cuBLASのWindows DLL directoryは `.venv-win` のPython minor versionを文字列で組み立てず、installed `nvidia` packageからruntime discoveryする。
 
 ## 状態確認
 
     schtasks /Query /TN VlogAutoDiary /V /FO LIST
-    python scripts/vlog_doctor.py
+    uv run --frozen python scripts/vlog_doctor.py
 
 確認する項目:
 
 - Task Action executableがabsolute `cmd.exe` である。
 - Task WorkingDirectoryが現在のWindows native checkoutである。
 - `uv.exe` のresolved pathがregistration時と一致する。
+- runtime data/stateがcheckout外に解決されている。
 - VRChat起動後に実録音transitionが発生する。
 - commit SHA・Windows version・実行日時を実機E2E Issue #70へ記録する。
 
@@ -51,10 +53,12 @@ repository CIやPowerShell parser PASSは、Task Scheduler・VRChat・audio devi
 
 ## ログ
 
-    Get-Content data/logs/windows-bootstrap.log -Tail 50
-    Get-Content data/logs/vlog.log -Tail 50
+標準値では次を参照する。
 
-legacy runtimeではログがrepo-local `data/` に残る。config/state/cacheをOS標準directoryへ分離する移行は #84 で追跡する。
+    Get-Content "$env:LOCALAPPDATA\VLog\State\logs\windows-bootstrap.log" -Tail 50
+    Get-Content "$env:LOCALAPPDATA\VLog\State\logs\vlog.log" -Tail 50
+
+`VLOG_STATE_HOME` を設定した場合はその配下の `logs/` がauthorityになる。
 
 ## 停止と再起動
 
@@ -76,6 +80,6 @@ code checkoutをlocal Windows driveへcloneし直す。path mappingや`pushd`に
     set UV_PROJECT_ENVIRONMENT=.venv-win
     set UV_LINK_MODE=copy
     set UV_PYTHON=3.12
-    uv sync --frozen
+    uv sync --locked --extra gpu
 
-Python support contract自体は #95、package/workspace移行は #82 で追跡する。
+Python support contractは3.12系、package authorityはroot uv workspaceと`uv.lock`である。
