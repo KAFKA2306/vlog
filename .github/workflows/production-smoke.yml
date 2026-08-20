@@ -1,0 +1,88 @@
+name: Production Smoke
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  kaflog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: https://kaflog.vercel.app
+    steps:
+      - name: Verify deployment health metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          body="$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            "$BASE_URL/api/health")"
+
+          printf '%s' "$body" > /tmp/kaflog-health.json
+
+          python3 - <<'PY'
+          import json
+
+          with open('/tmp/kaflog-health.json', encoding='utf-8') as handle:
+              payload = json.load(handle)
+
+          assert payload.get('status') == 'ok', payload
+          assert payload.get('environment') == 'production', payload
+          assert payload.get('gitCommitRef') == 'main', payload
+
+          sha = payload.get('gitCommitSha')
+          assert isinstance(sha, str) and len(sha) >= 7, payload
+
+          print(f"production commit: {sha}")
+          print(f"deployment id: {payload.get('deploymentId')}")
+          PY
+
+      - name: Verify public Reader routes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for route in / /timeline /novels /people-said; do
+            output="$(mktemp)"
+            code="$(curl \
+              --silent \
+              --show-error \
+              --location \
+              --retry 3 \
+              --retry-all-errors \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --output "$output" \
+              --write-out '%{http_code}' \
+              "$BASE_URL$route")"
+
+            if [[ "$code" -lt 200 || "$code" -ge 400 ]]; then
+              echo "route failed: $route -> HTTP $code" >&2
+              cat "$output" >&2
+              exit 1
+            fi
+
+            if ! grep -qi '<html' "$output"; then
+              echo "route did not return HTML: $route" >&2
+              exit 1
+            fi
+
+            echo "route ok: $route -> HTTP $code"
+          done
