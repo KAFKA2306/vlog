@@ -7,9 +7,59 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  finalize-runtime-contract:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/portability-2026'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: '0.12.5'
+      - name: Sync locked Python workspace
+        run: uv sync --locked
+      - name: Apply deterministic runtime finalizer
+        run: uv run --no-sync python scripts/_finalize_runtime_contract.py
+      - name: Normalize Python
+        run: |
+          uv run --no-sync ruff check --fix apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+          uv run --no-sync ruff format apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+          uv run --no-sync ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - name: Verify runtime ratchets
+        run: |
+          uv run --no-sync python scripts/check_portable_paths.py
+          uv run --no-sync python scripts/check_runtime_contract.py
+          uv run --no-sync vlog --help
+          uv run --no-sync vlog-operations --help
+      - name: Verify systemd units
+        run: |
+          output="$(mktemp -d)"
+          uv run --no-sync python infra/systemd/render.py --root "$PWD" --output "$output"
+          systemd-analyze --user verify "$output"/*.service "$output"/*.timer
+      - name: Run Python tests
+        run: uv run --no-sync pytest -q
+      - name: Commit generated finalization
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git restore -- .github/workflows/test.yml
+          git add -A
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "Runtime contract is already finalized."
+            exit 0
+          fi
+          git commit -m "refactor(runtime): finalize portable state and task contracts"
+          git push origin HEAD:${{ github.head_ref }}
+
   portability:
     name: Portability (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
