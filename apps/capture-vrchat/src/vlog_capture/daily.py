@@ -13,6 +13,8 @@ from vlog_capture.infrastructure.observability import (
     OperationalEventLog,
     Severity,
 )
+from vlog_capture.portability import runtime_directories
+from vlog_capture.project import PROJECT_ROOT
 
 CommandRunner = Callable[[Sequence[str], dict[str, str], Path], None]
 
@@ -33,12 +35,24 @@ class DailyPipeline:
         runner: CommandRunner = _run_command,
         monitor: Callable[[], bool] = _vrchat_running,
         project_root: Path | None = None,
+        data_root: Path | None = None,
+        state_root: Path | None = None,
     ) -> None:
         self.runner = runner
         self.monitor = monitor
-        self.project_root = (project_root or Path.cwd()).resolve()
-        self.run_log = self.project_root / "data/daily_runs.jsonl"
-        self.events = OperationalEventLog(self.project_root / "data/error_events.jsonl")
+        explicit_project_root = project_root is not None
+        self.project_root = (project_root or PROJECT_ROOT).resolve()
+        runtime = runtime_directories()
+        self.data_root = (
+            data_root
+            or (self.project_root / "data" if explicit_project_root else runtime.data)
+        ).resolve()
+        self.state_root = (
+            state_root
+            or (self.project_root / "data" if explicit_project_root else runtime.state)
+        ).resolve()
+        self.run_log = self.state_root / "daily_runs.jsonl"
+        self.events = OperationalEventLog(self.state_root / "error_events.jsonl")
 
     def run(self) -> str | None:
         run_id = str(uuid4())
@@ -79,7 +93,7 @@ class DailyPipeline:
             for target in dates:
                 date_str = target.strftime("%Y%m%d")
                 for audio_path in self._recordings(date_str):
-                    transcript = Path("data/transcripts") / f"{audio_path.stem}.txt"
+                    transcript = self.data_root / "transcripts" / f"{audio_path.stem}.txt"
                     self._stage(
                         run_id,
                         f"transcribe:{audio_path.stem}",
@@ -98,23 +112,21 @@ class DailyPipeline:
                         run_id,
                         f"summarize:{date_str}",
                         ["summarizer"],
-                        [Path("data/summaries") / f"{date_str}_summary.txt"],
+                        [self.data_root / "summaries" / f"{date_str}_summary.txt"],
                         env,
                         "summarize",
                         "--date",
                         date_str,
                     )
-                summary = (
-                    self.project_root / "data/summaries" / f"{date_str}_summary.txt"
-                )
+                summary = self.data_root / "summaries" / f"{date_str}_summary.txt"
                 if self._nonempty(summary):
                     self._stage(
                         run_id,
                         f"novel:{date_str}",
                         ["novelizer", "image_generator"],
                         [
-                            Path("data/novels") / f"{date_str}.md",
-                            Path("data/photos") / f"{date_str}.png",
+                            self.data_root / "novels" / f"{date_str}.md",
+                            self.data_root / "photos" / f"{date_str}.png",
                         ],
                         env,
                         "novel",
@@ -126,7 +138,7 @@ class DailyPipeline:
                 run_id,
                 "sync",
                 ["supabase"],
-                [Path("data/sync_reports") / f"{run_id}.json"],
+                [self.data_root / "sync_reports" / f"{run_id}.json"],
                 env,
                 "sync",
             )
@@ -247,10 +259,7 @@ class DailyPipeline:
         )
         try:
             self._cli(stage_env, *command_args)
-            artifact_states = {
-                str(path): self._nonempty(self.project_root / path)
-                for path in artifacts
-            }
+            artifact_states = {str(path): self._nonempty(path) for path in artifacts}
             if not all(artifact_states.values()):
                 missing = [path for path, ok in artifact_states.items() if not ok]
                 raise RuntimeError("Missing stage artifacts: " + ", ".join(missing))
@@ -315,14 +324,21 @@ class DailyPipeline:
             raise
 
     def _cli(self, env: dict[str, str], *args: str) -> None:
+        runtime = runtime_directories()
+        stage_env = dict(env)
+        stage_env["VLOG_PROJECT_ROOT"] = str(self.project_root)
+        stage_env["VLOG_DATA_HOME"] = str(self.data_root)
+        stage_env["VLOG_STATE_HOME"] = str(self.state_root)
+        stage_env.setdefault("VLOG_CONFIG_HOME", str(runtime.config))
+        stage_env.setdefault("VLOG_CACHE_HOME", str(runtime.cache))
         self.runner(
             ["uv", "run", "--frozen", "vlog", *args],
-            env,
+            stage_env,
             self.project_root,
         )
 
     def _recordings(self, date_str: str) -> list[Path]:
-        recording_dir = self.project_root / "data/recordings"
+        recording_dir = self.data_root / "recordings"
         return sorted(
             path
             for suffix in ("wav", "flac", "mp3")
@@ -330,7 +346,7 @@ class DailyPipeline:
         )
 
     def _has_transcript(self, date_str: str) -> bool:
-        transcript_dir = self.project_root / "data/transcripts"
+        transcript_dir = self.data_root / "transcripts"
         return any(
             self._nonempty(path) for path in transcript_dir.glob(f"*{date_str}*.txt")
         )
