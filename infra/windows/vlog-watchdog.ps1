@@ -2,11 +2,12 @@ param(
     [string]$Distro = "Ubuntu-22.04",
     [Parameter(Mandatory = $true)]
     [string]$ProjectPath,
+    [string]$StatePath = $env:VLOG_WSL_STATE_HOME,
     [int]$HeartbeatMaxAgeSeconds = 180
 )
 
 $ErrorActionPreference = "Stop"
-$logDir = Join-Path $env:LOCALAPPDATA "VLog"
+$logDir = Join-Path $env:LOCALAPPDATA "VLog\State\logs"
 $logPath = Join-Path $logDir "watchdog.log"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
@@ -21,13 +22,25 @@ if (-not $ProjectPath.StartsWith("/")) {
 if ($ProjectPath -match '^/mnt/[A-Za-z](?:/|$)') {
     throw "ProjectPath must not use a Windows-mounted /mnt/<drive> code checkout: $ProjectPath"
 }
+if (-not [string]::IsNullOrWhiteSpace($StatePath) -and -not $StatePath.StartsWith("/")) {
+    throw "StatePath must be an absolute POSIX path inside WSL: $StatePath"
+}
 
 # Escape a single quote for a Bash single-quoted literal: ' -> '\''
 $escapedProject = $ProjectPath.Replace("'", "'\''")
+$escapedState = $StatePath.Replace("'", "'\''")
+$stateResolver = if ([string]::IsNullOrWhiteSpace($StatePath)) {
+    "cd '$escapedProject' && uv run --frozen python -c 'from vlog_capture.portability import runtime_directories; print(runtime_directories().state)'"
+}
+else {
+    "printf '%s' '$escapedState'"
+}
+
 $probe = @"
 set -u
 PROJECT='$escapedProject'
-HEARTBEAT="`$PROJECT/data/heartbeats/vlog-service.json"
+STATE="`$($stateResolver)"
+HEARTBEAT="`$STATE/heartbeats/vlog-service.json"
 active="`$(systemctl --user is-active vlog.service 2>/dev/null || true)"
 if [[ -f "`$HEARTBEAT" ]]; then
   now="`$(date +%s)"
@@ -56,7 +69,7 @@ set -euo pipefail
 cd '$escapedProject'
 systemctl --user reset-failed vlog.service || true
 systemctl --user restart vlog.service
-PYTHONPATH=apps/capture-vrchat:packages/memory-domain/src:packages/ingestion/src uv run python -m src.operations emit \
+uv run --frozen vlog-operations emit \
   --category infrastructure \
   --component windows-watchdog \
   --operation external_probe \
