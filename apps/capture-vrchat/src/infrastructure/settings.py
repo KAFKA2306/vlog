@@ -23,7 +23,10 @@ def is_windows_path_invalid_on_linux(value: Path, *, system: str | None = None) 
 
 def is_posix_path_invalid_on_windows(value: Path, *, system: str | None = None) -> bool:
     runtime_system = system or platform.system()
-    return runtime_system == "Windows" and classify_path(str(value)) == PathFlavor.POSIX_ABSOLUTE
+    return (
+        runtime_system == "Windows"
+        and classify_path(str(value)) == PathFlavor.POSIX_ABSOLUTE
+    )
 
 
 def resolve_project_path(value: Path) -> Path:
