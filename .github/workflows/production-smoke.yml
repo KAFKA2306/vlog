@@ -1,6 +1,10 @@
 name: Production Smoke
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/production-smoke.yml'
+      - 'docs/SPEC.md'
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
