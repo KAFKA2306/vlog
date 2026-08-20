@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - uses: astral-sh/setup-uv@v9
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           version: '0.12.5'
       - name: Sync locked Python workspace
@@ -64,7 +64,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - uses: astral-sh/setup-uv@v9
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           version: '0.12.5'
       - name: Sync locked Python workspace
@@ -93,6 +93,7 @@ jobs:
         run: |
           uv run --no-sync python -c "import vlog_capture, vlog_memory_domain, vlog_ingestion, vlog_companion, vlog_privacy, vlog_vrchat_osc"
           uv run --no-sync vlog --help
+          uv run --no-sync vlog-operations --help
       - name: Verify rendered systemd units
         run: |
           output="$(mktemp -d)"
