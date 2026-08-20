@@ -26,14 +26,20 @@ def test_foreign_absolute_path_detection_is_symmetric() -> None:
 
 def test_shared_checkout_policy_marks_cross_filesystem_topologies() -> None:
     assert shared_checkout_reason("/mnt/c/src/vlog", system="Linux")
-    assert shared_checkout_reason(r"\\\\wsl.localhost\\Ubuntu\\home\\user\\vlog", system="Windows")
+    assert shared_checkout_reason(
+        r"\\\\wsl.localhost\\Ubuntu\\home\\user\\vlog", system="Windows"
+    )
     assert shared_checkout_reason("/home/user/vlog", system="Linux") is None
     assert shared_checkout_reason(r"C:\\src\\vlog", system="Windows") is None
 
 
 def test_runtime_directories_follow_xdg_and_windows_appdata() -> None:
     linux = runtime_directories(
-        env={"XDG_CONFIG_HOME": "/cfg", "XDG_STATE_HOME": "/state", "XDG_CACHE_HOME": "/cache"},
+        env={
+            "XDG_CONFIG_HOME": "/cfg",
+            "XDG_STATE_HOME": "/state",
+            "XDG_CACHE_HOME": "/cache",
+        },
         system="Linux",
         home=Path("/home/test"),
     )
