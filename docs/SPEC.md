@@ -98,15 +98,23 @@ file existenceやdirectory scanによる処理状態はlegacy mechanismです。
 
 `.github/workflows/production-smoke.yml` が `https://kaflog.vercel.app` を外部から確認します。
 
+必須:
+
 - `/api/health` がHTTP成功を返す
 - `status = ok`
 - `environment = production`
-- `gitCommitRef = main`
-- deployment commit SHAが取得できる
+- Vercel `deploymentId` が取得できる
 - `/`
 - `/timeline`
 - `/novels`
 - `/people-said`
+
+Git provenanceが取得できるdeploymentでは、さらに次を要求します。
+
+- `gitCommitRef = main`
+- commit SHAが取得できる
+
+Git provenanceが取得できないdeploymentはpublic availabilityのsmoke testを続行しますが、release provenanceは未確認としてwarningにします。availabilityとrelease provenanceを同じ保証として扱いません。
 
 主要routeのいずれかがHTTP成功を返さない場合、その時点のpublic productionは動作確認済みとは扱いません。
 
@@ -154,7 +162,9 @@ production smokeもgreen
 
 ## 8. 外部仕様
 
-GitHub Actionsのworkflowとrun historyはGitHub公式仕様に従います。
+GitHub ActionsとVercel CLIの挙動は各公式仕様に従います。
 
 - https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
 - https://docs.github.com/en/actions/how-tos/monitor-workflows/view-workflow-run-history
+- https://vercel.com/docs/cli/deploy
+- https://vercel.com/docs/environment-variables/system-environment-variables
