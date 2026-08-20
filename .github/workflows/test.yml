@@ -30,10 +30,11 @@ jobs:
         run: uv lock
       - name: Verify base workspace sync
         run: uv sync --locked
-      - name: Format migrated Python
-        run: uv run ruff format apps/capture-vrchat/src packages adapters scripts tests infra/systemd
-      - name: Lint migrated Python
-        run: uv run ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - name: Normalize migrated Python
+        run: |
+          uv run ruff check --fix apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+          uv run ruff format apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+          uv run ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Verify entry points
         env:
           GOOGLE_API_KEY: test-key
