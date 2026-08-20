@@ -40,6 +40,8 @@ jobs:
         run: |
           grep -Fq 'Evidence -> Human Memory -> Narrative Artifact -> Public Projection' docs/architecture/human-memory-v2.md
           grep -Fq 'Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections' docs/architecture/human-memory-v2.md
+          grep -Fq '## 5. 動作保証' docs/SPEC.md
+          grep -Fq 'https://kaflog.vercel.app' .github/workflows/production-smoke.yml
           test ! -e .github/workflows/weekly-repo-research.yml
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py
