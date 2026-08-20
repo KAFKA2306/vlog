@@ -1,25 +1,27 @@
 param(
     [string]$Distro = "Ubuntu-22.04",
-    [string]$ProjectPath = ""
+    [string]$ProjectPath = $env:VLOG_WSL_PROJECT_ROOT
 )
 
 $ErrorActionPreference = "Stop"
-$scriptPath = Join-Path $PSScriptRoot "vlog-watchdog.ps1"
-if (-not (Test-Path $scriptPath)) {
-    throw "Watchdog script not found: $scriptPath"
-}
+$scriptPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "vlog-watchdog.ps1")).ProviderPath
 
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
-    $windowsRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-    $ProjectPath = (& wsl.exe -d $Distro -- wslpath -a $windowsRoot | Out-String).Trim()
-    if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
-        throw "Could not derive the WSL project path from: $windowsRoot"
-    }
+    throw "Set VLOG_WSL_PROJECT_ROOT or pass -ProjectPath with the Linux-native WSL checkout path. Automatic Windows-path-to-WSL-path conversion is intentionally not used."
+}
+if (-not $ProjectPath.StartsWith("/")) {
+    throw "ProjectPath must be an absolute POSIX path inside WSL: $ProjectPath"
+}
+if ($ProjectPath -match '^/mnt/[A-Za-z](?:/|$)') {
+    throw "ProjectPath must be a Linux-native checkout, not /mnt/<drive>: $ProjectPath"
 }
 
+$powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
+$arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" -Distro `"$Distro`" -ProjectPath `"$ProjectPath`""
 $action = New-ScheduledTaskAction `
-    -Execute "powershell.exe" `
-    -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" -Distro `"$Distro`" -ProjectPath `"$ProjectPath`""
+    -Execute $powershell `
+    -Argument $arguments `
+    -WorkingDirectory (Split-Path -Parent $scriptPath)
 $trigger = New-ScheduledTaskTrigger `
     -Once `
     -At (Get-Date).AddMinutes(1) `
@@ -37,7 +39,7 @@ $principal = New-ScheduledTaskPrincipal `
 
 Register-ScheduledTask `
     -TaskName "VLog External Watchdog" `
-    -Description "Checks WSL systemd and VLog heartbeat every five minutes and restarts the service when stale." `
+    -Description "Checks the Linux-native WSL VLog systemd service every five minutes and restarts it when stale." `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
@@ -46,4 +48,5 @@ Register-ScheduledTask `
 
 Write-Host "Installed scheduled task: VLog External Watchdog"
 Write-Host "Watchdog script: $scriptPath"
-Write-Host "WSL project path: $ProjectPath"
+Write-Host "PowerShell: $powershell"
+Write-Host "WSL native project path: $ProjectPath"
