@@ -21,6 +21,13 @@ FORBIDDEN = {
     "python -m src": "legacy src package entrypoints are forbidden",
     "from src": "legacy src imports are forbidden",
     "import src": "legacy src imports are forbidden",
+    "source .env": "shell dotenv parsing is not a configuration authority",
+    ". ./.env": "shell dotenv parsing is not a configuration authority",
+    "EnvironmentFile=@VLOG_ROOT@/.env": "systemd env files must be explicitly selected",
+    "EnvironmentFile=-@VLOG_ROOT@/.env": "systemd env files must be explicitly selected",
+    "ReadWritePaths=@VLOG_ROOT@/data": "the Git checkout must not be mutable runtime state",
+    'Path("data/logs")': "service logs must live under VLOG_STATE_HOME",
+    "data\\logs\\windows-bootstrap.log": "Windows bootstrap logs must live under VLOG_STATE_HOME",
 }
 
 
