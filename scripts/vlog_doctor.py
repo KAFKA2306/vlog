@@ -14,16 +14,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-SCRIPT_ROOT = Path(__file__).resolve().parents[1]
-CAPTURE_ROOT = SCRIPT_ROOT / "apps" / "capture-vrchat"
-sys.path.insert(0, str(CAPTURE_ROOT))
-
-from vlog_capture.portability import (  # noqa: E402
+from vlog_capture.portability import (
     classify_path,
     foreign_absolute_reason,
     runtime_directories,
     shared_checkout_reason,
 )
+
+SCRIPT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def project_root() -> tuple[Path, str]:
@@ -63,7 +61,21 @@ def module_origin(name: str) -> str | None:
 
 def tool(name: str) -> dict[str, str | None]:
     path = shutil.which(name)
-    return {"path": path}
+    version: str | None = None
+    if path:
+        try:
+            result = subprocess.run(
+                [path, "--version"],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=5,
+            )
+            version = result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
+        except (OSError, subprocess.TimeoutExpired):
+            version = None
+    return {"path": path, "version": version}
 
 
 def configured_environment_names() -> list[str]:
@@ -111,6 +123,7 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
         "os": runtime,
         "os_release": platform.release(),
         "architecture": platform.machine(),
+        "python_runtime": platform.python_version(),
         "is_wsl": bool(
             os.environ.get("WSL_DISTRO_NAME")
             or "microsoft" in platform.release().lower()
@@ -134,6 +147,14 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
             "config": redact_path(str(dirs.config), redact),
             "state": redact_path(str(dirs.state), redact),
             "cache": redact_path(str(dirs.cache), redact),
+        },
+        "installed_packages": {
+            "vlog_capture": module_origin("vlog_capture"),
+            "vlog_memory_domain": module_origin("vlog_memory_domain"),
+            "vlog_ingestion": module_origin("vlog_ingestion"),
+            "vlog_companion": module_origin("vlog_companion"),
+            "vlog_privacy": module_origin("vlog_privacy"),
+            "vlog_vrchat_osc": module_origin("vlog_vrchat_osc"),
         },
         "tools": tools,
         "gpu_python_libraries": {
@@ -192,7 +213,8 @@ def main() -> int:
             print(f"  {key}: {value}")
         print("tools:")
         for name, info in report["tools"].items():
-            print(f"  {name}: {info['path'] or 'missing'}")
+            detail = info["version"] or "version unknown"
+            print(f"  {name}: {info['path'] or 'missing'} ({detail})")
 
     if args.strict and (report["foreign_path"] or report["shared_checkout"]):
         return 2
