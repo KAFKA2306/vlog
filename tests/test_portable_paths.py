@@ -14,3 +14,8 @@ def test_portable_paths_reject_ads_and_reserved_names():
 def test_portable_paths_reject_case_fold_collisions():
     failures = validate_paths(["Docs/README.md", "docs/readme.md"])
     assert set(failures) == {"Docs/README.md", "docs/readme.md"}
+
+
+def test_portable_paths_reject_directory_case_fold_collisions():
+    failures = validate_paths(["Docs/a.md", "docs/b.md"])
+    assert failures
