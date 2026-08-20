@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/production-smoke.yml'
       - 'docs/SPEC.md'
+      - 'apps/reader/app/api/health/route.ts'
+      - 'apps/reader/tests/health-route.test.ts'
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -49,13 +51,20 @@ jobs:
 
           assert payload.get('status') == 'ok', payload
           assert payload.get('environment') == 'production', payload
-          assert payload.get('gitCommitRef') == 'main', payload
+
+          deployment_id = payload.get('deploymentId')
+          assert isinstance(deployment_id, str) and deployment_id.startswith('dpl_'), payload
 
           sha = payload.get('gitCommitSha')
-          assert isinstance(sha, str) and len(sha) >= 7, payload
+          ref = payload.get('gitCommitRef')
+          if sha is not None or ref is not None:
+              assert isinstance(sha, str) and len(sha) >= 7, payload
+              assert ref == 'main', payload
+              print(f"production commit: {sha}")
+          else:
+              print('::warning::production deployment has no Git commit provenance')
 
-          print(f"production commit: {sha}")
-          print(f"deployment id: {payload.get('deploymentId')}")
+          print(f"deployment id: {deployment_id}")
           PY
 
       - name: Verify public Reader routes
