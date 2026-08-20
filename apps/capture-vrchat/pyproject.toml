@@ -39,6 +39,7 @@ gpu = [
 vlog = "vlog_capture.cli:main"
 vlog-service = "vlog_capture.main:main"
 vlog-daily = "vlog_capture.daily:main"
+vlog-operations = "vlog_capture.operations:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13"]
