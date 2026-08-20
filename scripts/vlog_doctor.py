@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only VLog portability and runtime preflight diagnostics."""
+"""Read-only VLog portability, toolchain, and runtime preflight diagnostics."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,13 @@ from vlog_capture.portability import (
 )
 
 SCRIPT_ROOT = Path(__file__).resolve().parents[1]
+TOOLCHAIN = {
+    "python": {"expected": "3.12", "mode": "major-minor", "required": True},
+    "uv": {"expected": "0.12.5", "mode": "exact", "required": True},
+    "bun": {"expected": "1.3.14", "mode": "exact", "required": False},
+    "task": {"expected": "3.52.0", "mode": "exact", "required": False},
+}
+_VERSION_RE = re.compile(r"(?<!\d)(\d+\.\d+(?:\.\d+)?)(?!\d)")
 
 
 def project_root() -> tuple[Path, str]:
@@ -72,12 +80,69 @@ def tool(name: str) -> dict[str, str | None]:
                 text=True,
                 timeout=5,
             )
-            version = (
-                result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
-            )
+            version = result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
         except (OSError, subprocess.TimeoutExpired):
             version = None
     return {"path": path, "version": version}
+
+
+def version_number(value: str | None) -> str | None:
+    if not value:
+        return None
+    match = _VERSION_RE.search(value)
+    return match.group(1) if match else None
+
+
+def version_matches(actual: str | None, expected: str, mode: str) -> bool:
+    parsed = version_number(actual)
+    if parsed is None:
+        return False
+    if mode == "major-minor":
+        return ".".join(parsed.split(".")[:2]) == expected
+    return parsed == expected
+
+
+def toolchain_report(tools: dict[str, dict[str, str | None]]) -> dict[str, Any]:
+    items: dict[str, dict[str, Any]] = {}
+    blocking: list[str] = []
+    drift: list[str] = []
+    for name, contract in TOOLCHAIN.items():
+        info = tools[name]
+        installed = info["path"] is not None
+        match = installed and version_matches(
+            info["version"], str(contract["expected"]), str(contract["mode"])
+        )
+        if not installed:
+            status = "missing-required" if contract["required"] else "missing-optional"
+            if contract["required"]:
+                blocking.append(name)
+        elif not match:
+            status = "version-drift"
+            drift.append(name)
+            if contract["required"]:
+                blocking.append(name)
+        else:
+            status = "ok"
+        items[name] = {
+            "expected": contract["expected"],
+            "mode": contract["mode"],
+            "required": contract["required"],
+            "actual": version_number(info["version"]),
+            "raw": info["version"],
+            "status": status,
+        }
+    return {
+        "authority": {
+            "python": ".python-version + requires-python",
+            "uv": "CI/bootstrap pin + uv.lock",
+            "bun": "apps/reader/package.json packageManager",
+            "task": "Taskfile.yaml version contract",
+        },
+        "items": items,
+        "blocking": blocking,
+        "drift": drift,
+        "required_ok": not blocking,
+    }
 
 
 def configured_environment_names() -> list[str]:
@@ -115,6 +180,7 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
             "systemctl",
         )
     }
+    chain = toolchain_report(tools)
     if redact:
         for item in tools.values():
             if item["path"]:
@@ -147,6 +213,7 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
         },
         "runtime_directories": {
             "config": redact_path(str(dirs.config), redact),
+            "data": redact_path(str(dirs.data), redact),
             "state": redact_path(str(dirs.state), redact),
             "cache": redact_path(str(dirs.cache), redact),
         },
@@ -159,6 +226,7 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
             "vlog_vrchat_osc": module_origin("vlog_vrchat_osc"),
         },
         "tools": tools,
+        "toolchain": chain,
         "gpu_python_libraries": {
             "nvidia.cublas.lib": module_origin("nvidia.cublas.lib"),
             "nvidia.cudnn.lib": module_origin("nvidia.cudnn.lib"),
@@ -179,16 +247,17 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--json", action="store_true", help="emit machine-readable JSON"
-    )
-    parser.add_argument(
-        "--redact", action="store_true", help="replace the user home in paths"
-    )
+    parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    parser.add_argument("--redact", action="store_true", help="replace the user home in paths")
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="fail on foreign/shared canonical checkout",
+        help="fail on foreign/shared checkout or required toolchain drift",
+    )
+    parser.add_argument(
+        "--check-toolchain",
+        action="store_true",
+        help="also fail when an installed optional tool has version drift",
     )
     args = parser.parse_args()
     try:
@@ -213,13 +282,25 @@ def main() -> int:
         print("runtime dirs:")
         for key, value in report["runtime_directories"].items():
             print(f"  {key}: {value}")
+        print("toolchain:")
+        for name, item in report["toolchain"]["items"].items():
+            actual = item["actual"] or "missing"
+            print(
+                f"  {name}: {actual} expected={item['expected']} "
+                f"status={item['status']}"
+            )
         print("tools:")
         for name, info in report["tools"].items():
             detail = info["version"] or "version unknown"
             print(f"  {name}: {info['path'] or 'missing'} ({detail})")
 
-    if args.strict and (report["foreign_path"] or report["shared_checkout"]):
+    path_failure = bool(report["foreign_path"] or report["shared_checkout"])
+    required_tool_failure = bool(report["toolchain"]["blocking"])
+    optional_drift = bool(report["toolchain"]["drift"])
+    if args.strict and (path_failure or required_tool_failure):
         return 2
+    if args.check_toolchain and (required_tool_failure or optional_drift):
+        return 3
     return 0
 
 
