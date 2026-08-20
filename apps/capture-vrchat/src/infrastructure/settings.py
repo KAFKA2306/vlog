@@ -1,10 +1,11 @@
 import platform
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any, Dict, List, Set
 
 import yaml
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from src.portability import PathFlavor, classify_path
 from src.project import PROJECT_ROOT
 
 
@@ -14,12 +15,22 @@ def _get_project_root() -> Path:
 
 def is_windows_path_invalid_on_linux(value: Path, *, system: str | None = None) -> bool:
     runtime_system = system or platform.system()
-    return runtime_system == "Linux" and PureWindowsPath(str(value)).is_absolute()
+    return runtime_system == "Linux" and classify_path(str(value)) in {
+        PathFlavor.WINDOWS_ABSOLUTE,
+        PathFlavor.WINDOWS_UNC,
+    }
+
+
+def is_posix_path_invalid_on_windows(value: Path, *, system: str | None = None) -> bool:
+    runtime_system = system or platform.system()
+    return runtime_system == "Windows" and classify_path(str(value)) == PathFlavor.POSIX_ABSOLUTE
 
 
 def resolve_project_path(value: Path) -> Path:
     if is_windows_path_invalid_on_linux(value):
         raise ValueError(f"Windows path is not valid in WSL: {value}")
+    if is_posix_path_invalid_on_windows(value):
+        raise ValueError(f"POSIX absolute path is not valid on Windows: {value}")
     if value.is_absolute():
         return value
     return _get_project_root() / value
