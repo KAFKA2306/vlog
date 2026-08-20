@@ -4,6 +4,7 @@ import pytest
 from src.infrastructure.settings import (
     Settings,
     _get_project_root,
+    is_posix_path_invalid_on_windows,
     is_windows_path_invalid_on_linux,
     resolve_project_path,
 )
@@ -38,3 +39,10 @@ def test_windows_drive_path_guard_is_linux_only() -> None:
 
     assert is_windows_path_invalid_on_linux(value, system="Linux")
     assert not is_windows_path_invalid_on_linux(value, system="Windows")
+
+
+def test_posix_path_guard_is_windows_only() -> None:
+    value = Path("/home/kafka/projects/vlog/transcripts")
+
+    assert is_posix_path_invalid_on_windows(value, system="Windows")
+    assert not is_posix_path_invalid_on_windows(value, system="Linux")
