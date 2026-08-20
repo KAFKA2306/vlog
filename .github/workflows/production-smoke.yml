@@ -55,8 +55,8 @@ jobs:
           deployment_id = payload.get('deploymentId')
           assert isinstance(deployment_id, str) and deployment_id.startswith('dpl_'), payload
 
-          sha = payload.get('gitCommitSha')
-          ref = payload.get('gitCommitRef')
+          sha = payload.get('gitCommitSha') or None
+          ref = payload.get('gitCommitRef') or None
           if sha is not None or ref is not None:
               assert isinstance(sha, str) and len(sha) >= 7, payload
               assert ref == 'main', payload
