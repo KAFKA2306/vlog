@@ -7,7 +7,13 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$logDir = Join-Path $env:LOCALAPPDATA "VLog\State\logs"
+$windowsState = if ([string]::IsNullOrWhiteSpace($env:VLOG_STATE_HOME)) {
+    Join-Path $env:LOCALAPPDATA "VLog\State"
+}
+else {
+    $env:VLOG_STATE_HOME
+}
+$logDir = Join-Path $windowsState "logs"
 $logPath = Join-Path $logDir "watchdog.log"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
@@ -28,11 +34,11 @@ if (-not [string]::IsNullOrWhiteSpace($StatePath) -and -not $StatePath.StartsWit
 
 # Escape a single quote for a Bash single-quoted literal: ' -> '\''
 $escapedProject = $ProjectPath.Replace("'", "'\''")
-$escapedState = $StatePath.Replace("'", "'\''")
 $stateResolver = if ([string]::IsNullOrWhiteSpace($StatePath)) {
     "cd '$escapedProject' && uv run --frozen python -c 'from vlog_capture.portability import runtime_directories; print(runtime_directories().state)'"
 }
 else {
+    $escapedState = $StatePath.Replace("'", "'\''")
     "printf '%s' '$escapedState'"
 }
 
