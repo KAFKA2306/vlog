@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Read-only VLog portability and runtime preflight diagnostics."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,8 +24,6 @@ from src.portability import (  # noqa: E402
     runtime_directories,
     shared_checkout_reason,
 )
-
-SECRET_MARKERS = ("KEY", "SECRET", "TOKEN", "PASSWORD", "WEBHOOK")
 
 
 def project_root() -> tuple[Path, str]:
@@ -91,7 +90,16 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
 
     tools = {
         name: tool(name)
-        for name in ("git", "uv", "python", "task", "bun", "pwsh", "powershell", "systemctl")
+        for name in (
+            "git",
+            "uv",
+            "python",
+            "task",
+            "bun",
+            "pwsh",
+            "powershell",
+            "systemctl",
+        )
     }
     if redact:
         for item in tools.values():
@@ -103,7 +111,10 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
         "os": runtime,
         "os_release": platform.release(),
         "architecture": platform.machine(),
-        "is_wsl": bool(os.environ.get("WSL_DISTRO_NAME") or "microsoft" in platform.release().lower()),
+        "is_wsl": bool(
+            os.environ.get("WSL_DISTRO_NAME")
+            or "microsoft" in platform.release().lower()
+        ),
         "cwd": redact_path(str(Path.cwd()), redact),
         "project_root": redact_path(root_text, redact),
         "project_root_source": root_source,
@@ -130,8 +141,12 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
             "nvidia.cudnn.lib": module_origin("nvidia.cudnn.lib"),
         },
         "host_checks": {
-            "windows_task_scheduler": "available" if runtime == "Windows" and shutil.which("schtasks") else "not_checked",
-            "systemd_user_manager": "available" if runtime == "Linux" and shutil.which("systemctl") else "not_checked",
+            "windows_task_scheduler": "available"
+            if runtime == "Windows" and shutil.which("schtasks")
+            else "not_checked",
+            "systemd_user_manager": "available"
+            if runtime == "Linux" and shutil.which("systemctl")
+            else "not_checked",
             "vrchat_process": "requires_actual_windows_host",
             "physical_audio": "requires_actual_host",
             "gpu_transcription": "requires_actual_gpu_run",
@@ -141,9 +156,17 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
-    parser.add_argument("--redact", action="store_true", help="replace the user home in paths")
-    parser.add_argument("--strict", action="store_true", help="fail on foreign/shared canonical checkout")
+    parser.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    parser.add_argument(
+        "--redact", action="store_true", help="replace the user home in paths"
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="fail on foreign/shared canonical checkout",
+    )
     args = parser.parse_args()
     try:
         report = collect(redact=args.redact)
@@ -156,7 +179,10 @@ def main() -> int:
     else:
         print(f"VLog doctor: {report['os']} {report['architecture']}")
         print(f"project: {report['project_root']} ({report['project_root_source']})")
-        print(f"git: {report['git']['sha']} ref={report['git']['ref']} dirty={report['git']['dirty']}")
+        print(
+            f"git: {report['git']['sha']} ref={report['git']['ref']} "
+            f"dirty={report['git']['dirty']}"
+        )
         print(f"path flavor: {report['project_root_flavor']}")
         for key in ("foreign_path", "shared_checkout"):
             if report[key]:
