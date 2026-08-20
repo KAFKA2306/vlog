@@ -27,18 +27,18 @@ GitHub commit SHA
     └── disposable CI checkout
 ```
 
-Windows and WSL/Linux must not require the same physical code checkout. `/mnt/c/...`, `\\wsl$`, `\\wsl.localhost`, and general UNC paths are boundary locations, not canonical production code checkouts.
+Windows and WSL/Linux must not require the same physical code checkout. Windows-mounted WSL paths, WSL UNC shares, and general UNC paths are boundary locations, not canonical production code checkouts.
 
 Evidence transport is a separate concern. Until #73 completes private object-storage cutover, an explicit legacy data bridge may exist without making the code checkout shared.
 
 ## Path support matrix
 
-| Path | Windows production code | WSL/Linux production code | Boundary use |
+| Path class | Windows production code | WSL/Linux production code | Boundary use |
 |---|---|---|---|
-| local Windows drive (`C:\\...`) | supported | foreign | supported through explicit adapter |
-| native POSIX (`/home/...`) | foreign | supported | supported through explicit adapter |
-| `/mnt/<drive>/...` | n/a | not canonical | migration/interoperability only |
-| `\\wsl$` / `\\wsl.localhost` | not canonical | n/a | migration/interoperability only |
+| local Windows drive path | supported | foreign | supported through explicit adapter |
+| native POSIX path | foreign | supported | supported through explicit adapter |
+| WSL Windows-mounted drive path | n/a | not canonical | migration/interoperability only |
+| WSL UNC share | not canonical | n/a | migration/interoperability only |
 | other UNC | not canonical | foreign | best-effort adapter only |
 | spaces / Japanese / Unicode | supported | supported | CI-covered |
 | case-only collisions | rejected in Git tree | rejected in Git tree | rejected |
