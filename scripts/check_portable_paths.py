@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Reject tracked paths that cannot be represented safely on Windows and POSIX."""
+
 from __future__ import annotations
 
 import argparse
@@ -8,7 +9,11 @@ from collections.abc import Iterable
 
 INVALID_WINDOWS_CHARS = set('<>:"\\|?*')
 RESERVED_WINDOWS_NAMES = {
-    "CON", "PRN", "AUX", "NUL", "CLOCK$",
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "CLOCK$",
     *(f"COM{i}" for i in range(1, 10)),
     *(f"LPT{i}" for i in range(1, 10)),
 }
@@ -24,12 +29,16 @@ def path_violations(path: str) -> list[str]:
             violations.append(f"trailing dot/space: {component!r}")
         bad = sorted(set(component) & INVALID_WINDOWS_CHARS)
         if bad:
-            violations.append(f"Windows-invalid character(s) {''.join(bad)!r}: {component!r}")
+            violations.append(
+                f"Windows-invalid character(s) {''.join(bad)!r}: {component!r}"
+            )
         stem = component.split(".", 1)[0].upper()
         if stem in RESERVED_WINDOWS_NAMES:
             violations.append(f"Windows reserved device name: {component!r}")
         if component.casefold().endswith(":zone.identifier"):
-            violations.append("Windows alternate-data-stream metadata was materialized as a filename")
+            violations.append(
+                "Windows alternate-data-stream metadata was materialized as a filename"
+            )
     return violations
 
 
@@ -45,7 +54,9 @@ def validate_paths(paths: Iterable[str]) -> dict[str, list[str]]:
             previous = folded_prefixes.get(key)
             if previous is not None and previous != prefix:
                 reasons.append(f"case-fold collision at {prefix!r} with {previous!r}")
-                failures.setdefault(previous, []).append(f"case-fold collision with {prefix!r}")
+                failures.setdefault(previous, []).append(
+                    f"case-fold collision with {prefix!r}"
+                )
             else:
                 folded_prefixes[key] = prefix
         if reasons:
@@ -55,7 +66,9 @@ def validate_paths(paths: Iterable[str]) -> dict[str, list[str]]:
 
 def tracked_paths() -> list[str]:
     output = subprocess.check_output(["git", "ls-files", "-z"])
-    return [item.decode("utf-8", "surrogateescape") for item in output.split(b"\0") if item]
+    return [
+        item.decode("utf-8", "surrogateescape") for item in output.split(b"\0") if item
+    ]
 
 
 def main() -> int:
