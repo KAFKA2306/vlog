@@ -4,73 +4,39 @@
 [![Reader Visual Regression](https://github.com/KAFKA2306/vlog/actions/workflows/reader-visual-regression.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/reader-visual-regression.yml)
 [![Production Smoke](https://github.com/KAFKA2306/vlog/actions/workflows/production-smoke.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/production-smoke.yml)
 
-VLogは、VRChatで生じた音声、写真、会話、出来事をEvidenceとして扱い、人間が確認できる記憶、日記・物語などの派生物、明示的に承認された公開物へ分離して扱う公開OSSエンジンです。
+VLogは、VRChatのEvidenceからreview可能なHuman Memory、Narrative Artifact、明示承認されたPublic Projectionを生成する公開OSSエンジンです。
 
-このREADMEは入口とセットアップだけを担当します。製品仕様と動作保証の正準は[`docs/SPEC.md`](docs/SPEC.md)、文書全体の正準マップは[`docs/README.md`](docs/README.md)です。日付付きの進捗表や一時的なproduction状態はREADMEへ複製しません。
-
-## Core model
-
-```text
-Evidence
-原音声・写真・動画・全文transcript
-        │
-        ▼
-Human Memory
-review可能なepisode・claim・revision
-        │
-        ▼
-Narrative Artifact
-日記・物語・画像・振り返り
-        │
-        ▼
-Public Projection
-公開を明示承認した成果物だけ
-```
-
-- AI生成物はEvidenceや確定済み記憶そのものではありません。
-- accepted memory claimはsource Evidenceへのprovenanceを必要とします。
-- 訂正は履歴を破壊せずrevisionとして追加します。
-- 記憶として採用する判断と公開判断を分離します。
-- raw Evidenceはprivateを既定とし、公開repositoryへ保存しません。
-
-詳細な不変条件は[`docs/SPEC.md`](docs/SPEC.md)を参照してください。
+このREADMEは入口とセットアップだけを担当します。仕様・保証・運用詳細をここへ複製しません。
 
 ## Start here
 
-| 読みたいもの | 正準文書 |
+| 目的 | 正準 |
 |---|---|
 | 製品仕様・動作保証 | [`docs/SPEC.md`](docs/SPEC.md) |
-| 文書の責務と優先順位 | [`docs/README.md`](docs/README.md) |
-| Human Memory v2 target architecture | [`docs/architecture/human-memory-v2.md`](docs/architecture/human-memory-v2.md) |
-| 現行runtime architecture | [`docs/architecture.md`](docs/architecture.md) |
-| cross-platform portability | [`docs/architecture/portability.md`](docs/architecture/portability.md) |
-| 運用・障害対応 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) |
+| 文書マップ | [`docs/README.md`](docs/README.md) |
+| Human Memory v2 | [`docs/architecture/human-memory-v2.md`](docs/architecture/human-memory-v2.md) |
+| 現行runtime | [`docs/architecture.md`](docs/architecture.md) |
+| portability | [`docs/architecture/portability.md`](docs/architecture/portability.md) |
+| 運用 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) |
 | 保守 | [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) |
-| agent向けrouter | [`AGENTS.md`](AGENTS.md) |
-
-Human Memory v2移行の未完了作業は[Issue #14](https://github.com/KAFKA2306/vlog/issues/14)で追跡します。現在状態を判断するときは、`main`の実装・tests・GitHub Actions・対象environmentの実測を優先し、READMEの古いスナップショットで代替しません。
+| agent router | [`AGENTS.md`](AGENTS.md) |
 
 ## Repository boundaries
 
 ```text
 apps/       deployable applications
-packages/   storage非依存のdomain capabilities
+packages/   storage非依存domain capabilities
 adapters/   persistence・storage・external integrations
 infra/      systemd・Windows・Supabase assets
 schemas/    versioned interchange contracts
-docs/       specifications・architecture・operations・ADRs
+docs/       specification・architecture・operations・ADRs
 ```
 
-capture runtimeは`apps/capture-vrchat/`、Readerは`apps/reader/`にあります。Python runtimeはuv workspace上の`vlog_capture` packageとして提供され、`vlog`、`vlog-service`、`vlog-daily`、`vlog-operations`のconsole entry pointを使用します。
+Python runtimeはuv workspace上の`vlog_capture` packageです。製品操作は`vlog`、運用診断は`vlog-operations`、repository orchestrationは`task`を使います。
 
 ## Setup
 
-必要環境:
-
-- Python `>=3.12,<3.13`
-- [`uv`](https://github.com/astral-sh/uv)
-- [Task](https://taskfile.dev)
-- Readerを扱う場合はBun
+必要環境はPython `>=3.12,<3.13`、`uv`、Task、Readerを扱う場合はBunです。
 
 ```bash
 git clone https://github.com/KAFKA2306/vlog.git
@@ -79,37 +45,21 @@ task setup
 cp .env.example .env
 ```
 
-実録音・文字起こし・同期には、対象hostのaudio device、VRChat、GPU/model、network、credentialなどが別途必要です。secretやprivate Evidenceをcommitしません。
+実録音・文字起こし・同期には対象hostのaudio device、VRChat、GPU/model、network、credentialが別途必要です。secretやprivate Evidenceをcommitしません。
 
-## Common commands
+## Commands
 
 ```bash
-task
-task dev
-task daily
+uv run --frozen vlog --help
+uv run --frozen vlog daily
+uv run --frozen vlog-operations --help
 task verify
 ```
 
-`vlog`はcapture/domain操作、`vlog-operations`は運用診断、`task`はrepository orchestrationの入口です。完全なtask inventoryは[`Taskfile.yaml`](Taskfile.yaml)を正準とし、READMEへ複製しません。
+`task`はbuild、test、deployment、infrastructure、maintenanceなどrepository作業に限定します。製品CLIのaliasはTaskfileへ重複させません。
 
 ## Verification boundary
 
-VLogでは検証範囲を分けます。
+Repository/CIの成功と、actual host・audio・GPU・systemd・Windows Task Scheduler・Supabase・Vercel・object storageのenvironment verificationは別です。保証レイヤーの定義は[`docs/SPEC.md`](docs/SPEC.md)を正準とします。
 
-- **repository verified**: tests、schema、boundary、buildなどが対象commitで成功した範囲。
-- **CI verified**: GitHub Actionsが対象commitで成功した範囲。
-- **environment verified**: 実host、audio、GPU、systemd、Windows Task Scheduler、Supabase、Vercel、object storageなどを実測した範囲。
-
-CI成功だけでenvironment稼働を断定しません。Public Readerを含む保証レイヤーの定義は[`docs/SPEC.md`](docs/SPEC.md)に集約します。
-
-## Privacy boundary
-
-公開repositoryへ保存しないもの:
-
-- 原音声、非公開写真・動画、全文会話・全文transcript
-- private journal、個人関係、位置情報などのprivate memory
-- API key、token、cookie、credential
-- private object storage URLや未公開artifact
-- redaction前の運用log
-
-公開物は明示的なpublication decisionを経たprojectionだけとします。
+Raw Evidence、private memory、credential、redaction前logは公開repositoryへ保存しません。公開物は明示的なpublication decisionを経たprojectionだけです。
