@@ -8,4 +8,4 @@ Infrastructure implements current external boundaries: process and audio access,
 - Keep secrets out of logs and public artifacts.
 - Verify network, GPU, audio, database, and operating-system behavior in their actual environments.
 
-See [operations](../../../../docs/OPERATIONS.md).
+See [operations](../../../../../docs/OPERATIONS.md).
