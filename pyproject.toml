@@ -45,7 +45,6 @@ ignore = ["E501"]
 
 [dependency-groups]
 dev = [
-    "codd-dev>=2.18.0",
     "pytest>=9.0.2",
     "ruff>=0.14.9",
     "ty>=0.0.64",
