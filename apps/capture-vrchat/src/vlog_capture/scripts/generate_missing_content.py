@@ -1,65 +1,49 @@
 import logging
-from pathlib import Path
 
 from vlog_capture.infrastructure.ai import ImageGenerator, Novelizer
 from vlog_capture.infrastructure.graph_storage import GraphStorage
 from vlog_capture.infrastructure.repositories import SupabaseRepository
 from vlog_capture.infrastructure.settings import settings
-from vlog_capture.project import PROJECT_ROOT
+from vlog_capture.portability import runtime_directories
 from vlog_capture.use_cases.build_novel import BuildNovelUseCase
 
-project_root = PROJECT_ROOT
-
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     logger.info("Starting check for missing content...")
 
-    # Ensure directories exist
     settings.summary_dir.mkdir(parents=True, exist_ok=True)
     settings.novel_out_dir.mkdir(parents=True, exist_ok=True)
     settings.photo_dir.mkdir(parents=True, exist_ok=True)
 
-    # Initialize use cases and services
-    # Note: We need to instantiate the concrete classes for the use case
+    graph_path = runtime_directories().cache / "graph" / "graph.jsonl"
     novelizer = Novelizer()
     image_generator = ImageGenerator()
-    graph_storage = GraphStorage(Path("data/graph.jsonl"))
+    graph_storage = GraphStorage(graph_path)
     build_novel_use_case = BuildNovelUseCase(novelizer, image_generator, graph_storage)
     supabase_repo = SupabaseRepository()
 
-    # Get all summary dates
     summary_files = list(settings.summary_dir.glob("*_summary.txt"))
-    logger.info(f"Found {len(summary_files)} summary files.")
+    logger.info("Found %d summary files.", len(summary_files))
 
-    dates_to_process = []
-
+    dates_to_process: list[str] = []
     for summary_file in summary_files:
-        # Expected format: YYYYMMDD_summary.txt
         parts = summary_file.stem.split("_")
-        if len(parts) < 1 or not parts[0].isdigit() or len(parts[0]) != 8:
+        if not parts or not parts[0].isdigit() or len(parts[0]) != 8:
             continue
 
         date_str = parts[0]
-
-        # Check specific daily summary format (YYYYMMDD_summary.txt).
-        # Ignore session summaries like 20251120_205733_summary.txt.
-        # Repositories sync only allows exact YYYYMMDD_summary.txt.
-
         normalized_stem = summary_file.stem.replace("_summary", "")
         if "_" in normalized_stem:
-            # e.g. 20251120_205733
             continue
-
         dates_to_process.append(date_str)
 
     dates_to_process.sort()
-    logger.info(f"Found {len(dates_to_process)} valid daily summary dates.")
+    logger.info("Found %d valid daily summary dates.", len(dates_to_process))
 
     for date_str in dates_to_process:
         novel_path = settings.novel_out_dir / f"{date_str}.md"
@@ -67,31 +51,31 @@ def main():
 
         novel_exists = novel_path.exists()
         photo_exists = photo_path.exists()
-
         if novel_exists and photo_exists:
             continue
 
         logger.info(
-            f"Processing {date_str}: Novel={novel_exists}, Photo={photo_exists}"
+            "Processing %s: Novel=%s, Photo=%s",
+            date_str,
+            novel_exists,
+            photo_exists,
         )
 
         if not novel_exists:
-            logger.info(f"Generating Novel and Image for {date_str}...")
+            logger.info("Generating Novel and Image for %s...", date_str)
             build_novel_use_case.execute(date=date_str)
-            logger.info(f"Successfully generated content for {date_str}")
-
+            logger.info("Successfully generated content for %s", date_str)
         elif not photo_exists:
             logger.info(
-                f"Novel exists but Image missing for {date_str}. Generating Image..."
+                "Novel exists but Image missing for %s. Generating Image...", date_str
             )
             novel_text = novel_path.read_text(encoding="utf-8")
             image_generator.generate_from_novel(novel_text, photo_path)
-            logger.info(f"Successfully generated image for {date_str}")
+            logger.info("Successfully generated image for %s", date_str)
 
     logger.info("Syncing to Supabase...")
     supabase_repo.sync()
     logger.info("Sync complete.")
-
     logger.info("Done.")
 
 

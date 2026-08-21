@@ -12,8 +12,16 @@ RUNTIME_PREFIXES = (
     "infra/systemd/",
     "infra/windows/",
     "apps/capture-vrchat/src/",
+    "scripts/",
 )
 RUNTIME_FILES = {"Taskfile.yaml"}
+# These tools intentionally operate on versioned/legacy repository data rather than
+# serving as runtime state authorities.
+LEGACY_DATA_EXCEPTIONS = {
+    "scripts/migrate_runtime_state.py",
+    "scripts/sync_vault_prompts.py",
+    "scripts/check_runtime_contract.py",
+}
 FORBIDDEN = {
     "PYTHONPATH": "runtime must use installed workspace packages",
     "USER_WORKING_DIR": "tasks must resolve from the root Taskfile",
@@ -23,11 +31,26 @@ FORBIDDEN = {
     "import src": "legacy src imports are forbidden",
     "source .env": "shell dotenv parsing is not a configuration authority",
     ". ./.env": "shell dotenv parsing is not a configuration authority",
+    "load_dotenv()": "runtime configuration must use Settings and explicit VLOG_ENV_FILE",
     "EnvironmentFile=@VLOG_ROOT@/.env": "systemd env files must be explicitly selected",
     "EnvironmentFile=-@VLOG_ROOT@/.env": "systemd env files must be explicitly selected",
     "ReadWritePaths=@VLOG_ROOT@/data": "the Git checkout must not be mutable runtime state",
+    'Path("data/': "mutable runtime paths must resolve through settings/platformdirs",
+    "Path('data/": "mutable runtime paths must resolve through settings/platformdirs",
+    "open('data/": "mutable runtime paths must resolve through settings/platformdirs",
+    'open("data/': "mutable runtime paths must resolve through settings/platformdirs",
+    "data/cognee_queue.yaml": "Cognee queue must live under VLOG_STATE_HOME",
+    "data/recordings/": "recordings must live under VLOG_DATA_HOME",
+    "data/transcripts/": "transcripts must live under VLOG_DATA_HOME",
+    "data/summaries/": "summaries must live under VLOG_DATA_HOME",
+    "data/novels/": "novels must live under VLOG_DATA_HOME",
+    "data/photos/": "photos must live under VLOG_DATA_HOME",
+    "data/archives/": "archives must live under VLOG_DATA_HOME",
+    "data/skills/": "generated skills must live under VLOG_DATA_HOME",
+    "data/heartbeats/": "heartbeats must live under VLOG_STATE_HOME",
     'Path("data/logs")': "service logs must live under VLOG_STATE_HOME",
     "data\\logs\\windows-bootstrap.log": "Windows bootstrap logs must live under VLOG_STATE_HOME",
+    "/tmp/vlog-daily.log": "daily logs must live under VLOG_STATE_HOME",
 }
 
 
@@ -62,6 +85,8 @@ def tracked_files() -> list[str]:
 def violations(paths: list[str] | None = None) -> list[str]:
     failures: list[str] = []
     for relative in paths or tracked_files():
+        if relative == "scripts/check_runtime_contract.py":
+            continue
         if relative not in RUNTIME_FILES and not relative.startswith(RUNTIME_PREFIXES):
             continue
         path = ROOT / relative
@@ -72,6 +97,10 @@ def violations(paths: list[str] | None = None) -> list[str]:
         except UnicodeDecodeError:
             continue
         for token, reason in FORBIDDEN.items():
+            if relative in LEGACY_DATA_EXCEPTIONS and token.startswith(
+                ('Path("data/', "Path('data/", "open('data/", 'open("data/', "data/")
+            ):
+                continue
             if token in text:
                 failures.append(f"{relative}: contains {token!r}: {reason}")
     return failures

@@ -1,15 +1,14 @@
 import json
-import os
 import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
-from dotenv import load_dotenv
 from supabase import Client, create_client
 from vlog_capture.infrastructure.image_optimizer import ImageOptimizer
 from vlog_capture.infrastructure.publication import is_publishable_summary
 from vlog_capture.infrastructure.settings import settings
+from vlog_capture.portability import runtime_directories
 
 
 class FileRepository:
@@ -47,8 +46,12 @@ class FileRepository:
 
 
 class TaskRepository:
-    def __init__(self, file_path: str = "data/tasks.json"):
-        self.file_path = Path(file_path)
+    def __init__(self, file_path: str | Path | None = None):
+        self.file_path = (
+            Path(file_path)
+            if file_path is not None
+            else runtime_directories().state / "tasks.json"
+        )
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.file_path.exists():
             self.file_path.write_text("[]", encoding="utf-8")
@@ -96,9 +99,8 @@ class TaskRepository:
 
 class SupabaseRepository:
     def __init__(self) -> None:
-        load_dotenv()
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        url = settings.supabase_url
+        key = settings.supabase_service_role_key
         self.client = create_client(url, key) if url and key else None
 
     def sync(self) -> None:

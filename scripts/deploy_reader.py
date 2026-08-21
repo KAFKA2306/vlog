@@ -47,7 +47,9 @@ def vercel_env() -> dict[str, str]:
     env = dict(os.environ)
     token = env.get("VERCEL_TOKEN", "").strip()
     if not token:
-        raise RuntimeError("VERCEL_TOKEN is required for non-interactive production deploy")
+        raise RuntimeError(
+            "VERCEL_TOKEN is required for non-interactive production deploy"
+        )
     env.setdefault("VERCEL_PROJECT_ID", DEFAULT_PROJECT_ID)
     env.setdefault("VERCEL_ORG_ID", DEFAULT_TEAM_ID)
     if env["VERCEL_PROJECT_ID"] != DEFAULT_PROJECT_ID:

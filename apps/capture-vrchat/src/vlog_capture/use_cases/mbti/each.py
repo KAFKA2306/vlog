@@ -1,23 +1,17 @@
-import os
-import sys
-from pathlib import Path
-
 import google.generativeai as genai
-from dotenv import load_dotenv
-
-sys.path.append(os.getcwd())
-
 from vlog_capture.infrastructure.settings import settings
+from vlog_capture.portability import runtime_directories
 
 
-def analyze_mbti():
-    load_dotenv()
+def analyze_mbti() -> None:
+    if not settings.gemini_api_key:
+        raise RuntimeError("VLOG_GEMINI_API_KEY is required for MBTI analysis")
 
     genai.configure(api_key=settings.gemini_api_key)
     model = genai.GenerativeModel(settings.gemini_model)
 
-    summaries_dir = Path("data/summaries")
-    output_dir = Path("data/mbti_analysis")
+    summaries_dir = settings.summary_dir
+    output_dir = runtime_directories().data / "mbti" / "per_summary"
     output_dir.mkdir(exist_ok=True, parents=True)
 
     prompt_template = """
@@ -29,11 +23,10 @@ def analyze_mbti():
 3. ○心理機能の使い方の癖
 
 対象の文章:
-対象の文章:
 {text}
 """
 
-    files = sorted(list(summaries_dir.glob("*.txt")))
+    files = sorted(summaries_dir.glob("*.txt"))
     print(f"Found {len(files)} summary files.")
 
     for summary_file in files:
@@ -49,11 +42,10 @@ def analyze_mbti():
             prompt = prompt_template.format(text=text)
             response = model.generate_content(prompt)
             result = response.text.strip()
-
             output_file.write_text(result, encoding="utf-8")
             print(f"Saved analysis to {output_file}")
-        except Exception as e:
-            print(f"Error processing {summary_file.name}: {e}")
+        except Exception as exc:
+            print(f"Error processing {summary_file.name}: {exc}")
 
 
 if __name__ == "__main__":

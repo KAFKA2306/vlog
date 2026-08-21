@@ -7,15 +7,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-INGESTION_SRC = REPO_ROOT / "packages" / "ingestion" / "src"
-sys.path.insert(0, str(INGESTION_SRC))
+from vlog_capture.portability import runtime_directories
+from vlog_ingestion import InventoryBuilder, InventoryConfig, write_inventory
 
-from vlog_ingestion import (  # noqa: E402
-    InventoryBuilder,
-    InventoryConfig,
-    write_inventory,
-)
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,13 +21,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output path. Defaults to data/inventory/phase0-<UTC timestamp>.json.",
+        help="Output path. Defaults to VLOG_STATE_HOME/inventory/phase0-<UTC timestamp>.json.",
     )
     parser.add_argument(
         "--evidence-root",
         action="append",
         dest="evidence_roots",
-        help="Repository-relative root to inventory. Repeat to override defaults.",
+        help="Repository-relative legacy root to inventory. Repeat to override defaults.",
     )
     parser.add_argument(
         "--fail-on-tracked-evidence",
@@ -51,8 +46,12 @@ def main() -> int:
     inventory = InventoryBuilder(InventoryConfig(**config_kwargs)).build()
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    output = args.output or root / "data" / "inventory" / f"phase0-{timestamp}.json"
-    output = output if output.is_absolute() else root / output
+    output = args.output or (
+        runtime_directories().state / "inventory" / f"phase0-{timestamp}.json"
+    )
+    output = output.expanduser()
+    if not output.is_absolute():
+        output = runtime_directories().state / output
     write_inventory(inventory, output)
 
     summary = inventory["summary"]

@@ -4,12 +4,14 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from vlog_capture.domain.audit import AuditState
 from vlog_capture.infrastructure.audit_v2 import StrictRunAuditor
 from vlog_capture.infrastructure.strict_sync import StrictSupabaseSync
+from vlog_capture.portability import runtime_directories
 
 
 def cmd_sync(args: argparse.Namespace) -> None:
@@ -23,11 +25,12 @@ def cmd_novel(args: argparse.Namespace) -> None:
     from vlog_capture.infrastructure.settings import settings
     from vlog_capture.use_cases.build_novel import BuildNovelUseCase
 
-    graph_storage = GraphStorage(Path("data/graph.jsonl"))
-    BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage).execute(args.date)
+    target_date = args.date or datetime.now().strftime("%Y%m%d")
+    graph_storage = GraphStorage(runtime_directories().cache / "graph" / "graph.jsonl")
+    BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage).execute(target_date)
     artifacts = [
-        Path(settings.novel_out_dir) / f"{args.date}.md",
-        Path(settings.photo_dir) / f"{args.date}.png",
+        Path(settings.novel_out_dir) / f"{target_date}.md",
+        Path(settings.photo_dir) / f"{target_date}.png",
     ]
     missing = [str(path) for path in artifacts if not _nonempty(path)]
     if missing:

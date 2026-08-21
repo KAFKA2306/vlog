@@ -1,37 +1,27 @@
-import os
-import sys
-from pathlib import Path
-
 import google.generativeai as genai
-from dotenv import load_dotenv
-
-# Add project root to path
-sys.path.append(os.getcwd())
-
 from vlog_capture.infrastructure.settings import settings
+from vlog_capture.portability import runtime_directories
 
 
-def analyze_overall():
-    load_dotenv()
-
+def analyze_overall() -> None:
     if not settings.gemini_api_key:
-        print("Error: GOOGLE_API_KEY not found.")
-        return
+        raise RuntimeError("VLOG_GEMINI_API_KEY is required for MBTI analysis")
 
     genai.configure(api_key=settings.gemini_api_key)
     model = genai.GenerativeModel(settings.gemini_model)
 
-    summaries_dir = Path("data/summaries")
-    output_file = Path("data/mbti_overall_analysis.txt")
+    directories = runtime_directories()
+    summaries_dir = settings.summary_dir
+    output_file = directories.data / "mbti" / "overall_analysis.txt"
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # Read all summary files
-    files = sorted(list(summaries_dir.glob("*.txt")))
+    files = sorted(summaries_dir.glob("*.txt"))
     print(f"Found {len(files)} summary files.")
 
     all_text = ""
-    for f in files:
-        content = f.read_text(encoding="utf-8")
-        all_text += f"\n--- File: {f.name} ---\n{content}\n"
+    for summary in files:
+        content = summary.read_text(encoding="utf-8")
+        all_text += f"\n--- File: {summary.name} ---\n{content}\n"
 
     prompt = f"""
 以下の全ての文章（日記・要約）だけから、
@@ -47,7 +37,6 @@ def analyze_overall():
 
     response = model.generate_content(prompt)
     result = response.text.strip()
-
     output_file.write_text(result, encoding="utf-8")
     print(f"Saved strict overall analysis to {output_file}")
 
