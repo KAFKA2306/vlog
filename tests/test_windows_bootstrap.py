@@ -8,13 +8,11 @@ def _read(name: str) -> str:
     return (WINDOWS_DIR / name).read_text(encoding="utf-8")
 
 
-def test_root_launchers_delegate_to_windows_implementation() -> None:
-    assert (ROOT / "run.bat").read_text(encoding="utf-8") == (
-        '@echo off\ncall "%~dp0infra\\windows\\run.bat" %*\nexit /b %ERRORLEVEL%\n'
-    )
-    assert (ROOT / "bootstrap.bat").read_text(encoding="utf-8") == (
-        '@echo off\ncall "%~dp0infra\\windows\\bootstrap.bat" %*\nexit /b %ERRORLEVEL%\n'
-    )
+def test_windows_launchers_are_canonical_under_infra() -> None:
+    assert not (ROOT / "run.bat").exists()
+    assert not (ROOT / "bootstrap.bat").exists()
+    assert (WINDOWS_DIR / "run.bat").is_file()
+    assert (WINDOWS_DIR / "bootstrap.bat").is_file()
 
 
 def test_windows_launcher_requires_native_checkout_and_restores_directory() -> None:
