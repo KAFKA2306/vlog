@@ -40,6 +40,10 @@ const makePagedFetch = (rows: Row[]) => async (input: string | URL | Request) =>
   const url = input instanceof URL ? input : new URL(typeof input === 'string' ? input : input.url)
   const offset = Number(url.searchParams.get('offset') ?? '0')
   const limit = Number(url.searchParams.get('limit') ?? '250')
+  const selectedFields = url.searchParams.get('select') ?? ''
+  expect(selectedFields).toBe('id,date,title,content,image_url,is_public')
+  expect(selectedFields.toLowerCase()).not.toContain('path')
+  expect(selectedFields.toLowerCase()).not.toContain('object_uri')
   expect(url.searchParams.get('is_public')).toBe('eq.true')
   expect(url.searchParams.get('date')).toBe(`gte.${PUBLICATION_START_DATE}`)
   expect(url.searchParams.get('order')).toBe('date.desc,id.asc')

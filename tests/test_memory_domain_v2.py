@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import sys
+from dataclasses import asdict, fields
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import PurePosixPath, PureWindowsPath
 from uuid import uuid4
 
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "packages" / "memory-domain" / "src"))
-
-from vlog_memory_domain import (  # noqa: E402
+from vlog_memory_domain import (
     EvidenceRef,
     IngestionRun,
     IngestionStatus,
@@ -68,13 +64,70 @@ def test_private_source_requires_private_object_uri() -> None:
         )
 
 
-def test_ingestion_idempotency_key_includes_pipeline_version() -> None:
+@pytest.mark.parametrize(
+    "local_locator",
+    [
+        r"C:\\Users\\kafka\\VLog\\recordings\\session.flac",
+        "/home/kafka/vlog/recordings/session.flac",
+        "file:///home/kafka/vlog/recordings/session.flac",
+    ],
+)
+def test_source_object_rejects_machine_local_locator(local_locator: str) -> None:
+    with pytest.raises(ValueError, match="machine-local"):
+        SourceObject(
+            kind=SourceKind.AUDIO,
+            object_uri=local_locator,
+            sha256="a" * 64,
+            size_bytes=123,
+            recorded_at=datetime.now(timezone.utc),
+            privacy=PrivacyLevel.PUBLIC,
+        )
+
+
+def test_evidence_identity_survives_windows_and_wsl_materialization_paths() -> None:
+    source_id = str(uuid4())
+    recorded_at = datetime.now(timezone.utc)
+    canonical = {
+        "kind": SourceKind.AUDIO,
+        "object_uri": "private://evidence/sha256/" + "a" * 64,
+        "sha256": "a" * 64,
+        "size_bytes": 4096,
+        "recorded_at": recorded_at,
+        "privacy": PrivacyLevel.PRIVATE,
+        "id": source_id,
+    }
+
+    windows_materialization = PureWindowsPath(r"D:\\VLogData\\recordings\\session.flac")
+    wsl_materialization = PurePosixPath(
+        "/home/kafka/.local/share/VLog/recordings/session.flac"
+    )
+    assert windows_materialization != wsl_materialization
+
+    windows_view = SourceObject(**canonical)
+    wsl_view = SourceObject(**canonical)
+    assert windows_view == wsl_view
+    assert windows_view.id == source_id
+    assert windows_view.sha256 == "a" * 64
+    assert all("path" not in item.name.lower() for item in fields(SourceObject))
+    assert all("path" not in key.lower() for key in asdict(windows_view))
+
+
+def test_ingestion_requires_sha256_and_pipeline_version() -> None:
+    digest = "b" * 64
     run = IngestionRun(
-        source_hash="abc123",
+        source_hash=digest,
         pipeline_version="memory-v2.0.1",
         status=IngestionStatus.SUCCEEDED,
         started_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
     )
 
-    assert run.idempotency_key == "abc123:memory-v2.0.1"
+    assert run.idempotency_key == f"{digest}:memory-v2.0.1"
+
+    with pytest.raises(ValueError, match="64-character"):
+        IngestionRun(
+            source_hash="abc123",
+            pipeline_version="memory-v2.0.1",
+            status=IngestionStatus.PENDING,
+            started_at=datetime.now(timezone.utc),
+        )
