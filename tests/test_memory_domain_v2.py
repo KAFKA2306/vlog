@@ -97,9 +97,7 @@ def test_evidence_identity_survives_windows_and_wsl_materialization_paths() -> N
         "id": source_id,
     }
 
-    windows_materialization = PureWindowsPath(
-        r"D:\\VLogData\\recordings\\session.flac"
-    )
+    windows_materialization = PureWindowsPath(r"D:\\VLogData\\recordings\\session.flac")
     wsl_materialization = PurePosixPath(
         "/home/kafka/.local/share/VLog/recordings/session.flac"
     )
