@@ -6,21 +6,21 @@
 
 Repository validationとenvironment validationは別です。
 
-- `task systemd:verify`: rendered user-unit syntaxのrepository-level verification
-- `task web:build`: Readerのtypecheck / lint / build
-- actual host checks: systemd、Windows Task Scheduler、audio、GPU、Supabase、Vercel、object storage、credential
+```bash
+task verify
+```
 
-Operational cutoverを完了扱いする前に、対象environmentの実測evidenceを残します。
+このgateはrepository-levelのtest、boundary、systemd template、Reader buildをまとめます。actual hostのsystemd、Windows Task Scheduler、audio、GPU、Supabase、Vercel、object storage、credentialは対象environmentで別途検証します。
 
 ## Supervision
 
 - Linux / WSL: `infra/systemd/`
 - Windows host: `infra/windows/`
-- runtime observability: `vlog-operations` console entry point
+- runtime diagnosis: `vlog-operations`
 
 Runtime state directoryは`vlog_capture.portability.runtime_directories()`が解決します。runbookへmachine-specific absolute pathを固定しません。
 
-## Linux / WSL install and verification
+## Linux / WSL
 
 ```bash
 git pull --ff-only
@@ -31,7 +31,7 @@ systemctl --user list-timers vlog-daily.timer --all --no-pager
 journalctl --user -u vlog.service -u vlog-daily.service --since "24 hours ago"
 ```
 
-Template renderや`systemd-analyze --user verify`だけでは、production user manager、timer、audio、GPU、credentialの動作を証明しません。
+Template verificationだけではproduction user manager、timer、audio、GPU、credentialの動作を証明しません。
 
 ## Windows watchdog
 
@@ -39,31 +39,20 @@ Template renderや`systemd-analyze --user verify`だけでは、production user 
 powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1
 ```
 
-Actual Windows hostで次を確認します。
-
-- scheduled taskが存在しenabledである;
-- WSL / launcherが意図どおり起動する;
-- stale stateをwatchdogが検出し、対象serviceを回復できる;
-- real VRChat sessionからnon-empty recordingが生成される;
-- logがfailure contextを残し、secretやprivate Evidenceを露出しない。
+Actual Windows hostでscheduled task、WSL/launcher、watchdog recovery、real recording、failure evidenceを確認します。
 
 ## Routine diagnosis
 
 ```bash
-task status
-task service:status
-task log:status
-uv run --frozen vlog-operations doctor --root "$(pwd)"
-uv run --frozen vlog-operations report --days 30
+task ops:doctor
+task ops:report
 ```
 
-`task status`はplatform-specific taskを利用します。host layerが存在しない場合は対応するcomponent commandを使います。
+詳細なLinux host stateが必要な場合だけ`systemctl` / `journalctl`を直接使います。
 
 ## Incident identity and recovery
 
-Incidentは`fingerprint + resource_id`で追跡します。generic success eventはfailureを解決しません。Recoveryは対象failureを明示的に参照するrecovery eventとして記録します。
-
-Manual verification後の例:
+Incidentは`fingerprint + resource_id`で追跡します。generic success eventはfailureを解決しません。Manual verification後は対応するfailureを明示してrecoveryを記録します。
 
 ```bash
 uv run --frozen vlog-operations recover-latest \
@@ -78,35 +67,13 @@ uv run --frozen vlog-operations recover-latest \
 
 ## Recording checks
 
-Actual capture hostで少なくとも次を確認します。
-
-- input stream startup / permission / device selection;
-- non-empty sample flowとrecording growth;
-- recorder-thread failure / timeout;
-- VRChat session processing;
-- downstream transcription / generation / sync;
-- failure時のstructured evidenceとrecovery。
-
-Static testsだけではphysical audio deviceやreal VRChat processを確認できません。
+Actual capture hostでinput stream、non-empty sample flow、recording growth、VRChat session processing、downstream processing、failure/recovery evidenceを確認します。Static testsだけでphysical audio deviceやreal VRChat processを確認したことにはしません。
 
 ## Event durability and privacy
 
 Structured eventのformat、rotation、sanitization、durability policyの正準はimplementationです。Current implementationは`apps/capture-vrchat/src/vlog_capture/infrastructure/observability.py`と`apps/capture-vrchat/src/vlog_capture/operations.py`を参照してください。
 
 Detailed log、private path、credential、raw EvidenceをDiscordやpublic Readerへ転記しません。
-
-## Verification gate
-
-Repository changeでは変更boundaryに応じて次を実行します。
-
-```bash
-task test
-task doc:check
-task systemd:verify
-task web:build
-```
-
-Environment changeでは、さらにaffected systemのactual evidenceが必要です。
 
 ## Related documents
 

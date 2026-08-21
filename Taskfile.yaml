@@ -3,462 +3,184 @@ version: "3.52.0"
 env:
   UV: "uv"
   BUN: "bun"
-  BUNX: "bunx"
 
 vars:
   VLOG_DATA_HOME:
     sh: $UV run --frozen python -c "from vlog_capture.portability import runtime_directories; print(runtime_directories().data)"
-  VLOG_STATE_HOME:
-    sh: $UV run --frozen python -c "from vlog_capture.portability import runtime_directories; print(runtime_directories().state)"
 
 tasks:
-  # ────────────────────────────────────────
-  # ヘルプ
-  # ────────────────────────────────────────
   default:
-    desc: クイックガイド
-    cmds:
-      - |
-        cat <<'EOF'
-        ■ セットアップ（初回のみ）
-          task setup
+    desc: 利用可能なtaskを表示
+    cmd: task --list
 
-        ■ 開発・実行
-          task dev                      ローカル実行
-          task up                       systemd起動
-          task down                     systemd停止
-          task restart                  systemd再起動
-          task status                   全体状態確認
-          task logs                     ログ追尾
-
-        ■ 録音・処理（メイン機能）
-          task record                   手動録音
-          task process FILE=録音.wav    1ファイル処理
-          task process:all              全録音を一括処理
-
-        ■ 小説生成
-          task novel:build              今日の要約から章を生成
-          task novel:build date=YYYYMMDD 指定日の章を生成
-          task photo novel="$VLOG_DATA_HOME/novels/YYYYMMDD.md" 小説から画像生成
-          task photos:all               全小説から画像を一括生成
-
-        ■ Windows 起動
-          ダブルクリック: run.bat
-        ■ 初回セットアップ（管理者権限で実行）
-          bootstrap.bat
-
-        ■ データ同期
-          task sync                     Supabase同期
-          task sync:full                全件強制同期
-
-        ■ Web UI
-          task web:dev                  開発サーバー
-          task web:build                本番ビルド
-          task web:deploy               Vercelデプロイ
-
-        ■ メンテナンス
-          task lint                     コード品質チェック
-          task clean                    キャッシュ削除
-          task commit MESSAGE="..."     Git commit
-          task vault:sync               Prompt Vault から Kafka 設定を同期
-
-        ■ デバッグ用
-          task service:status           systemd状態のみ
-          task log:status               ログ解析のみ
-          task transcribe FILE=...      文字起こしのみ
-          task summarize FILE=...       要約のみ
-        EOF
-
-  # ────────────────────────────────────────
-  # セットアップ
-  # ────────────────────────────────────────
   setup:
-    desc: 依存同期
+    desc: Python依存を同期
     cmd: $UV sync --locked --extra gpu
 
-  lock:
-    desc: Python依存ロック更新
-    cmd: $UV lock
-
-  # ────────────────────────────────────────
-  # 開発・実行
-  # ────────────────────────────────────────
   dev:
-    desc: アプリ実行
+    desc: capture serviceをforeground実行
     cmd: $UV run --frozen vlog-service
 
-  up:
-    desc: portable systemdユニットを描画して起動
-    cmd: bash infra/systemd/install.sh
-
-  systemd:install:
-    desc: systemdユニットを再リンクして反映
-    cmd: bash infra/systemd/install.sh
-  down:
-    desc: systemd日次タイマー停止
-    cmds:
-      - systemctl --user disable --now vlog.service vlog-daily.timer
-
-  restart:
-    desc: systemd日次タイマー再起動
-    cmd: systemctl --user restart vlog-daily.timer
-
-  status:
-    desc: 現在platformのVLog supervisor状態確認
-    cmds:
-      - task: status:windows
-      - task: status:linux
-
-  status:windows:
-    desc: Windows Task Scheduler状態
-    platforms: [windows]
-    cmd: powershell.exe -NoProfile -Command "Get-ScheduledTask -TaskName VlogAutoDiary | Select-Object TaskName,State | Format-Table -AutoSize"
-
-  status:linux:
-    desc: systemd・日次タイマー・ログ状態
-    platforms: [linux]
-    cmds:
-      - systemctl --user show vlog.service vlog-daily.timer -p Id -p LoadState -p ActiveState -p SubState -p UnitFileState
-      - systemctl --user list-timers vlog-daily.timer --all --no-pager
-      - journalctl --user -u vlog.service -u vlog-daily.service --no-pager -n 20
-
-  logs:
-    desc: ログ追尾（リアルタイム）
-    cmd: journalctl --user -u vlog-daily.service -f
-
-  # ────────────────────────────────────────
-  # 録音・処理
-  # ────────────────────────────────────────
   record:
-    desc: 手動録音開始
+    desc: 手動録音
     cmd: $UV run --frozen vlog record
 
   process:
-    desc: 録音→要約（単一ファイル）
-    deps: [require_file]
-    cmds: ["$UV run --frozen vlog process --file {{.FILE}} {{.EXTRA}}"]
+    desc: 1録音を処理
+    requires:
+      vars: [FILE]
+    cmd: $UV run --frozen vlog process --file "{{.FILE}}"
 
-  process:all:
-    desc: 録音→要約（全ファイル一括）
-    cmds:
-      - for f in "{{.VLOG_DATA_HOME}}"/recordings/*.wav "{{.VLOG_DATA_HOME}}"/recordings/*.flac; do [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"; done || true
-      - task sync
+  daily:
+    desc: 日次pipelineを実行
+    cmd: $UV run --frozen vlog daily
 
-  process:today:
-    desc: 今日の録音を一括処理（要約は再生成）
-    cmds:
-      - |
-        TODAY=$(date +%Y%m%d)
-        for f in "{{.VLOG_DATA_HOME}}"/recordings/${TODAY}*.wav "{{.VLOG_DATA_HOME}}"/recordings/${TODAY}*.flac; do
-          [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
-        done || true
-      - task sync
-
-  process:yesterday:
-    desc: 昨日の録音を一括処理
-    cmds:
-      - |
-        YESTERDAY=$(date -d "yesterday" +%Y%m%d)
-        for f in "{{.VLOG_DATA_HOME}}"/recordings/${YESTERDAY}*.wav "{{.VLOG_DATA_HOME}}"/recordings/${YESTERDAY}*.flac; do
-          [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
-        done || true
-      - task sync
-
-  process:daily:
-    desc: 日次処理（昨日＋今日）
-    cmds:
-      - $UV run --frozen vlog check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
-      - $UV run --frozen vlog daily
-
-  curator:eval:
-    desc: コンテンツ評価 (The Curator)
-    cmds:
-      - $UV run --frozen vlog curator eval --date {{.date}}
-
-  process:pending:
-    desc: 未処理データを検出して一括処理
+  pending:
+    desc: 未処理runtime dataを処理
     cmd: $UV run --frozen vlog pending
 
-  transcribe:all:
-    desc: 文字起こしのみ（全ファイル）
-    cmds:
-      - for f in "{{.VLOG_DATA_HOME}}"/recordings/*.wav "{{.VLOG_DATA_HOME}}"/recordings/*.flac; do [ -f "$f" ] && task transcribe FILE="$f"; done || true
-
-  # ────────────────────────────────────────
-  # データ同期
-  # ────────────────────────────────────────
   sync:
-    desc: Supabase同期
+    desc: Supabaseへ同期
     cmd: $UV run --frozen vlog sync
 
-  sync:full:
-    desc: 全件強制同期
-    cmds:
-      - touch "{{.VLOG_DATA_HOME}}"/summaries/*.txt
-      - task sync
+  transcribe:
+    desc: 1録音を文字起こし
+    requires:
+      vars: [FILE]
+    cmd: $UV run --frozen vlog transcribe --file "{{.FILE}}"
 
-  # ────────────────────────────────────────
-  # Web UI
-  # ────────────────────────────────────────
-  web:lock:
-    desc: フロントエンド依存ロック更新
-    cmd: cd apps/reader && $BUN install
+  summarize:
+    desc: transcriptを要約
+    requires:
+      vars: [FILE]
+    cmd: $UV run --frozen vlog summarize --file "{{.FILE}}"
+
+  curator:
+    desc: 日次artifactを評価
+    cmd: $UV run --frozen vlog curator eval {{if .DATE}}--date {{.DATE}}{{end}}
+
+  novel:
+    desc: 小説章を生成
+    cmd: $UV run --frozen vlog novel {{if .DATE}}--date {{.DATE}}{{end}}
+
+  photo:
+    desc: 小説から画像を生成
+    requires:
+      vars: [NOVEL]
+    cmd: $UV run --frozen vlog image-generate --novel-file "{{.NOVEL}}" --output-file "{{.VLOG_DATA_HOME}}/photos/$(basename "{{.NOVEL}}" .md).png"
+
+  manga:
+    desc: 小説から4コマ漫画を生成
+    requires:
+      vars: [NOVEL]
+    cmd: $UV run --frozen vlog manga --novel-file "{{.NOVEL}}"
 
   web:setup:
-    desc: フロントエンド依存同期
+    desc: Reader依存を同期
     cmd: cd apps/reader && $BUN install --frozen-lockfile
 
   web:dev:
-    desc: 開発サーバー
+    desc: Reader開発server
     deps: [web:setup]
     cmd: cd apps/reader && $BUN run dev -- --hostname 0.0.0.0 --port 3000
 
   web:build:
-    desc: 型・Lint・本番ビルド
+    desc: Readerを検証してbuild
     deps: [web:setup]
     cmds:
       - cd apps/reader && $BUN run typecheck
       - cd apps/reader && $BUN run lint
       - cd apps/reader && $BUN run build
 
-  web:start:
-    desc: 本番起動（ポート4000）
-    deps: [web:setup]
-    cmd: cd apps/reader && $BUN run start -- --hostname 0.0.0.0 --port 4000
-
   web:deploy:
-    desc: clean mainをGit provenance付きでKafLog productionへdeploy
+    desc: clean mainをproductionへdeploy
     deps: [web:build]
     cmd: $UV run --frozen python scripts/deploy_reader.py
 
   web:env:
-    desc: process environmentからReader開発envを生成
+    desc: Reader開発envを生成
     cmd: $UV run --frozen python scripts/write_reader_env.py
 
-  # ────────────────────────────────────────
-  # メンテナンス
-  # ────────────────────────────────────────
   lint:
-    desc: コード品質チェック
-    cmds: ["$UV run --frozen ruff check apps/capture-vrchat/src packages scripts tests infra/systemd && $UV run --frozen ruff format apps/capture-vrchat/src packages scripts tests infra/systemd"]
-
-  test:
-    desc: テスト実行
-    cmd: $UV run --frozen pytest tests
-
-  systemd:verify:
-    desc: systemdテンプレートを一時描画して検証
-    cmd: |
-      TMP_DIR=$(mktemp -d)
-      trap 'rm -rf "$TMP_DIR"' EXIT
-      $UV run --frozen python infra/systemd/render.py --root "{{.ROOT_DIR}}" --output "$TMP_DIR"
-      systemd-analyze --user verify "$TMP_DIR"/vlog.service "$TMP_DIR"/vlog-monitor-failure.service "$TMP_DIR"/vlog-daily.service "$TMP_DIR"/vlog-daily-failure.service "$TMP_DIR"/vlog-daily.timer
-
-  notify:daily-failure:
-    desc: 日次処理失敗通知
+    desc: Python lint/formatをread-only検証
     cmds:
-      - $UV run --frozen vlog error record --stage scheduler --kind daily_pipeline_failed --task-name daily_pipeline --reason "vlog-daily.service failed"
-      - $UV run --frozen vlog notify --message "❌ 日次処理が失敗しました（$(date '+%Y-%m-%d %H:%M:%S')）"
+      - $UV run --frozen ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - $UV run --frozen ruff format --check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
 
-  log:errors:
-    desc: 構造化エラーログを表示
-    vars:
-      DAYS: '{{.DAYS | default "30"}}'
-    cmd: $UV run --frozen vlog error report --days {{.DAYS}}
+  format:
+    desc: Python lint/formatを修正
+    cmds:
+      - $UV run --frozen ruff check --fix apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - $UV run --frozen ruff format apps/capture-vrchat/src packages adapters scripts tests infra/systemd
 
   typecheck:
     desc: Python型検査
     cmd: $UV run --frozen ty check apps/capture-vrchat/src packages tests infra/systemd
 
-  clean:
-    desc: キャッシュ削除
-    cmds:
-      [
-        "rm -rf __pycache__ .ruff_cache && find . -type d -name __pycache__ -exec rm -rf {} + || true",
-      ]
-
-  commit:
-    desc: Git commit
-    cmds: ["git add . && git commit -am '{{.MESSAGE}}'"]
-
-  # ────────────────────────────────────────
-  # Prompt Vault 連携
-  # ────────────────────────────────────────
-  vault:sync:
-    desc: Prompt Vault から Kafka の最新アイデンティティを同期
-    cmd: $UV run --frozen python scripts/sync_vault_prompts.py
-
-  # ────────────────────────────────────────
-  # 自律的メンテナンス (VAMS)
-  # ────────────────────────────────────────
-  maintenance:
-    desc: システム自律クリーンアップ・整合性チェック
-    cmds:
-      - task lint
-      - task doc:check
-      - echo "Maintenance complete. Check for any suggested refactors or ADR updates."
+  test:
+    desc: Python test
+    cmd: $UV run --frozen pytest -q
 
   doc:check:
-    desc: リポジトリ境界とportable Markdownリンクを検証
+    desc: repository/Markdown境界を検証
     cmd: $UV run --no-sync python scripts/check_repository_boundaries.py
 
+  systemd:install:
+    desc: portable systemd unitsをinstall
+    cmd: bash infra/systemd/install.sh
+
+  systemd:verify:
+    desc: systemd templatesを一時描画して検証
+    cmd: |
+      TMP_DIR=$(mktemp -d)
+      trap 'rm -rf "$TMP_DIR"' EXIT
+      $UV run --frozen python infra/systemd/render.py --root "{{.ROOT_DIR}}" --output "$TMP_DIR"
+      systemd-analyze --user verify "$TMP_DIR"/*.service "$TMP_DIR"/*.timer
+
+  ops:doctor:
+    desc: runtime configurationを診断
+    cmd: $UV run --frozen vlog-operations doctor --root "{{.ROOT_DIR}}"
+
+  ops:report:
+    desc: runtime operational report
+    vars:
+      DAYS: '{{.DAYS | default "30"}}'
+    cmd: $UV run --frozen vlog-operations report --days {{.DAYS}}
+
   audit:
-    desc: 厳格な証拠監査を実行
-    cmds:
-      - $UV run --frozen vlog audit --strict --recent 100 --trace-window-minutes 30
+    desc: 厳格な証拠監査
+    cmd: $UV run --frozen vlog audit --strict --recent 100 --trace-window-minutes 30
 
   audit:publication:
-    desc: 直近3か月の公開品質を監査
+    desc: 公開品質を監査
     vars:
       DAYS: '{{.DAYS | default "92"}}'
     cmd: $UV run --frozen python -m vlog_capture.scripts.audit_publication --days {{.DAYS}}
 
-  # ────────────────────────────────────────
-  # Graph Scribe (シンプルグラフ)
-  # ────────────────────────────────────────
-  graph:ingest:
-    desc: 全要約からグラフデータを抽出
-    cmd: $UV run --frozen vlog pending
-    # cmd_pending がグラフ抽出を含むようになったため、pending を呼ぶだけでOK
-    # 明示的に呼びたい場合は専用のCLIコマンドを作るが、今はpendingに統合。
-
-  # ────────────────────────────────────────
-  # Cognee ナレッジグラフ
-  # ────────────────────────────────────────
-  cognee:init:
-    desc: Cognee キュー初期化
-    cmd: $UV run --frozen python scripts/init_cognee_queue.py
+  vault:sync:
+    desc: Prompt Vaultから設定を同期
+    cmd: $UV run --frozen python scripts/sync_vault_prompts.py
 
   cognee:ingest:
-    desc: Cognee キューから次のバッチを処理
+    desc: Cognee projectionの次batchを処理
     env:
       COGNEE_SKIP_CONNECTION_TEST: "true"
     cmd: $UV run --extra cognee python scripts/ingest_to_cognee.py
 
   cognee:status:
-    desc: Cognee キュー状況表示
-    cmd: |
-      $UV run --frozen python scripts/cognee_status.py
+    desc: Cognee projection queueを表示
+    cmd: $UV run --frozen python scripts/cognee_status.py
 
-  # ────────────────────────────────────────
-  # デバッグ用
-  # ────────────────────────────────────────
-  service:status:
-    desc: systemd日次タイマー状態のみ
-    cmd: systemctl --user status vlog-daily.timer vlog-daily.service
-
-  transcribe:
-    desc: 文字起こしのみ
-    deps: [require_file]
-    cmds: ["$UV run --frozen vlog transcribe --file {{.FILE}}"]
-
-  summarize:
-    desc: 要約のみ
-    deps: [require_file]
-    cmds: ["$UV run --frozen vlog summarize --file {{.FILE}}"]
-
-  # ────────────────────────────────────────
-  # 小説生成
-  # ────────────────────────────────────────
-  novel:build:
-    desc: 小説の章を生成
-    cmds:
-      - $UV run --frozen vlog novel {{if .date}}--date {{.date}}{{end}}
-
-  photo:
-    desc: 小説から画像を生成
-    cmds:
-      - $UV run --frozen vlog image-generate --novel-file {{.novel}} --output-file "{{.VLOG_DATA_HOME}}/photos/$(basename {{.novel}} .md).png"
-    preconditions:
-      - sh: test -n "{{.novel}}"
-        msg: novel=<runtime-data>/novels/YYYYMMDD.mdを指定してください
-
-  photos:
-    desc: 全小説から画像を一括生成
-    cmds:
-      - for f in "{{.VLOG_DATA_HOME}}"/novels/*.md; do [ -f "$f" ] && task photo novel="$f"; done || true
-
-  manga:
-    desc: 小説から4コマ漫画を生成
-    cmds:
-      - $UV run --frozen vlog manga --novel-file {{.novel}}
-    preconditions:
-      - sh: test -n "{{.novel}}"
-        msg: novel=<runtime-data>/novels/YYYYMMDD.mdを指定してください
-
-  mangas:
-    desc: 全小説から4コマ漫画を一括生成
-    cmds:
-      - for f in "{{.VLOG_DATA_HOME}}"/novels/*.md; do [ -f "$f" ] && task manga novel="$f"; done || true
-
-  # ────────────────────────────────────────
-  # 内部ヘルパー
-  # ────────────────────────────────────────
-  require_file:
-    internal: true
-    preconditions:
-      - sh: test -n "{{.FILE}}"
-        msg: FILEを指定してください
-
-  # ────────────────────────────────────────
-  # Serena MCP
-  # ────────────────────────────────────────
-  serena:onboarding:
-    desc: Serenaプロジェクトの初期化（インデックス作成）
-    cmds:
-      - serena project index
-
-  serena:start:
-    desc: Serena MCPサーバーの起動
-    cmds:
-      - serena start-mcp-server
-
-  # ────────────────────────────────────────
-  # ロギング・モニタリング
-  # ────────────────────────────────────────
-  monitor:daily:
-    desc: 日次処理の実行結果を確認
-    cmds:
-      - echo "■ 最新実行ログ"
-      - test -f "{{.VLOG_STATE_HOME}}/logs/vlog-daily.log" && tail -20 "{{.VLOG_STATE_HOME}}/logs/vlog-daily.log" || echo "No log file yet"
-      - echo ""
-      - echo "■ systemd タイマー状態"
-      - systemctl --user list-timers vlog-daily.timer
-      - echo ""
-      - echo "■ 直近 24 時間のサービス実行記録"
-      - journalctl --user -u vlog-daily.service --since "24 hours ago" -o short
-
-  log:daily:
-    desc: vlog-daily.service のジャーナルログを表示
-    cmds:
-      - journalctl --user -u vlog-daily.service --no-pager
-
-  log:clear:
-    desc: vlog-daily.log をクリア（新しい週の開始時）
-    cmds:
-      - rm -f "{{.VLOG_STATE_HOME}}/logs/vlog-daily.log" && echo "✅ Log cleared"
-
-  health:check:
-    desc: システムヘルスチェック
-    cmds:
-      - |
-        echo "■ Timer Status"
-        systemctl --user is-active vlog-daily.timer && echo "✅ Timer: ACTIVE" || echo "❌ Timer: INACTIVE"
-        echo ""
-        echo "■ Latest Run Result"
-        LATEST=$(journalctl --user -u vlog-daily.service -n 1 --output=short)
-        echo "$LATEST" | grep -q "started\|completed" && echo "✅ Last run appears successful" || echo "❌ Last run may have failed"
-        echo "$LATEST"
-        echo ""
-        echo "■ Supabase Sync Status"
-        task sync &>/dev/null && echo "✅ Supabase: ACCESSIBLE" || echo "⚠️  Supabase: PAUSED or UNREACHABLE"
-        echo ""
-        echo "■ Persona Distillation"
-        test -d "{{.VLOG_DATA_HOME}}/skills/vlog_user" && echo "✅ vlog_user skill: EXISTS" || echo "❌ vlog_user skill: NOT FOUND"
-
-  # ────────────────────────────────────────
-  # dot-skill 連携
-  # ────────────────────────────────────────
-  dot-skill:distill:
-    desc: 要約データからユーザーペルソナを蒸留
+  persona:distill:
+    desc: runtime summariesからpersona skillを生成
     cmd: $UV run --frozen python scripts/distill_user_persona.py
+
+  verify:
+    desc: repository-level full verification
+    cmds:
+      - task lint
+      - task typecheck
+      - task test
+      - task doc:check
+      - task systemd:verify
+      - task web:build

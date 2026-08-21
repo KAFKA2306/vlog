@@ -75,7 +75,7 @@ capture runtimeは`apps/capture-vrchat/`、Readerは`apps/reader/`にありま�
 ```bash
 git clone https://github.com/KAFKA2306/vlog.git
 cd vlog
-uv sync --locked
+task setup
 cp .env.example .env
 ```
 
@@ -84,14 +84,13 @@ cp .env.example .env
 ## Common commands
 
 ```bash
+task
 task dev
-task test
-task doc:check
-task systemd:verify
-task web:build
+task daily
+task verify
 ```
 
-完全なcommand inventoryと実装は[`Taskfile.yaml`](Taskfile.yaml)を正準とします。READMEへtask一覧を複製しません。
+`vlog`はcapture/domain操作、`vlog-operations`は運用診断、`task`はrepository orchestrationの入口です。完全なtask inventoryは[`Taskfile.yaml`](Taskfile.yaml)を正準とし、READMEへ複製しません。
 
 ## Verification boundary
 

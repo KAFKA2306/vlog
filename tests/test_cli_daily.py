@@ -69,7 +69,6 @@ def test_cmd_daily_runs_recording_flow_when_resources_are_idle(monkeypatch):
 def test_run_daily_postprocessing_runs_all_steps(monkeypatch):
     calls: list[str] = []
 
-    monkeypatch.setattr(cli_handlers, "_run_cognee_init", lambda: calls.append("init"))
     monkeypatch.setattr(
         cli_handlers, "_run_cognee_ingest", lambda: calls.append("ingest")
     )
@@ -85,4 +84,4 @@ def test_run_daily_postprocessing_runs_all_steps(monkeypatch):
 
     cli_handlers._run_daily_postprocessing()
 
-    assert calls == ["init", "ingest", "sync", "notify"]
+    assert calls == ["ingest", "sync", "notify"]
