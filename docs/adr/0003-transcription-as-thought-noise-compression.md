@@ -1,15 +1,3 @@
----
-codd:
-  node_id: "req:adr-0003"
-  type: adr
-  status: approved
-  links:
-    - to: apps/capture-vrchat/src/use_cases/process_recording.py
-      type: implementation
-    - evidence: "Compression Trace: raw (1264b) -> cleaned (1118b) [removed filler 'うん']"
-      type: verification
----
-
 # ADR 3: 思考ノイズ圧縮としての文字起こし設計
 
 ## Audit note (2026-08-04)

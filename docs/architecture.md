@@ -1,15 +1,3 @@
----
-codd:
-  node_id: "req:architecture"
-  type: spec
-  status: approved
-  links:
-    - to: apps/capture-vrchat/src/vlog_capture/main.py
-      type: implementation
-    - to: apps/capture-vrchat/src/vlog_capture/app.py
-      type: implementation
----
-
 # Current runtime architecture
 
 この文書は現在実行可能なlegacy-compatible runtimeを記述します。製品不変条件とverification contractは[`SPEC.md`](SPEC.md)、Human Memory v2のtarget persistenceは[`architecture/human-memory-v2.md`](architecture/human-memory-v2.md)を正準とします。

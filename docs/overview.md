@@ -1,17 +1,3 @@
----
-codd:
-  node_id: "req:overview"
-  type: spec
-  status: approved
-  links:
-    - to: docs/SPEC.md
-      type: specification
-    - to: apps/capture-vrchat/src/vlog_capture/main.py
-      type: implementation
-    - to: docs/architecture/human-memory-v2.md
-      type: architecture
----
-
 # VLog overview
 
 この文書はVLogを短く理解するためのorientationです。製品仕様や現在進捗を重複して保持しません。

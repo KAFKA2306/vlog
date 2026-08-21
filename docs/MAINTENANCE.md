@@ -1,13 +1,3 @@
----
-codd:
-  node_id: "req:maintenance"
-  type: spec
-  status: approved
-  links:
-    - to: Taskfile.yaml
-      type: implementation
----
-
 # VLog maintenance manual
 
 Repeatableなrepository / infrastructure maintenanceだけを扱います。point-in-time service statusやmigration進捗はGitHub Issue / PRへ置きます。

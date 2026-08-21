@@ -1,13 +1,3 @@
----
-codd:
-  node_id: "req:image-generation"
-  type: spec
-  status: approved
-  links:
-    - to: apps/capture-vrchat/src/infrastructure/ai.py
-      type: implementation
----
-
 # Illustration generation boundary
 
 Status: current legacy-compatible runtime; generated output is a rebuildable narrative artifact

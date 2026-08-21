@@ -53,6 +53,8 @@ RAW_MEDIA_SUFFIXES = {
     ".mkv",
 }
 LEGACY_PATHS = (
+    ".codd",
+    ".codd_version",
     "src",
     "frontend",
     "windows",
@@ -79,6 +81,9 @@ NON_PORTABLE_TEXT = (
 )
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 H1 = re.compile(r"^#\s+\S", re.MULTILINE)
+CODD_FRONTMATTER = re.compile(
+    r"\A---\s*\n.*?^codd:\s*$.*?^---\s*$", re.MULTILINE | re.DOTALL
+)
 MAX_GIT_FILE_BYTES = 100 * 1024 * 1024
 MAX_AGENT_MARKDOWN_LINES = 180
 
@@ -141,6 +146,14 @@ def check_markdown(root: Path, tracked: list[str]) -> list[Violation]:
                     "retained Markdown requires an H1 heading",
                 )
             )
+        if CODD_FRONTMATTER.search(text):
+            violations.append(
+                Violation(
+                    "retired-codd-metadata",
+                    relative,
+                    "CoDD front matter must remain removed",
+                )
+            )
         for pattern in NON_PORTABLE_TEXT:
             match = pattern.search(text)
             if match:
@@ -184,6 +197,14 @@ def check(root: Path) -> list[Violation]:
             violations.append(
                 Violation("legacy-boundary", legacy, "legacy path must remain removed")
             )
+    if "codd-dev" in (root / "pyproject.toml").read_text(encoding="utf-8"):
+        violations.append(
+            Violation(
+                "retired-codd-dependency",
+                "pyproject.toml",
+                "CoDD is not part of the repository verification toolchain",
+            )
+        )
     for required in REQUIRED_PATHS:
         if not (root / required).exists():
             violations.append(
