@@ -4,13 +4,9 @@ env:
   UV: "uv"
   BUN: "bun"
 
-vars:
-  VLOG_DATA_HOME:
-    sh: $UV run --frozen python -c "from vlog_capture.portability import runtime_directories; print(runtime_directories().data)"
-
 tasks:
   default:
-    desc: 利用可能なtaskを表示
+    desc: 利用可能なrepository taskを表示
     cmd: task --list
 
   setup:
@@ -20,60 +16,6 @@ tasks:
   dev:
     desc: capture serviceをforeground実行
     cmd: $UV run --frozen vlog-service
-
-  record:
-    desc: 手動録音
-    cmd: $UV run --frozen vlog record
-
-  process:
-    desc: 1録音を処理
-    requires:
-      vars: [FILE]
-    cmd: $UV run --frozen vlog process --file "{{.FILE}}"
-
-  daily:
-    desc: 日次pipelineを実行
-    cmd: $UV run --frozen vlog daily
-
-  pending:
-    desc: 未処理runtime dataを処理
-    cmd: $UV run --frozen vlog pending
-
-  sync:
-    desc: Supabaseへ同期
-    cmd: $UV run --frozen vlog sync
-
-  transcribe:
-    desc: 1録音を文字起こし
-    requires:
-      vars: [FILE]
-    cmd: $UV run --frozen vlog transcribe --file "{{.FILE}}"
-
-  summarize:
-    desc: transcriptを要約
-    requires:
-      vars: [FILE]
-    cmd: $UV run --frozen vlog summarize --file "{{.FILE}}"
-
-  curator:
-    desc: 日次artifactを評価
-    cmd: $UV run --frozen vlog curator eval {{if .DATE}}--date {{.DATE}}{{end}}
-
-  novel:
-    desc: 小説章を生成
-    cmd: $UV run --frozen vlog novel {{if .DATE}}--date {{.DATE}}{{end}}
-
-  photo:
-    desc: 小説から画像を生成
-    requires:
-      vars: [NOVEL]
-    cmd: $UV run --frozen vlog image-generate --novel-file "{{.NOVEL}}" --output-file "{{.VLOG_DATA_HOME}}/photos/$(basename "{{.NOVEL}}" .md).png"
-
-  manga:
-    desc: 小説から4コマ漫画を生成
-    requires:
-      vars: [NOVEL]
-    cmd: $UV run --frozen vlog manga --novel-file "{{.NOVEL}}"
 
   web:setup:
     desc: Reader依存を同期
@@ -136,20 +78,6 @@ tasks:
       trap 'rm -rf "$TMP_DIR"' EXIT
       $UV run --frozen python infra/systemd/render.py --root "{{.ROOT_DIR}}" --output "$TMP_DIR"
       systemd-analyze --user verify "$TMP_DIR"/*.service "$TMP_DIR"/*.timer
-
-  ops:doctor:
-    desc: runtime configurationを診断
-    cmd: $UV run --frozen vlog-operations doctor --root "{{.ROOT_DIR}}"
-
-  ops:report:
-    desc: runtime operational report
-    vars:
-      DAYS: '{{.DAYS | default "30"}}'
-    cmd: $UV run --frozen vlog-operations report --days {{.DAYS}}
-
-  audit:
-    desc: 厳格な証拠監査
-    cmd: $UV run --frozen vlog audit --strict --recent 100 --trace-window-minutes 30
 
   audit:publication:
     desc: 公開品質を監査
