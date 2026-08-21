@@ -1,5 +1,4 @@
 import google.generativeai as genai
-
 from vlog_capture.infrastructure.settings import settings
 from vlog_capture.portability import runtime_directories
 

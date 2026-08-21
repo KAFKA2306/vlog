@@ -26,11 +26,14 @@ from vlog_capture.infrastructure.repositories import (
     SupabaseRepository,
     TaskRepository,
 )
+from vlog_capture.infrastructure.settings import settings
 from vlog_capture.infrastructure.system import (
+    AudioRecorder,
     ProcessMonitor,
     Transcriber,
     TranscriptPreprocessor,
 )
+from vlog_capture.portability import runtime_directories
 from vlog_capture.use_cases.build_novel import BuildNovelUseCase
 from vlog_capture.use_cases.daily_artifacts import DailyArtifactManager
 from vlog_capture.use_cases.daily_workload import (
@@ -56,6 +59,26 @@ def _guard_vrc_running() -> None:
         sys.exit(0)
 
 
+def cmd_record(args: argparse.Namespace) -> None:
+    del args
+    import time
+
+    recorder = AudioRecorder()
+    path = recorder.start()
+    print(f"Recording: {path}")
+    print("Press Ctrl+C to stop.")
+    try:
+        while True:
+            time.sleep(0.25)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        files = recorder.stop() if recorder.is_recording else None
+    if files:
+        for saved in files:
+            print(f"Saved: {saved}")
+
+
 def cmd_process(args: argparse.Namespace) -> None:
     _harness_run("process", TaskWeight.HEAVY, _cmd_process_logic, args)
 
@@ -78,7 +101,7 @@ def cmd_novel(args: argparse.Namespace) -> None:
 
 
 def _cmd_novel_logic(args: argparse.Namespace) -> None:
-    graph_storage = GraphStorage(Path("data/graph.jsonl"))
+    graph_storage = GraphStorage(runtime_directories().cache / "graph" / "graph.jsonl")
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
     use_case.execute(args.date)
     SupabaseRepository().sync()
@@ -192,9 +215,9 @@ def _cmd_daily_logic(args: object) -> None:
 
 
 def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
-    summary_dir = Path("data/summaries")
-    novel_dir = Path("data/novels")
-    evaluation_dir = summary_dir.parent / "evaluations"
+    summary_dir = settings.summary_dir
+    novel_dir = settings.novel_out_dir
+    evaluation_dir = runtime_directories().data / "evaluations"
 
     summary_dates = {
         match.group(1)
@@ -221,9 +244,9 @@ def cmd_pending(args: argparse.Namespace) -> None:
 
 
 def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
-    transcript_dir = Path("data/transcripts")
-    summary_dir = Path("data/summaries")
-    recording_dir = Path("data/recordings")
+    transcript_dir = settings.transcript_dir
+    summary_dir = settings.summary_dir
+    recording_dir = settings.recording_dir
     file_repo = FileRepository()
     manager = DailyArtifactManager(DailyStateStore())
     pending_transcription = [
@@ -259,7 +282,7 @@ def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
         manager.refresh_summary(d, summarizer, file_repo, source_paths=files)
     import time
 
-    graph_storage = GraphStorage(Path("data/graph.jsonl"))
+    graph_storage = GraphStorage(runtime_directories().cache / "graph" / "graph.jsonl")
     extractor = ExtractGraphUseCase(graph_storage)
     for d in dates:
         summary_p = summary_dir / f"{d}_summary.txt"

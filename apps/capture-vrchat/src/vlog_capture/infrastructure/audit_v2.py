@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from vlog_capture.domain.audit import AuditFinding, AuditReport, AuditState
+from vlog_capture.portability import runtime_directories
 
 
 @dataclass(frozen=True)
@@ -20,12 +21,19 @@ class StrictRunAuditor:
     def __init__(
         self,
         run_id: str | None = None,
-        run_log: Path = Path("data/daily_runs.jsonl"),
-        trace_log: Path = Path("data/traces.jsonl"),
+        run_log: Path | None = None,
+        trace_log: Path | None = None,
+        sync_report_dir: Path | None = None,
     ) -> None:
+        directories = runtime_directories()
         self.run_id = run_id
-        self.run_log = run_log
-        self.trace_log = trace_log
+        self.run_log = run_log or directories.state / "daily_runs.jsonl"
+        self.trace_log = trace_log or directories.state / "traces.jsonl"
+        self.sync_report_dir = sync_report_dir or (
+            run_log.parent / "sync_reports"
+            if run_log is not None
+            else directories.state / "sync_reports"
+        )
 
     def run(self) -> AuditReport:
         run_records = self._load_jsonl(self.run_log)
@@ -197,7 +205,7 @@ class StrictRunAuditor:
             return AuditFinding(
                 "sync-report", AuditState.UNVERIFIED, "run_id unavailable"
             )
-        path = Path("data/sync_reports") / f"{run_id}.json"
+        path = self.sync_report_dir / f"{run_id}.json"
         if not path.exists():
             return AuditFinding(
                 "sync-report",

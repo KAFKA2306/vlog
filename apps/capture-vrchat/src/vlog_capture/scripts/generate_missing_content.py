@@ -66,7 +66,9 @@ def main() -> None:
             build_novel_use_case.execute(date=date_str)
             logger.info("Successfully generated content for %s", date_str)
         elif not photo_exists:
-            logger.info("Novel exists but Image missing for %s. Generating Image...", date_str)
+            logger.info(
+                "Novel exists but Image missing for %s. Generating Image...", date_str
+            )
             novel_text = novel_path.read_text(encoding="utf-8")
             image_generator.generate_from_novel(novel_text, photo_path)
             logger.info("Successfully generated image for %s", date_str)

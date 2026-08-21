@@ -8,13 +8,11 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from dotenv import load_dotenv
 from supabase import create_client
 from vlog_capture.infrastructure.image_optimizer import ImageOptimizer
 from vlog_capture.infrastructure.publication import is_publishable_summary
 from vlog_capture.infrastructure.settings import settings
-
-load_dotenv()
+from vlog_capture.portability import runtime_directories
 
 
 @dataclass(frozen=True)
@@ -44,8 +42,8 @@ class SyncReport:
 class StrictSupabaseSync:
     def __init__(self, client: Any | None = None) -> None:
         self.run_id = os.environ.get("VLOG_RUN_ID") or str(uuid4())
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        url = settings.supabase_url
+        key = settings.supabase_service_role_key
         self.client: Any = client
         if self.client is None:
             if not url or not key:
@@ -196,7 +194,7 @@ class StrictSupabaseSync:
         return self._verified_upsert("evaluations", rows, "date,target_type")
 
     def _write_report(self, report: SyncReport) -> None:
-        report_dir = Path("data/sync_reports")
+        report_dir = runtime_directories().state / "sync_reports"
         report_dir.mkdir(parents=True, exist_ok=True)
         target = report_dir / f"{self.run_id}.json"
         temporary = target.with_suffix(".tmp")

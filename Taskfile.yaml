@@ -39,7 +39,7 @@ tasks:
         ■ 小説生成
           task novel:build              今日の要約から章を生成
           task novel:build date=YYYYMMDD 指定日の章を生成
-          task photo novel=data/novels/YYYYMMDD.md 小説から画像生成
+          task photo novel="$VLOG_DATA_HOME/novels/YYYYMMDD.md" 小説から画像生成
           task photos:all               全小説から画像を一括生成
 
         ■ Windows 起動
@@ -338,23 +338,7 @@ tasks:
   cognee:status:
     desc: Cognee キュー状況表示
     cmd: |
-      $UV run --frozen python -c "
-      import yaml
-      q = yaml.safe_load(open('data/cognee_queue.yaml'))
-      files = q['files']
-      total = len(files)
-      stats = {}
-      for f in files:
-          stats[f['status']] = stats.get(f['status'], 0) + 1
-      print(f'Total: {total}')
-      for s in ['completed','pending','processing','failed']:
-          if s in stats: print(f'  {s}: {stats[s]}')
-      failed = [f for f in files if f['status'] == 'failed']
-      if failed:
-          print('Failed files:')
-          for f in failed:
-              print(f'  - {f[\"name\"]}: {f[\"error\"]}')
-      "
+      $UV run --frozen python scripts/cognee_status.py
 
   # ────────────────────────────────────────
   # デバッグ用
@@ -384,15 +368,15 @@ tasks:
   photo:
     desc: 小説から画像を生成
     cmds:
-      - $UV run --frozen vlog image-generate --novel-file {{.novel}} --output-file data/photos/$(basename {{.novel}} .md).png
+      - $UV run --frozen vlog image-generate --novel-file {{.novel}} --output-file "{{.VLOG_DATA_HOME}}/photos/$(basename {{.novel}} .md).png"
     preconditions:
       - sh: test -n "{{.novel}}"
-        msg: novel=data/novels/YYYYMMDD.mdを指定してください
+        msg: novel=<runtime-data>/novels/YYYYMMDD.mdを指定してください
 
   photos:
     desc: 全小説から画像を一括生成
     cmds:
-      - for f in data/novels/*.md; do [ -f "$f" ] && task photo novel="$f"; done || true
+      - for f in "{{.VLOG_DATA_HOME}}"/novels/*.md; do [ -f "$f" ] && task photo novel="$f"; done || true
 
   manga:
     desc: 小説から4コマ漫画を生成
@@ -400,12 +384,12 @@ tasks:
       - $UV run --frozen vlog manga --novel-file {{.novel}}
     preconditions:
       - sh: test -n "{{.novel}}"
-        msg: novel=data/novels/YYYYMMDD.mdを指定してください
+        msg: novel=<runtime-data>/novels/YYYYMMDD.mdを指定してください
 
   mangas:
     desc: 全小説から4コマ漫画を一括生成
     cmds:
-      - for f in data/novels/*.md; do [ -f "$f" ] && task manga novel="$f"; done || true
+      - for f in "{{.VLOG_DATA_HOME}}"/novels/*.md; do [ -f "$f" ] && task manga novel="$f"; done || true
 
   # ────────────────────────────────────────
   # 内部ヘルパー
@@ -436,7 +420,7 @@ tasks:
     desc: 日次処理の実行結果を確認
     cmds:
       - echo "■ 最新実行ログ"
-      - test -f /tmp/vlog-daily.log && tail -20 /tmp/vlog-daily.log || echo "No log file yet"
+      - test -f "{{.VLOG_STATE_HOME}}/logs/vlog-daily.log" && tail -20 "{{.VLOG_STATE_HOME}}/logs/vlog-daily.log" || echo "No log file yet"
       - echo ""
       - echo "■ systemd タイマー状態"
       - systemctl --user list-timers vlog-daily.timer
@@ -452,7 +436,7 @@ tasks:
   log:clear:
     desc: vlog-daily.log をクリア（新しい週の開始時）
     cmds:
-      - rm -f /tmp/vlog-daily.log && echo "✅ Log cleared"
+      - rm -f "{{.VLOG_STATE_HOME}}/logs/vlog-daily.log" && echo "✅ Log cleared"
 
   health:check:
     desc: システムヘルスチェック
@@ -470,7 +454,7 @@ tasks:
         task sync &>/dev/null && echo "✅ Supabase: ACCESSIBLE" || echo "⚠️  Supabase: PAUSED or UNREACHABLE"
         echo ""
         echo "■ Persona Distillation"
-        test -d data/skills/vlog_user && echo "✅ vlog_user skill: EXISTS" || echo "❌ vlog_user skill: NOT FOUND"
+        test -d "{{.VLOG_DATA_HOME}}/skills/vlog_user" && echo "✅ vlog_user skill: EXISTS" || echo "❌ vlog_user skill: NOT FOUND"
 
   # ────────────────────────────────────────
   # dot-skill 連携

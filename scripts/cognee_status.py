@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import yaml
-
 from vlog_capture.portability import runtime_directories
 
 

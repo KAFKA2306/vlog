@@ -85,6 +85,8 @@ def tracked_files() -> list[str]:
 def violations(paths: list[str] | None = None) -> list[str]:
     failures: list[str] = []
     for relative in paths or tracked_files():
+        if relative == "scripts/check_runtime_contract.py":
+            continue
         if relative not in RUNTIME_FILES and not relative.startswith(RUNTIME_PREFIXES):
             continue
         path = ROOT / relative
@@ -96,7 +98,7 @@ def violations(paths: list[str] | None = None) -> list[str]:
             continue
         for token, reason in FORBIDDEN.items():
             if relative in LEGACY_DATA_EXCEPTIONS and token.startswith(
-                ("Path(\"data/", "Path('data/", "open('data/", 'open("data/', "data/")
+                ('Path("data/', "Path('data/", "open('data/", 'open("data/', "data/")
             ):
                 continue
             if token in text:
