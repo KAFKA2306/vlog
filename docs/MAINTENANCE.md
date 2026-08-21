@@ -10,11 +10,9 @@ codd:
 
 # VLog maintenance manual
 
-This document defines repeatable repository and infrastructure maintenance procedures. Point-in-time service status belongs in generated operations reports, not in this versioned runbook.
+この文書はrepeatableなrepository / infrastructure maintenanceだけを扱います。point-in-time service statusやmigration進捗はここへ固定しません。
 
 ## Routine repository verification
-
-Use the commands implemented by `Taskfile.yaml` and CI:
 
 ```bash
 task test
@@ -23,36 +21,37 @@ task systemd:verify
 task web:build
 ```
 
-CI additionally enforces Python compilation, Ruff check, and Ruff format-check. `task lint` currently performs Ruff checking and formatting, so inspect its diff before committing.
+Lint / format、typecheck、追加のCI gateは`Taskfile.yaml`と`.github/workflows/`を正準とします。repository checkをproduction host、Windows、Vercel、Supabase、object storage、audio、GPUのverificationとして報告しません。
 
-Environment-specific diagnosis:
+Environment diagnosis:
 
 ```bash
 task status
 task service:status
 task log:status
-uv run python -m src.operations doctor --root "$(pwd)"
-uv run python -m src.operations report --days 30
+uv run --frozen vlog-operations doctor --root "$(pwd)"
+uv run --frozen vlog-operations report --days 30
 ```
-
-A repository check must not be reported as a production-host, Windows, Vercel, Supabase, object-storage, audio, or GPU verification.
 
 ## Documentation maintenance
 
-The canonical index is [`README.md`](README.md). When behavior or migration state changes:
+Canonical mapは[`README.md`](README.md)、ownership ruleは[`markdown-governance.md`](markdown-governance.md)です。
 
-1. update executable contracts or schemas first;
-2. update the relevant component runbook;
-3. update `architecture/human-memory-v2.md` when a migration phase changes state;
-4. update `overview.md` and the root README only when the repository-level status changes;
-5. run `task doc:check` to validate boundaries and repository-relative links;
-6. remove duplicated dependency versions and command lists that can drift from manifest files.
+変更時はauthorityを1か所だけ更新します。
 
-Use the status terms defined in the documentation index: implemented in repository, environment-verified, and planned.
+1. executable behavior / schema / commandを先に変更する;
+2. product invariantやverification contractなら[`SPEC.md`](SPEC.md)を更新する;
+3. target architecture / migration designなら[`architecture/human-memory-v2.md`](architecture/human-memory-v2.md)を更新する;
+4. current runtime structureなら[`architecture.md`](architecture.md)、operationなら[`OPERATIONS.md`](OPERATIONS.md)を更新する;
+5. root README / `overview.md`は入口やrouteが変わる場合だけ更新し、status tableを複製しない;
+6. dated incidentは`incidents/`、unfinished work / acceptance evidenceはGitHub Issue / PRへ置く;
+7. `task doc:check`を実行する。
+
+Dependency version、Python requirement、console entry point、task inventoryはmanifest / `Taskfile.yaml`へlinkし、Markdownへコピーしません。
 
 ## systemd
 
-Templates live under `infra/systemd/*.in`. `infra/systemd/render.py` writes concrete user units outside the repository; no checkout path is committed in a unit.
+Templateは`infra/systemd/`を正準とします。
 
 ```bash
 task systemd:verify
@@ -61,24 +60,15 @@ systemctl --user status vlog.service vlog-daily.timer
 journalctl --user -u vlog.service -u vlog-daily.service --since "24 hours ago"
 ```
 
-When a unit fails, inspect the rendered unit, source template, user-manager state, journal, `data/error_events.jsonl`, and `data/heartbeats/` before restarting. A missing user bus is an environment blocker, not a successful installation.
+Failure時はrendered unit、source template、user-manager state、journal、runtime operational evidenceを保存してからrepairします。missing user busはenvironment blockerです。
 
 ## Windows
 
-Canonical scripts live under `infra/windows/`:
-
-```text
-infra\windows\bootstrap.bat
-infra\windows\run.bat
-infra\windows\register_task.ps1
-infra\windows\install-vlog-watchdog.ps1
-```
-
-Verify Task Scheduler state, WSL startup, `data/logs/windows-bootstrap.log`, `%LOCALAPPDATA%\VLog\watchdog.log`, watchdog recovery, and an actual recording created after VRChat starts. WSL-only execution is not Windows verification.
+Canonical assetsは`infra/windows/`です。Task Scheduler registration、WSL startup、launcher / watchdog recovery、actual recordingをWindows host上で確認します。WSL-only executionをWindows verificationとは扱いません。
 
 ## Evidence and storage
 
-Before any destructive migration:
+Destructive migration前にnon-destructive inventoryを実行します。
 
 ```bash
 uv run --no-sync python scripts/phase0_inventory.py
@@ -86,28 +76,20 @@ uv run --no-sync python scripts/phase0_inventory.py
 
 Required controls:
 
-- do not delete or relocate raw evidence without a retained inventory and recoverable backup;
-- do not treat a fixed-size Storage listing as complete; paginate until exhaustion;
-- record hashes, byte totals, object keys, visibility, and source locations;
-- keep raw media in private object storage, not Git;
-- keep publication separate from ingestion and generation;
-- reconcile every migrated source before deleting a legacy copy.
+- retained inventoryとrecoverable backupなしにraw Evidenceを削除・移動しない;
+- remote object listingはpagination exhaustionまで取得する;
+- source identity、hash、byte total、object key、visibilityをreconcileする;
+- raw mediaをpublic Gitへ置かない;
+- ingestion / generation / publicationを別decisionとして扱う;
+- migration先とのreconciliation完了前にlegacy copyを削除しない。
 
-Follow [`operations/phase0-inventory.md`](operations/phase0-inventory.md) for the inventory procedure.
+手順は[`operations/phase0-inventory.md`](operations/phase0-inventory.md)を正準とします。
 
-## Supabase
+## Supabase changes
 
-For schema, row, RLS, or Storage-policy changes:
+Schema、row、RLS、Storage policyを変更するときは、pre-change stateをexportし、versioned changeを`infra/supabase/`から適用し、row/object/policy behaviorをrole別にreconcileします。
 
-1. export current schema and migration history;
-2. record table row counts, key ranges, and required checksums;
-3. inventory every bucket with visibility, object count, total bytes, and a complete paginated manifest;
-4. export RLS and Storage policies;
-5. apply versioned changes from `infra/supabase/`;
-6. verify anonymous, authenticated, and service-role behavior independently;
-7. reconcile the result with the retained pre-change exports.
-
-A connection failure, missing table, paused project, partial object listing, or unavailable credential is an environment condition. Do not force a successful exit or infer completion.
+Connection failure、partial listing、missing credentialをsuccessful migrationとして扱いません。
 
 ## Reader
 
@@ -117,38 +99,35 @@ task web:build
 task web:start
 ```
 
-The application root is `apps/reader/`. A Vercel project configured with the former pre-v2 Reader root has not completed the cutover. Verify the provider configuration and deployed revision, not only the local build.
+Application rootは`apps/reader/`です。Local buildとdeployed revision / production availability / release provenanceは別に確認します。
 
 ## Human Memory v2 phase changes
 
-Before advancing a phase in documentation or Issue #14:
+Phaseを進める前に:
 
-- identify which acceptance conditions are repository-only and which require live evidence;
-- record the commit or PR implementing the repository change;
-- retain inventory, export, migration, and reconciliation artifacts outside public Git when they contain private data;
-- keep legacy behavior until the replacement has been reconciled;
-- do not combine raw-data movement with an unrelated structural refactor;
-- document rollback separately for code and data.
+- repository-only acceptanceとenvironment acceptanceを分離する;
+- implementation commit / PRを記録する;
+- private inventory / export / reconciliation artifactをpublic Gitへ置かない;
+- replacementをreconcileするまでlegacy behaviorを保持する;
+- raw-data movementと無関係なstructural refactorを同一operationにしない;
+- code rollbackとdata rollbackを別に定義する。
 
 ## Recovery order
 
-1. identify the failed component and preserve source evidence;
-2. preserve logs, manifests, current state, and relevant hashes;
-3. repair configuration or code at its canonical boundary;
-4. run focused tests, then repository verification;
-5. replay only the affected idempotent operation;
-6. confirm output, operational evidence, and downstream visibility;
-7. reconcile the repaired state with its source;
-8. record unresolved environment validation explicitly.
+1. failed componentを特定しsource Evidenceを保存する;
+2. logs、manifest、current state、hashを保存する;
+3. canonical boundaryでconfiguration / codeをrepairする;
+4. focused testの後にrepository verificationを行う;
+5. affected idempotent operationだけreplayする;
+6. output、operational evidence、downstream visibilityを確認する;
+7. sourceとrepaired stateをreconcileする;
+8. unresolved environment validationを明示する。
 
 ## Related documents
 
 - [Documentation index](README.md)
+- [Product specification and guarantees](SPEC.md)
 - [Operations](OPERATIONS.md)
 - [Current runtime architecture](architecture.md)
 - [Human Memory v2 architecture](architecture/human-memory-v2.md)
 - [Current daily pipeline contract](daily_pipeline_contract.md)
-
-## Markdown audit
-
-`task doc:check` validates all tracked Markdown links and portability rules. New normative documents require an entry in `docs/README.md`; dated status observations belong under `docs/incidents/`; agent-specific instructions must route to canonical docs rather than copy them.

@@ -10,13 +10,13 @@ Tracking: #99. Decision record: [ADR-0012](../adr/0012-cross-platform-portabilit
 
 | Concern | Authority |
 |---|---|
-| code/release identity | Git commit SHA |
+| code / release identity | Git commit SHA |
 | Evidence identity | stable source ID + content hash |
-| remote Evidence location | object URI/key |
-| environment identity | explicit environment/project/config |
+| remote Evidence location | object URI / key |
+| environment identity | explicit environment / project / config |
 | local absolute path | runtime locator only |
 
-A machine-local path may locate bytes for one process. It must not become the durable identity of code, Evidence, memory, or a release.
+Machine-local pathは1 processからbyte列を見つけるためのlocatorであり、code、Evidence、memory、releaseのdurable identityにはしません。
 
 ## Checkout topology
 
@@ -27,75 +27,85 @@ GitHub commit SHA
     └── disposable CI checkout
 ```
 
-Windows and WSL/Linux must not require the same physical code checkout. Windows-mounted WSL paths, WSL UNC shares, and general UNC paths are boundary locations, not canonical production code checkouts.
+WindowsとWSL/Linuxは同じphysical checkoutを共有する必要がありません。Windows-mounted WSL path、WSL UNC、一般UNCはboundary locationであり、canonical production code checkoutではありません。
 
-Evidence transport is a separate concern. Until #73 completes private object-storage cutover, an explicit legacy data bridge may exist without making the code checkout shared.
+Evidence transportは別のconcernです。private object-storage cutover完了までは明示的なlegacy data bridgeを許容しますが、それによってcheckout pathをauthorityにはしません。
 
 ## Path support matrix
 
 | Path class | Windows production code | WSL/Linux production code | Boundary use |
 |---|---|---|---|
-| local Windows drive path | supported | foreign | supported through explicit adapter |
-| native POSIX path | foreign | supported | supported through explicit adapter |
-| WSL Windows-mounted drive path | n/a | not canonical | migration/interoperability only |
-| WSL UNC share | not canonical | n/a | migration/interoperability only |
+| local Windows drive path | supported | foreign | explicit adapter経由でsupported |
+| native POSIX path | foreign | supported | explicit adapter経由でsupported |
+| WSL Windows-mounted drive path | n/a | not canonical | migration / interoperability only |
+| WSL UNC share | not canonical | n/a | migration / interoperability only |
 | other UNC | not canonical | foreign | best-effort adapter only |
 | spaces / Japanese / Unicode | supported | supported | CI-covered |
 | case-only collisions | rejected in Git tree | rejected in Git tree | rejected |
-| trailing dot/space or Windows reserved names | rejected in Git tree | rejected in Git tree | rejected |
+| trailing dot/space / Windows reserved names | rejected in Git tree | rejected in Git tree | rejected |
 
-Long-path support is not used as a design requirement. Keep checkout/generated path depth reasonable rather than assuming every Windows tool is long-path-aware.
+Long-path supportを設計前提にはせず、checkoutとgenerated pathの深さを抑えます。
 
 ## Project-root resolution
 
-Runtime root precedence is:
+Runtime root precedence:
 
-1. explicit `VLOG_PROJECT_ROOT` when supplied and valid;
-2. deterministic script/module location and repository-marker discovery;
-3. invocation cwd only as diagnostic context, never authority.
+1. validな`VLOG_PROJECT_ROOT`が明示された場合はそれを使う;
+2. script/module locationとrepository markerから決定する;
+3. invocation cwdはdiagnostic contextにだけ使い、authorityにしない。
 
-PowerShell uses `$PSScriptRoot`; batch launchers use `%~dp0`; Python uses module/script location plus `pyproject.toml` discovery.
+PowerShellは`$PSScriptRoot`、batch launcherは`%~dp0`、Pythonはmodule/script locationとrepository markerを使用します。
 
 ## Configuration and mutable state
 
-Environment variable names use the canonical uppercase `VLOG_*` namespace. Secrets belong to platform secret/environment stores, not Git.
+Environment variableはcanonicalなuppercase `VLOG_*` namespaceを使います。secretはGitではなくplatformのsecret/environment storeへ置きます。
 
-Portable target locations are:
+Portable target locations:
 
-- Linux config: XDG config home (`~/.config/vlog` default)
-- Linux state: XDG state home (`~/.local/state/vlog` default)
-- Linux cache: XDG cache home (`~/.cache/vlog` default)
+- Linux config: XDG config home
+- Linux state: XDG state home
+- Linux cache: XDG cache home
 - Windows config: roaming AppData `VLog`
-- Windows state/cache: local AppData `VLog`
+- Windows state / cache: local AppData `VLog`
 
-`apps/capture-vrchat/src/vlog_capture/portability.py` resolves these locations without creating them. Legacy repo-local `data/` remains an explicit migration state until #84/#73 cut it over non-destructively.
+実際のruntime directory resolutionは`apps/capture-vrchat/src/vlog_capture/portability.py`を正準とします。legacy repo-local dataのmigration stateを文書へ固定pathとして複製しません。
 
 ## Executables and toolchains
 
-Supervised runtimes do not rely on an interactive shell profile. Executables are resolved and recorded before registration/rendering where practical.
+Supervised runtimeはinteractive shell profileへ依存しません。実行fileはregistration / rendering前に解決します。
 
-- Windows Scheduled Task: absolute `cmd.exe`, explicit `WorkingDirectory`, resolved `uv.exe` handed to the launcher.
-- systemd: rendered checkout root and `uv` executable.
-- CI: runner-provided workspace and tool setup actions.
+- Windows Scheduled Task: explicit executable、working directory、resolved `uv.exe`.
+- systemd: rendered checkout rootとresolved `uv`.
+- CI: runner workspaceとtool setup actions.
 
-Python-minor-specific NVIDIA paths must not be constructed as strings. Discover installed NVIDIA package locations at runtime.
+Python-minor-specific NVIDIA pathを文字列で組み立てず、installed package locationをruntimeで検出します。
 
-## Python package migration
+## Python packaging
 
-The current capture application is still imported as `src`, and current CI/systemd/task assets still carry legacy `PYTHONPATH`. This remains **implemented legacy behavior**, not the target design. #82 removes it through installable packages/uv workspace. Documentation must not claim that migration is already complete.
+Issue #82 / PR #100でlegacy `src` package名とruntime `PYTHONPATH`依存は撤去済みです。capture runtimeはuv workspaceのinstallable `vlog_capture` packageとして実行します。
+
+```text
+vlog
+vlog-service
+vlog-daily
+vlog-operations
+```
+
+Package dependency、Python requirement、console entry pointの正準は`pyproject.toml`と`apps/capture-vrchat/pyproject.toml`です。`python -m src...`やruntime用`PYTHONPATH`を再導入しません。
 
 ## Verification boundary
 
-Repository portability is continuously checked by:
+Repository portabilityは継続的に次で検証します。
 
-- Windows-compatible Git filename checker;
-- `.gitattributes` normalization;
-- Ubuntu + Windows portability jobs;
-- PowerShell parser checks;
-- portability unit tests;
-- read-only `scripts/vlog_doctor.py`.
+- Windows-compatible Git filename checker
+- `.gitattributes` normalization
+- Ubuntu / Windows portability jobs
+- PowerShell parser checks
+- portability unit tests
+- runtime contract checker
+- clean relocation / installed-entrypoint checks
 
-These checks do **not** establish physical-host operation. VRChat process detection, physical audio, GPU transcription, Task Scheduler, systemd recovery, live Supabase, and full VRChat-to-KafLog flow remain environment-verified only through #67-#75.
+これらはphysical-host operationを証明しません。VRChat process detection、physical audio、GPU transcription、Task Scheduler、systemd recovery、live Supabase、full VRChat-to-KafLog flowは対象environmentの実測が必要です。
 
 ## Primary references
 
