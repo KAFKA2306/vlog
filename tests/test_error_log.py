@@ -1,7 +1,12 @@
 from datetime import datetime, timedelta
 
-from src.domain.error_events import ErrorEvent, ErrorKind, ErrorStage, event_for_failure
-from src.infrastructure.error_log import ErrorLogRepository
+from vlog_capture.domain.error_events import (
+    ErrorEvent,
+    ErrorKind,
+    ErrorStage,
+    event_for_failure,
+)
+from vlog_capture.infrastructure.error_log import ErrorLogRepository
 
 
 def test_error_event_classifies_sync_failure() -> None:

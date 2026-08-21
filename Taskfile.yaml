@@ -1,11 +1,15 @@
-version: "3"
+version: "3.52.0"
 
 env:
   UV: "uv"
   BUN: "bun"
   BUNX: "bunx"
-  PYTHONPATH: "{{.USER_WORKING_DIR}}/apps/capture-vrchat:{{.USER_WORKING_DIR}}/packages/memory-domain/src:{{.USER_WORKING_DIR}}/packages/ingestion/src"
-  LD_LIBRARY_PATH: "{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cudnn/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cublas/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:{{.USER_WORKING_DIR}}/.venv/lib/python3.12/site-packages/nvidia/nccl/lib"
+
+vars:
+  VLOG_DATA_HOME:
+    sh: $UV run --frozen python -c "from vlog_capture.portability import runtime_directories; print(runtime_directories().data)"
+  VLOG_STATE_HOME:
+    sh: $UV run --frozen python -c "from vlog_capture.portability import runtime_directories; print(runtime_directories().state)"
 
 tasks:
   # ────────────────────────────────────────
@@ -70,7 +74,7 @@ tasks:
   # ────────────────────────────────────────
   setup:
     desc: 依存同期
-    cmd: $UV sync --frozen
+    cmd: $UV sync --locked --extra gpu
 
   lock:
     desc: Python依存ロック更新
@@ -81,7 +85,7 @@ tasks:
   # ────────────────────────────────────────
   dev:
     desc: アプリ実行
-    cmd: $UV run python -m src.main
+    cmd: $UV run --frozen vlog-service
 
   up:
     desc: portable systemdユニットを描画して起動
@@ -100,9 +104,20 @@ tasks:
     cmd: systemctl --user restart vlog-daily.timer
 
   status:
-    desc: Windows・systemd・日次タイマー・ログの状態確認
+    desc: 現在platformのVLog supervisor状態確認
     cmds:
-      - powershell.exe -NoProfile -Command "Get-ScheduledTask -TaskName VlogAutoDiary | Select-Object TaskName,State | Format-Table -AutoSize"
+      - task: status:windows
+      - task: status:linux
+
+  status:windows:
+    desc: Windows Task Scheduler状態
+    platforms: [windows]
+    cmd: powershell.exe -NoProfile -Command "Get-ScheduledTask -TaskName VlogAutoDiary | Select-Object TaskName,State | Format-Table -AutoSize"
+
+  status:linux:
+    desc: systemd・日次タイマー・ログ状態
+    platforms: [linux]
+    cmds:
       - systemctl --user show vlog.service vlog-daily.timer -p Id -p LoadState -p ActiveState -p SubState -p UnitFileState
       - systemctl --user list-timers vlog-daily.timer --all --no-pager
       - journalctl --user -u vlog.service -u vlog-daily.service --no-pager -n 20
@@ -116,17 +131,17 @@ tasks:
   # ────────────────────────────────────────
   record:
     desc: 手動録音開始
-    cmd: $UV run python -m src.cli record
+    cmd: $UV run --frozen vlog record
 
   process:
     desc: 録音→要約（単一ファイル）
     deps: [require_file]
-    cmds: ["$UV run python -m src.cli process --file {{.FILE}} {{.EXTRA}}"]
+    cmds: ["$UV run --frozen vlog process --file {{.FILE}} {{.EXTRA}}"]
 
   process:all:
     desc: 録音→要約（全ファイル一括）
     cmds:
-      - for f in data/recordings/*.wav data/recordings/*.flac; do [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"; done || true
+      - for f in "{{.VLOG_DATA_HOME}}"/recordings/*.wav "{{.VLOG_DATA_HOME}}"/recordings/*.flac; do [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"; done || true
       - task sync
 
   process:today:
@@ -134,7 +149,7 @@ tasks:
     cmds:
       - |
         TODAY=$(date +%Y%m%d)
-        for f in data/recordings/${TODAY}*.wav data/recordings/${TODAY}*.flac; do
+        for f in "{{.VLOG_DATA_HOME}}"/recordings/${TODAY}*.wav "{{.VLOG_DATA_HOME}}"/recordings/${TODAY}*.flac; do
           [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
         done || true
       - task sync
@@ -144,7 +159,7 @@ tasks:
     cmds:
       - |
         YESTERDAY=$(date -d "yesterday" +%Y%m%d)
-        for f in data/recordings/${YESTERDAY}*.wav data/recordings/${YESTERDAY}*.flac; do
+        for f in "{{.VLOG_DATA_HOME}}"/recordings/${YESTERDAY}*.wav "{{.VLOG_DATA_HOME}}"/recordings/${YESTERDAY}*.flac; do
           [ -f "$f" ] && task process FILE="$f" EXTRA="--no-sync"
         done || true
       - task sync
@@ -152,34 +167,34 @@ tasks:
   process:daily:
     desc: 日次処理（昨日＋今日）
     cmds:
-      - $UV run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
-      - $UV run python -m src.cli daily
+      - $UV run --frozen vlog check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
+      - $UV run --frozen vlog daily
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)
     cmds:
-      - $UV run python -m src.cli curator eval --date {{.date}}
+      - $UV run --frozen vlog curator eval --date {{.date}}
 
   process:pending:
     desc: 未処理データを検出して一括処理
-    cmd: $UV run python -m src.cli pending
+    cmd: $UV run --frozen vlog pending
 
   transcribe:all:
     desc: 文字起こしのみ（全ファイル）
     cmds:
-      - for f in data/recordings/*.wav data/recordings/*.flac; do [ -f "$f" ] && task transcribe FILE="$f"; done || true
+      - for f in "{{.VLOG_DATA_HOME}}"/recordings/*.wav "{{.VLOG_DATA_HOME}}"/recordings/*.flac; do [ -f "$f" ] && task transcribe FILE="$f"; done || true
 
   # ────────────────────────────────────────
   # データ同期
   # ────────────────────────────────────────
   sync:
     desc: Supabase同期
-    cmd: $UV run python -m src.cli sync
+    cmd: $UV run --frozen vlog sync
 
   sync:full:
     desc: 全件強制同期
     cmds:
-      - touch data/summaries/*.txt
+      - touch "{{.VLOG_DATA_HOME}}"/summaries/*.txt
       - task sync
 
   # ────────────────────────────────────────
@@ -191,7 +206,7 @@ tasks:
 
   web:setup:
     desc: フロントエンド依存同期
-    cmd: cd apps/reader && $BUN ci
+    cmd: cd apps/reader && $BUN install --frozen-lockfile
 
   web:dev:
     desc: 開発サーバー
@@ -212,57 +227,48 @@ tasks:
     cmd: cd apps/reader && $BUN run start -- --hostname 0.0.0.0 --port 4000
 
   web:deploy:
-    desc: Vercelデプロイ
+    desc: clean mainをGit provenance付きでKafLog productionへdeploy
     deps: [web:build]
-    cmds:
-      - cd apps/reader && $BUNX vercel link --project kaflog --yes
-      - cd apps/reader && $BUNX vercel --prod --yes
+    cmd: $UV run --frozen python scripts/deploy_reader.py
 
   web:env:
-    desc: 環境変数抽出
-    cmds:
-      - test -f .env || (echo ".env がありません" && exit 1)
-      - |
-        . ./.env
-        cat >apps/reader/.env.local <<EOF
-        NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        EOF
+    desc: process environmentからReader開発envを生成
+    cmd: $UV run --frozen python scripts/write_reader_env.py
 
   # ────────────────────────────────────────
   # メンテナンス
   # ────────────────────────────────────────
   lint:
     desc: コード品質チェック
-    cmds: ["$UV run ruff check apps/capture-vrchat/src packages scripts tests infra/systemd && $UV run ruff format apps/capture-vrchat/src packages scripts tests infra/systemd"]
+    cmds: ["$UV run --frozen ruff check apps/capture-vrchat/src packages scripts tests infra/systemd && $UV run --frozen ruff format apps/capture-vrchat/src packages scripts tests infra/systemd"]
 
   test:
     desc: テスト実行
-    cmd: $UV run pytest tests
+    cmd: $UV run --frozen pytest tests
 
   systemd:verify:
     desc: systemdテンプレートを一時描画して検証
     cmd: |
       TMP_DIR=$(mktemp -d)
       trap 'rm -rf "$TMP_DIR"' EXIT
-      python3 infra/systemd/render.py --root "$(pwd)" --output "$TMP_DIR"
+      $UV run --frozen python infra/systemd/render.py --root "{{.ROOT_DIR}}" --output "$TMP_DIR"
       systemd-analyze --user verify "$TMP_DIR"/vlog.service "$TMP_DIR"/vlog-monitor-failure.service "$TMP_DIR"/vlog-daily.service "$TMP_DIR"/vlog-daily-failure.service "$TMP_DIR"/vlog-daily.timer
 
   notify:daily-failure:
     desc: 日次処理失敗通知
     cmds:
-      - $UV run python -m src.cli error record --stage scheduler --kind daily_pipeline_failed --task-name daily_pipeline --reason "vlog-daily.service failed"
-      - $UV run python -m src.cli notify --message "❌ 日次処理が失敗しました（$(date '+%Y-%m-%d %H:%M:%S')）"
+      - $UV run --frozen vlog error record --stage scheduler --kind daily_pipeline_failed --task-name daily_pipeline --reason "vlog-daily.service failed"
+      - $UV run --frozen vlog notify --message "❌ 日次処理が失敗しました（$(date '+%Y-%m-%d %H:%M:%S')）"
 
   log:errors:
     desc: 構造化エラーログを表示
     vars:
       DAYS: '{{.DAYS | default "30"}}'
-    cmd: $UV run python -m src.cli error report --days {{.DAYS}}
+    cmd: $UV run --frozen vlog error report --days {{.DAYS}}
 
   typecheck:
     desc: Python型検査
-    cmd: $UV run ty check apps/capture-vrchat/src packages tests infra/systemd
+    cmd: $UV run --frozen ty check apps/capture-vrchat/src packages tests infra/systemd
 
   clean:
     desc: キャッシュ削除
@@ -280,7 +286,7 @@ tasks:
   # ────────────────────────────────────────
   vault:sync:
     desc: Prompt Vault から Kafka の最新アイデンティティを同期
-    cmd: $UV run python scripts/sync_vault_prompts.py
+    cmd: $UV run --frozen python scripts/sync_vault_prompts.py
 
   # ────────────────────────────────────────
   # 自律的メンテナンス (VAMS)
@@ -290,7 +296,6 @@ tasks:
     cmds:
       - task lint
       - task doc:check
-      - export PYTHONPATH=$PYTHONPATH:.
       - echo "Maintenance complete. Check for any suggested refactors or ADR updates."
 
   doc:check:
@@ -300,20 +305,20 @@ tasks:
   audit:
     desc: 厳格な証拠監査を実行
     cmds:
-      - $UV run python -m src.cli audit --strict --recent 100 --trace-window-minutes 30
+      - $UV run --frozen vlog audit --strict --recent 100 --trace-window-minutes 30
 
   audit:publication:
     desc: 直近3か月の公開品質を監査
     vars:
       DAYS: '{{.DAYS | default "92"}}'
-    cmd: $UV run python -m src.scripts.audit_publication --days {{.DAYS}}
+    cmd: $UV run --frozen python -m vlog_capture.scripts.audit_publication --days {{.DAYS}}
 
   # ────────────────────────────────────────
   # Graph Scribe (シンプルグラフ)
   # ────────────────────────────────────────
   graph:ingest:
     desc: 全要約からグラフデータを抽出
-    cmd: $UV run python -m src.cli pending
+    cmd: $UV run --frozen vlog pending
     # cmd_pending がグラフ抽出を含むようになったため、pending を呼ぶだけでOK
     # 明示的に呼びたい場合は専用のCLIコマンドを作るが、今はpendingに統合。
 
@@ -322,7 +327,7 @@ tasks:
   # ────────────────────────────────────────
   cognee:init:
     desc: Cognee キュー初期化
-    cmd: $UV run python scripts/init_cognee_queue.py
+    cmd: $UV run --frozen python scripts/init_cognee_queue.py
 
   cognee:ingest:
     desc: Cognee キューから次のバッチを処理
@@ -333,7 +338,7 @@ tasks:
   cognee:status:
     desc: Cognee キュー状況表示
     cmd: |
-      $UV run python -c "
+      $UV run --frozen python -c "
       import yaml
       q = yaml.safe_load(open('data/cognee_queue.yaml'))
       files = q['files']
@@ -361,12 +366,12 @@ tasks:
   transcribe:
     desc: 文字起こしのみ
     deps: [require_file]
-    cmds: ["$UV run python -m src.cli transcribe --file {{.FILE}}"]
+    cmds: ["$UV run --frozen vlog transcribe --file {{.FILE}}"]
 
   summarize:
     desc: 要約のみ
     deps: [require_file]
-    cmds: ["$UV run python -m src.cli summarize --file {{.FILE}}"]
+    cmds: ["$UV run --frozen vlog summarize --file {{.FILE}}"]
 
   # ────────────────────────────────────────
   # 小説生成
@@ -374,12 +379,12 @@ tasks:
   novel:build:
     desc: 小説の章を生成
     cmds:
-      - $UV run python -m src.cli novel {{if .date}}--date {{.date}}{{end}}
+      - $UV run --frozen vlog novel {{if .date}}--date {{.date}}{{end}}
 
   photo:
     desc: 小説から画像を生成
     cmds:
-      - $UV run python -m src.cli image-generate --novel-file {{.novel}} --output-file data/photos/$(basename {{.novel}} .md).png
+      - $UV run --frozen vlog image-generate --novel-file {{.novel}} --output-file data/photos/$(basename {{.novel}} .md).png
     preconditions:
       - sh: test -n "{{.novel}}"
         msg: novel=data/novels/YYYYMMDD.mdを指定してください
@@ -392,7 +397,7 @@ tasks:
   manga:
     desc: 小説から4コマ漫画を生成
     cmds:
-      - $UV run python -m src.cli manga --novel-file {{.novel}}
+      - $UV run --frozen vlog manga --novel-file {{.novel}}
     preconditions:
       - sh: test -n "{{.novel}}"
         msg: novel=data/novels/YYYYMMDD.mdを指定してください
@@ -472,4 +477,4 @@ tasks:
   # ────────────────────────────────────────
   dot-skill:distill:
     desc: 要約データからユーザーペルソナを蒸留
-    cmd: export PYTHONPATH=$PYTHONPATH:. && $UV run python scripts/distill_user_persona.py
+    cmd: $UV run --frozen python scripts/distill_user_persona.py

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from src.daily import DailyPipeline
+from vlog_capture.daily import DailyPipeline
 
 
 def test_failure_prevents_success_notification(tmp_path: Path) -> None:

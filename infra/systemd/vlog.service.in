@@ -13,11 +13,15 @@ WatchdogSec=120s
 TimeoutStartSec=30s
 TimeoutStopSec=60s
 WorkingDirectory=@VLOG_ROOT@
-EnvironmentFile=-@VLOG_ROOT@/.env
-Environment=PYTHONPATH=@VLOG_PYTHONPATH@
+@VLOG_ENV_FILE_DIRECTIVE@
 Environment=PYTHONUNBUFFERED=1
+Environment=VLOG_PROJECT_ROOT=@VLOG_ROOT@
+Environment=VLOG_CONFIG_HOME=@VLOG_CONFIG_HOME@
+Environment=VLOG_DATA_HOME=@VLOG_DATA_HOME@
+Environment=VLOG_STATE_HOME=@VLOG_STATE_HOME@
+Environment=VLOG_CACHE_HOME=@VLOG_CACHE_HOME@
 Environment=VLOG_SERVICE_NAME=vlog-monitor
-ExecStart=@VLOG_UV@ run python -m src.main
+ExecStart=@VLOG_UV@ run --frozen vlog-service
 Restart=on-failure
 RestartSec=10s
 UMask=0077
@@ -30,8 +34,8 @@ ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
 RestrictSUIDSGID=yes
-ReadWritePaths=@VLOG_ROOT@/data
-ReadOnlyPaths=@VLOG_ROOT@/apps/capture-vrchat @VLOG_ROOT@/packages @VLOG_ROOT@/pyproject.toml @VLOG_ROOT@/uv.lock
+ReadWritePaths=-@VLOG_CONFIG_HOME@ -@VLOG_DATA_HOME@ -@VLOG_STATE_HOME@ -@VLOG_CACHE_HOME@
+ReadOnlyPaths=@VLOG_ROOT@
 
 [Install]
 WantedBy=default.target

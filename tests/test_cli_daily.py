@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from src import cli_handlers
+from vlog_capture import cli_handlers
 
 
 class StubEvaluator:
@@ -35,7 +35,7 @@ def _patch_daily(monkeypatch, *, recordings_pending: int, autorun: bool):
         ),
     )
     monkeypatch.setattr(
-        "src.use_cases.evaluate.EvaluateDailyContentUseCase", StubEvaluator
+        "vlog_capture.use_cases.evaluate.EvaluateDailyContentUseCase", StubEvaluator
     )
     monkeypatch.setattr(
         cli_handlers,

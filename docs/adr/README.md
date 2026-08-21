@@ -15,5 +15,7 @@ ADRs preserve why a decision was made. They do not override current code, config
 | [0009](0009-whisper-model-optimization.md) | transcription model selection | accepted; current config is authoritative |
 | [0010](0010-external-reader-integration.md) | external Reader integration | accepted; current root is `apps/reader/` |
 | [0011](0011-systemd-daily-timer-6am-jst.md) | daily timer changed to 09:00 | accepted; host timezone must be verified |
+| [0012](0012-cross-platform-portability.md) | physical path is not authority; native Windows/WSL checkouts | accepted; host cutover remains separately verified |
+| [0013](0013-dev-container-is-linux-tooling-only.md) | Dev Container reproduces Linux tooling, never Windows host E2E | accepted |
 
-Each ADR contains an audit note dated 2026-08-04. Historical measurements remain historical unless a reproducible current benchmark is cited.
+ADRs 0001-0011 include the 2026-08-04 audit note. ADRs 0012-0013 record the 2026-08-20 portability decisions. Historical measurements remain historical unless a reproducible current benchmark is cited.

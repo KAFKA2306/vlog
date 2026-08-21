@@ -87,7 +87,9 @@ def read_source_file(
         or before.st_mtime_ns != after.st_mtime_ns
         or len(raw_bytes) != after.st_size
     ):
-        raise UnstableSourceError(f"source changed while reading: {relative.as_posix()}")
+        raise UnstableSourceError(
+            f"source changed while reading: {relative.as_posix()}"
+        )
 
     return SourceFile(
         relative_path=relative.as_posix(),

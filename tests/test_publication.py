@@ -1,4 +1,4 @@
-from src.domain.publication import has_publishable_source
+from vlog_capture.domain.publication import has_publishable_source
 
 
 def test_short_source_is_not_publishable() -> None:

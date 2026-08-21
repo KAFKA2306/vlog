@@ -6,54 +6,110 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  portability:
+    name: Portability (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      GOOGLE_API_KEY: test-key
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: '0.12.5'
+      - name: Sync locked Python workspace
+        run: uv sync --locked
+      - name: Reject non-portable tracked paths
+        run: uv run --no-sync python scripts/check_portable_paths.py
+      - name: Reject checkout-layout runtime coupling
+        run: uv run --no-sync python scripts/check_runtime_contract.py
+      - name: Compile portability tools
+        run: uv run --no-sync python -m compileall -q apps/capture-vrchat/src/vlog_capture/portability.py scripts/check_portable_paths.py scripts/check_runtime_contract.py scripts/vlog_doctor.py
+      - name: Run read-only portability doctor
+        run: uv run --no-sync python scripts/vlog_doctor.py --json --redact --strict
+      - name: Verify installed entry point
+        run: uv run --no-sync vlog --help
+      - name: Parse Windows PowerShell assets
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem infra/windows -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object { Write-Error "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+
   python:
     runs-on: ubuntu-latest
     env:
       GOOGLE_API_KEY: test-key
-      PYTHONPATH: apps/capture-vrchat:packages/memory-domain/src:packages/ingestion/src:packages/companion/src:adapters/vrchat-osc/src
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - run: uv venv
-      - name: Install focused test dependencies
-        run: >-
-          uv pip install
-          pytest
-          pydantic-settings
-          pyyaml
-          python-dotenv
-          supabase
-          pillow
-          numpy
-          psutil
-          sounddevice
-          soundfile
-          google-generativeai
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: '0.12.5'
+      - name: Sync locked Python workspace
+        run: uv sync --locked
       - name: Compile Python sources
         run: uv run --no-sync python -m compileall -q apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Lint Python sources
-        run: uvx ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+        run: uv run --no-sync ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Check Python formatting
-        run: uvx ruff format --check apps/capture-vrchat/src packages scripts tests infra/systemd
+        run: uv run --no-sync ruff format --check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Enforce canonical repository ratchet
         run: |
           grep -Fq 'Evidence -> Human Memory -> Narrative Artifact -> Public Projection' docs/architecture/human-memory-v2.md
           grep -Fq 'Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections' docs/architecture/human-memory-v2.md
           grep -Fq '## 5. 動作保証' docs/SPEC.md
+          grep -Fq 'physical path is not authority' docs/architecture/portability.md
           grep -Fq 'https://kaflog.vercel.app' .github/workflows/production-smoke.yml
+          uv run --no-sync python scripts/check_portable_paths.py
+          uv run --no-sync python scripts/check_runtime_contract.py
           test ! -e .github/workflows/weekly-repo-research.yml
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py
       - name: Enforce companion browser/runtime parity
         run: uv run --no-sync python scripts/check_companion_contract_parity.py
+      - name: Verify installed package imports and CLI
+        run: |
+          uv run --no-sync python -c "import vlog_capture, vlog_memory_domain, vlog_ingestion, vlog_companion, vlog_privacy, vlog_vrchat_osc"
+          uv run --no-sync vlog --help
+          uv run --no-sync vlog-operations --help
       - name: Verify rendered systemd units
         run: |
           output="$(mktemp -d)"
-          python3 infra/systemd/render.py --root "$PWD" --output "$output"
+          uv run --no-sync python infra/systemd/render.py --root "$PWD" --output "$output"
           systemd-analyze --user verify "$output"/*.service "$output"/*.timer
       - name: Run tests
         run: uv run --no-sync pytest -q
+      - name: Verify relocated clean checkout
+        run: |
+          root="$(mktemp -d)/VLog 移動 test"
+          mkdir -p "$root"
+          git archive HEAD | tar -x -C "$root"
+          cd "$root"
+          uv sync --locked
+          uv run --no-sync vlog --help
+          uv run --no-sync python scripts/check_runtime_contract.py
       - name: Verify clean checkout
         run: |
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
@@ -66,8 +122,10 @@ jobs:
       run:
         working-directory: apps/reader
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
       - run: bun install --frozen-lockfile
       - run: bun run design:check
       - run: bun run test

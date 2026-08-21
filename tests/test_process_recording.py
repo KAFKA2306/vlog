@@ -1,10 +1,10 @@
 from datetime import datetime
 from pathlib import Path
 
-from src.domain.entities import RecordingSession
-from src.infrastructure.daily_state import DailyStateStore
-from src.use_cases.daily_artifacts import DailyArtifactManager
-from src.use_cases.process_recording import ProcessRecordingUseCase
+from vlog_capture.domain.entities import RecordingSession
+from vlog_capture.infrastructure.daily_state import DailyStateStore
+from vlog_capture.use_cases.daily_artifacts import DailyArtifactManager
+from vlog_capture.use_cases.process_recording import ProcessRecordingUseCase
 
 TRANSCRIPT_PATH = "data/transcripts/20260412_120000.txt"
 
