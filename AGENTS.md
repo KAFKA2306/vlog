@@ -41,6 +41,9 @@ The runtime is under `apps/capture-vrchat/`; the reader is under `apps/reader/`;
 - Do not change model identifiers without explicit user instruction; read `data/config.yaml` and the implementation first.
 - Use repository-relative Markdown links. Do not add user-specific home paths or file-scheme links.
 - State separately what is implemented in Git, verified in CI, and verified in the operating environment.
+- `main` and same-repository head branches of open pull requests are the only remote branches allowed to persist.
+- Create a remote work branch only as part of immediately opening its pull request; do not leave a branch without an open pull request.
+- When a pull request is merged or closed, its same-repository head branch must be deleted. Do not retain or recreate orphan branches; `.github/workflows/branch-lifecycle.yml` is the enforcement authority.
 
 ## Verification
 
