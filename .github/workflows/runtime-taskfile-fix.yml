@@ -25,6 +25,45 @@ jobs:
         run: uv sync --locked
       - name: Apply runtime-home finalization
         run: python scripts/finalize_runtime_residuals.py
+      - name: Preserve explicit auditor storage roots
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/capture-vrchat/src/vlog_capture/infrastructure/audit_v2.py")
+          text = path.read_text(encoding="utf-8")
+          old = '''        run_id: str | None = None,
+                  run_log: Path | None = None,
+                  trace_log: Path | None = None,
+              ) -> None:
+                  directories = runtime_directories()
+                  self.run_id = run_id
+                  self.run_log = run_log or directories.state / "daily_runs.jsonl"
+                  self.trace_log = trace_log or directories.state / "traces.jsonl"'''
+          new = '''        run_id: str | None = None,
+                  run_log: Path | None = None,
+                  trace_log: Path | None = None,
+                  sync_report_dir: Path | None = None,
+              ) -> None:
+                  directories = runtime_directories()
+                  self.run_id = run_id
+                  self.run_log = run_log or directories.state / "daily_runs.jsonl"
+                  self.trace_log = trace_log or directories.state / "traces.jsonl"
+                  self.sync_report_dir = sync_report_dir or (
+                      run_log.parent / "sync_reports"
+                      if run_log is not None
+                      else directories.state / "sync_reports"
+                  )'''
+          if old not in text:
+              raise SystemExit("audit constructor fragment not found")
+          text = text.replace(old, new, 1)
+          old = '        path = runtime_directories().state / "sync_reports" / f"{run_id}.json"'
+          new = '        path = self.sync_report_dir / f"{run_id}.json"'
+          if old not in text:
+              raise SystemExit("audit sync-report fragment not found")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
       - name: Remove temporary finalizer
         run: git rm .github/workflows/runtime-taskfile-fix.yml scripts/finalize_runtime_residuals.py
       - name: Normalize and verify repository contracts
