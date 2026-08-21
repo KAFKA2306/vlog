@@ -1,17 +1,3 @@
----
-codd:
-  node_id: "req:adr-0001"
-  type: adr
-  status: approved
-  links:
-    - to: Taskfile.yaml
-      type: implementation
-    - to: AGENTS.md
-      type: reference
-    - evidence: "task lint PASS (Trace: uv run ruff check src && uv run ruff format src)"
-      type: verification
----
-
 # ADR 1: Implement Harness Engineering
 
 ## Audit note (2026-08-04)
