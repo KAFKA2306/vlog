@@ -104,6 +104,8 @@ jobs:
           grep -Fq '## 5. 動作保証' docs/SPEC.md
           grep -Fq 'physical path is not authority' docs/architecture/portability.md
           grep -Fq 'https://kaflog.vercel.app' .github/workflows/production-smoke.yml
+          grep -Fq 'only the default branch and same-repository open-PR heads may persist' .github/workflows/branch-lifecycle.yml
+          grep -Fq 'closed PR heads and orphan branches are deleted' .github/workflows/branch-lifecycle.yml
           uv run --no-sync python scripts/check_portable_paths.py
           uv run --no-sync python scripts/check_runtime_contract.py
           test ! -e .github/workflows/weekly-repo-research.yml
