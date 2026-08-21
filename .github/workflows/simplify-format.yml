@@ -1,0 +1,37 @@
+name: Simplify Formatter
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.head_ref == 'refactor/simplify-control-plane'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: '0.12.5'
+      - run: uv sync --locked
+      - name: Normalize Python
+        run: |
+          uv run --no-sync ruff check --fix apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+          uv run --no-sync ruff format apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+      - name: Remove formatter and push
+        run: |
+          git rm .github/workflows/simplify-format.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m 'style: apply repository formatter'
+          git push origin HEAD:${{ github.head_ref }}
