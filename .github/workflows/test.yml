@@ -55,6 +55,28 @@ jobs:
           }
           if ($failed) { exit 1 }
 
+  devcontainer:
+    name: Dev Container (Linux tooling)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build fresh Dev Container and run portable gates
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            uv sync --locked
+            uv run --no-sync python scripts/check_portable_paths.py
+            uv run --no-sync python scripts/check_runtime_contract.py
+            uv run --no-sync ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+            uv run --no-sync pytest -q
+            cd apps/reader
+            bun install --frozen-lockfile
+            bun run test
+            bun run typecheck
+            bun run lint
+            bun run build
+
   python:
     runs-on: ubuntu-latest
     env:
