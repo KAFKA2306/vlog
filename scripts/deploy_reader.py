@@ -17,6 +17,7 @@ READER = ROOT / "apps" / "reader"
 DEFAULT_PROJECT_ID = "prj_t52LlD6qx3zdzdgOqBomZBfzzwb6"
 DEFAULT_TEAM_ID = "team_WAiNUdK4pWv6eK8LxnaVY1mC"
 DEFAULT_HEALTH_URL = "https://kaflog.vercel.app/api/health"
+VERCEL_CLI_VERSION = "59.1.4"
 
 
 def git(*args: str) -> str:
@@ -42,30 +43,70 @@ def release_identity() -> tuple[str, str]:
     return sha, ref
 
 
-def deploy(sha: str, ref: str) -> None:
+def vercel_env() -> dict[str, str]:
     env = dict(os.environ)
+    token = env.get("VERCEL_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("VERCEL_TOKEN is required for non-interactive production deploy")
     env.setdefault("VERCEL_PROJECT_ID", DEFAULT_PROJECT_ID)
     env.setdefault("VERCEL_ORG_ID", DEFAULT_TEAM_ID)
-    command = [
+    if env["VERCEL_PROJECT_ID"] != DEFAULT_PROJECT_ID:
+        raise RuntimeError(
+            "refusing to deploy to unexpected VERCEL_PROJECT_ID="
+            f"{env['VERCEL_PROJECT_ID']!r}"
+        )
+    if env["VERCEL_ORG_ID"] != DEFAULT_TEAM_ID:
+        raise RuntimeError(
+            f"refusing to deploy to unexpected VERCEL_ORG_ID={env['VERCEL_ORG_ID']!r}"
+        )
+    return env
+
+
+def vercel_command(*args: str, token: str) -> list[str]:
+    return [
         "bunx",
-        "vercel",
-        "deploy",
-        "--prod",
-        "--yes",
-        "--cwd",
-        str(READER),
-        "--project",
-        env["VERCEL_PROJECT_ID"],
-        "--env",
-        f"VLOG_DEPLOY_GIT_SHA={sha}",
-        "--env",
-        f"VLOG_DEPLOY_GIT_REF={ref}",
-        "--meta",
-        f"gitCommitSha={sha}",
-        "--meta",
-        f"gitCommitRef={ref}",
+        f"vercel@{VERCEL_CLI_VERSION}",
+        *args,
+        "--token",
+        token,
     ]
-    subprocess.run(command, cwd=ROOT, env=env, check=True)
+
+
+def deploy(sha: str, ref: str) -> None:
+    env = vercel_env()
+    token = env["VERCEL_TOKEN"]
+
+    subprocess.run(
+        vercel_command(
+            "pull",
+            "--yes",
+            "--environment=production",
+            token=token,
+        ),
+        cwd=READER,
+        env=env,
+        check=True,
+    )
+
+    subprocess.run(
+        vercel_command(
+            "deploy",
+            "--prod",
+            "--yes",
+            "--env",
+            f"VLOG_DEPLOY_GIT_SHA={sha}",
+            "--env",
+            f"VLOG_DEPLOY_GIT_REF={ref}",
+            "--meta",
+            f"gitCommitSha={sha}",
+            "--meta",
+            f"gitCommitRef={ref}",
+            token=token,
+        ),
+        cwd=READER,
+        env=env,
+        check=True,
+    )
 
 
 def health(url: str) -> dict[str, object]:
@@ -75,7 +116,7 @@ def health(url: str) -> dict[str, object]:
         return json.loads(response.read().decode("utf-8"))
 
 
-def verify_production(sha: str, ref: str, url: str, attempts: int = 12) -> None:
+def verify_production(sha: str, ref: str, url: str, attempts: int = 24) -> None:
     last: dict[str, object] | None = None
     for _ in range(attempts):
         try:
