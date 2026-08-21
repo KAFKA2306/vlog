@@ -52,8 +52,7 @@ def vercel_env() -> dict[str, str]:
     env.setdefault("VERCEL_ORG_ID", DEFAULT_TEAM_ID)
     if env["VERCEL_PROJECT_ID"] != DEFAULT_PROJECT_ID:
         raise RuntimeError(
-            "refusing to deploy to unexpected VERCEL_PROJECT_ID="
-            f"{env['VERCEL_PROJECT_ID']!r}"
+            f"refusing to deploy to unexpected VERCEL_PROJECT_ID={env['VERCEL_PROJECT_ID']!r}"
         )
     if env["VERCEL_ORG_ID"] != DEFAULT_TEAM_ID:
         raise RuntimeError(
