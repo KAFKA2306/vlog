@@ -34,7 +34,7 @@ Generic tutorial、theme library、communication template、unrelated language-m
 - Retained MarkdownはH1とdefined purposeを持つ。
 - Repository-relative Markdown linkを使用し、targetが存在することを確認する。
 - Frontmatter内のrepository pathもcurrent treeと一致させる。
-- Personal home path、drive-specific path、`file://` link、secretを残さない。
+- Personal home path、drive-specific path、local file-scheme link、secretを残さない。
 - Volatile dependency version、task inventory、temporary service statusを複製しない。
 - Component READMEは上位system specificationを再記述しない。
 - Agent fileはcanonical docsへrouteし、parallel specificationを作らない。
