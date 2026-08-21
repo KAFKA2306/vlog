@@ -31,8 +31,31 @@ FORBIDDEN = {
 }
 
 
+def exported_runtime_files() -> list[str]:
+    """Enumerate only source-owned runtime files when `.git` is unavailable."""
+
+    files = [relative for relative in RUNTIME_FILES if (ROOT / relative).is_file()]
+    for prefix in RUNTIME_PREFIXES:
+        directory = ROOT / prefix
+        if not directory.is_dir():
+            continue
+        files.extend(
+            path.relative_to(ROOT).as_posix()
+            for path in directory.rglob("*")
+            if path.is_file()
+        )
+    return sorted(set(files))
+
+
 def tracked_files() -> list[str]:
-    raw = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT)
+    try:
+        raw = subprocess.check_output(
+            ["git", "ls-files", "-z"],
+            cwd=ROOT,
+            stderr=subprocess.DEVNULL,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return exported_runtime_files()
     return [item.decode("utf-8") for item in raw.split(b"\0") if item]
 
 
