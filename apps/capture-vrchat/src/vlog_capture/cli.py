@@ -1,10 +1,7 @@
 import argparse
 
-from dotenv import load_dotenv
-
 
 def main() -> None:
-    load_dotenv()
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -18,6 +15,7 @@ def main() -> None:
         cmd_manga,
         cmd_pending,
         cmd_process,
+        cmd_record,
         cmd_summarize,
         cmd_transcribe,
     )
@@ -28,8 +26,10 @@ def main() -> None:
     p_process.add_argument("--sync", action="store_true", default=True)
     p_process.add_argument("--no-sync", dest="sync", action="store_false")
 
+    subparsers.add_parser("record", help="Record audio until interrupted")
+
     p_novel = subparsers.add_parser("novel", help="Generate novel chapter")
-    p_novel.add_argument("--date", required=True, help="Target date (YYYYMMDD)")
+    p_novel.add_argument("--date", help="Target date (YYYYMMDD); defaults to today")
     p_novel.add_argument("--out", help="Output filename")
 
     subparsers.add_parser("sync", help="Strictly sync data to Supabase")
@@ -95,6 +95,8 @@ def main() -> None:
         cmd_process(args)
         if requested_sync:
             cmd_sync(args)
+    elif args.command == "record":
+        cmd_record(args)
     elif args.command == "novel":
         cmd_novel(args)
     elif args.command == "sync":
