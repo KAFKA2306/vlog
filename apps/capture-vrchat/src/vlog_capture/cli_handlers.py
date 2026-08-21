@@ -171,9 +171,7 @@ def _cmd_daily_logic(args: object) -> None:
 
     if plan.counts.novel_days_pending > 0:
         evaluator = EvaluateDailyContentUseCase()
-        for date_str in _collect_pending_evaluation_dates(
-            limit=plan.next_action_limit
-        ):
+        for date_str in _collect_pending_evaluation_dates(limit=plan.next_action_limit):
             evaluator.execute(date_str, sync=False)
 
     _run_daily_postprocessing()
@@ -205,9 +203,7 @@ def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
-    _harness_run(
-        "pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args, sync=False
-    )
+    _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args, sync=False)
     _cmd_strict_sync(args)
 
 
@@ -252,9 +248,7 @@ def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
     summarizer = Summarizer()
     for date_str in dates:
         files = manager.summary_sources_for_date(date_str)
-        manager.refresh_summary(
-            date_str, summarizer, file_repo, source_paths=files
-        )
+        manager.refresh_summary(date_str, summarizer, file_repo, source_paths=files)
 
     import time
 

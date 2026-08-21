@@ -56,9 +56,9 @@ def save_queue(queue_path: Path, queue: dict) -> None:
 
 def get_pending(queue: dict) -> list[dict]:
     batch_size = queue.get("batch_size", 5)
-    return [
-        item for item in queue.get("files", []) if item.get("status") == "pending"
-    ][:batch_size]
+    return [item for item in queue.get("files", []) if item.get("status") == "pending"][
+        :batch_size
+    ]
 
 
 async def ingest_file(summary_dir: Path, file_entry: dict) -> None:

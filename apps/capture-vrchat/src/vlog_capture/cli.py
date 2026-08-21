@@ -89,9 +89,7 @@ def main() -> None:
     p_audit.add_argument("--recent", type=int, default=100)
     p_audit.add_argument("--trace-window-minutes", type=int, default=30)
 
-    p_error = _command(
-        subparsers, "error", "Manage structured error logs", cmd_error
-    )
+    p_error = _command(subparsers, "error", "Manage structured error logs", cmd_error)
     p_error.add_argument("action", choices=["report", "record"])
     p_error.add_argument("--days", type=int, default=30)
     p_error.add_argument("--stage")
