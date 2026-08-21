@@ -36,6 +36,10 @@ PRIVATE_ROOTS = (
     "feedback/",
     "sources/",
 )
+PUBLIC_DATA_FILES = {
+    "data/config.yaml",
+    "data/prompts.yaml",
+}
 RAW_MEDIA_SUFFIXES = {
     ".wav",
     ".flac",
@@ -53,11 +57,15 @@ LEGACY_PATHS = (
     "frontend",
     "windows",
     "supabase",
+    "codd",
+    "bootstrap.bat",
+    "run.bat",
     "vlog.service",
     "vlog-monitor-failure.service",
     "vlog-daily.service",
     "vlog-daily.timer",
     "vlog-daily-failure.service",
+    "apps/capture-vrchat/src/vlog_capture/infrastructure/audit.py",
 )
 RETIRED_MARKDOWN = {
     "docs/DAILY_MONITORING.md",
@@ -174,7 +182,7 @@ def check(root: Path) -> list[Violation]:
     for legacy in LEGACY_PATHS:
         if (root / legacy).exists():
             violations.append(
-                Violation("legacy-boundary", legacy, "legacy root must remain removed")
+                Violation("legacy-boundary", legacy, "legacy path must remain removed")
             )
     for required in REQUIRED_PATHS:
         if not (root / required).exists():
@@ -195,6 +203,14 @@ def check(root: Path) -> list[Violation]:
                     "private-memory-in-public-repo",
                     relative,
                     "private memory belongs in kafka-memory, not vlog",
+                )
+            )
+        if normalized.startswith("data/") and normalized not in PUBLIC_DATA_FILES:
+            violations.append(
+                Violation(
+                    "noncanonical-data-file",
+                    relative,
+                    "public repository data/ is limited to versioned config and prompts",
                 )
             )
         if path.suffix.lower() in RAW_MEDIA_SUFFIXES:
