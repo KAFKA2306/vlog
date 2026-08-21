@@ -18,7 +18,9 @@ def load_existing_queue(queue_path: Path) -> dict:
         return yaml.safe_load(handle) or {}
 
 
-def build_queue(summary_dir: Path | None = None, queue_path: Path | None = None) -> dict:
+def build_queue(
+    summary_dir: Path | None = None, queue_path: Path | None = None
+) -> dict:
     default_summary_dir, default_queue_path = runtime_paths()
     summary_dir = summary_dir or default_summary_dir
     queue_path = queue_path or default_queue_path
