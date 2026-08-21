@@ -6,7 +6,6 @@ from pathlib import PurePosixPath, PureWindowsPath
 from uuid import uuid4
 
 import pytest
-
 from vlog_memory_domain import (
     EvidenceRef,
     IngestionRun,
@@ -99,7 +98,7 @@ def test_evidence_identity_survives_windows_and_wsl_materialization_paths() -> N
     }
 
     windows_materialization = PureWindowsPath(
-        r"D:\VLogData\recordings\session.flac"
+        r"D:\\VLogData\\recordings\\session.flac"
     )
     wsl_materialization = PurePosixPath(
         "/home/kafka/.local/share/VLog/recordings/session.flac"
