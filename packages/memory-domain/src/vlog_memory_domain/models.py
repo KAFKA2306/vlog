@@ -25,9 +25,7 @@ def _validate_aware(value: datetime, field_name: str) -> None:
 
 
 def _validate_sha256(value: str, field_name: str) -> None:
-    if len(value) != 64 or any(
-        ch not in "0123456789abcdef" for ch in value.lower()
-    ):
+    if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value.lower()):
         raise ValueError(f"{field_name} must be a 64-character hexadecimal digest")
 
 
