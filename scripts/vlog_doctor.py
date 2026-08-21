@@ -80,7 +80,9 @@ def tool(name: str) -> dict[str, str | None]:
                 text=True,
                 timeout=5,
             )
-            version = result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
+            version = (
+                result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
+            )
         except (OSError, subprocess.TimeoutExpired):
             version = None
     return {"path": path, "version": version}
@@ -247,8 +249,12 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
-    parser.add_argument("--redact", action="store_true", help="replace the user home in paths")
+    parser.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    parser.add_argument(
+        "--redact", action="store_true", help="replace the user home in paths"
+    )
     parser.add_argument(
         "--strict",
         action="store_true",
