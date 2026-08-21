@@ -1,3 +1,4 @@
+# Temporary self-deleting normalization workflow.
 name: Retire CoDD residue
 
 on:
