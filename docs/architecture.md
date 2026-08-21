@@ -4,120 +4,121 @@ codd:
   type: spec
   status: approved
   links:
-    - to: apps/capture-vrchat/src/main.py
+    - to: apps/capture-vrchat/src/vlog_capture/main.py
       type: implementation
-    - to: apps/capture-vrchat/src/app.py
+    - to: apps/capture-vrchat/src/vlog_capture/app.py
       type: implementation
 ---
 
 # Current runtime architecture
 
-This document describes the executable, legacy-compatible runtime after its relocation into the Human Memory v2 repository boundaries. It does not describe the target canonical persistence model; see [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md).
+この文書は現在実行可能なlegacy-compatible runtimeを記述します。製品不変条件とverification contractは[`SPEC.md`](SPEC.md)、Human Memory v2のtarget persistenceは[`architecture/human-memory-v2.md`](architecture/human-memory-v2.md)を正準とします。
 
 ## Runtime flow
 
 ```mermaid
 flowchart LR
     V[VRChat process] --> C[apps/capture-vrchat]
-    C --> R[data/recordings]
-    R --> T[data/transcripts]
-    T --> S[data/summaries]
-    S --> N[data/novels and data/photos]
-    S --> DB[current Supabase schema]
-    N --> DB
+    C --> E[local Evidence / runtime state]
+    E --> T[transcription]
+    T --> G[narrative / image generation]
+    G --> DB[current Supabase projection]
     DB --> W[apps/reader]
-    C --> O[data/error_events.jsonl and heartbeats]
+    C --> O[operational events / heartbeats]
 ```
 
-The current pipeline uses local directories and date-based filenames to identify work. Existing artifacts are reused and missing artifacts are generated. This is preserved behavior during migration, not the v2 state model.
+現在のpipelineはlocal artifactと既存artifactの有無を利用してpending workを判断します。これはmigration中に維持しているbehaviorであり、Human Memory v2の最終state modelではありません。machine-local pathの扱いは[`architecture/portability.md`](architecture/portability.md)に従います。
 
 ## Deployable boundaries
 
-| Boundary | Responsibility | Status |
+| Boundary | Responsibility | Repository state |
 |---|---|---|
-| `apps/capture-vrchat/` | VRChat detection, audio capture, transcription, generation, synchronization, and operational commands | implemented |
-| `apps/reader/` | Next.js reader over the current Supabase projection | implemented |
-| `apps/api/` | future HTTP boundary over canonical memory | reserved |
-| `apps/mcp/` | future read-first memory tools | reserved |
+| `apps/capture-vrchat/` | VRChat observation、audio capture、transcription、generation、sync、operations | implemented |
+| `apps/reader/` | current Supabase projectionを読むNext.js Reader | implemented |
+| `apps/api/` | canonical memory向けHTTP boundary | reserved |
+| `apps/mcp/` | read-first memory tool boundary | reserved |
 
-The Python package remains named `src`. The repository sets `PYTHONPATH` to `apps/capture-vrchat` through `Taskfile.yaml`, CI, systemd rendering, and Windows launch assets.
+## Python runtime boundary
 
-## Internal dependency direction
-
-The relocated application retains its current domain/use-case/infrastructure organization:
+capture applicationはuv workspace上のinstallable package `vlog_capture`です。実行はmanifestで定義したconsole entry pointを使います。
 
 ```text
-application entry points
-        ↓
+vlog             -> vlog_capture.cli:main
+vlog-service     -> vlog_capture.main:main
+vlog-daily       -> vlog_capture.daily:main
+vlog-operations  -> vlog_capture.operations:main
+```
+
+Runtime用`PYTHONPATH`や`python -m src...`を前提にしません。package、entry point、Python versionの正準は`pyproject.toml`と`apps/capture-vrchat/pyproject.toml`です。
+
+## Dependency direction
+
+Current application内部は次の責務分離を維持します。
+
+```text
+entry points
+    ↓
 use cases -> domain protocols <- infrastructure implementations
 ```
 
-The v2 reusable packages follow the stricter repository rule:
+Human Memory v2向けreusable packagesでは次を守ります。
 
 ```text
 apps -> packages -> protocols <- adapters
 ```
 
-Packages must not import applications. Domain models must not depend on Supabase, Graphiti, Cognee, Qdrant, model SDKs, Next.js, systemd, or Windows APIs.
+Domain modelはSupabase、Graphiti、Cognee、Qdrant、model SDK、Next.js、systemd、Windows APIへ直接依存させません。
 
 ## Current processing state
 
-The existing daily pipeline determines work from:
+現在のdaily pipelineは、local recording / transcript / generated artifactと既存Supabase projectionを利用して処理対象を決定します。stable IDs、content hash、explicit ingestion run、`source_hash + pipeline_version` idempotency、transactional outboxへ置換されるまではlegacy-compatible stateとして扱います。
 
-- recording, transcript, summary, novel, image, and evaluation files;
-- dates encoded in filenames;
-- the presence or absence of corresponding artifacts;
-- current synchronization behavior against the existing Supabase schema.
-
-This state mechanism will remain until Phase 3 introduces canonical IDs, ingestion runs, `source_hash + pipeline_version` idempotency, and an outbox. It must not be presented as the final Human Memory v2 design.
+具体的なscheduled execution contractは[`daily_pipeline_contract.md`](daily_pipeline_contract.md)を参照してください。
 
 ## Runtime supervision
 
-### Linux and WSL
+### Linux / WSL
 
-`infra/systemd/` contains templates rendered with the active repository root and Python path. Repository validation is performed with:
+`infra/systemd/`にはportable templateとrendererがあります。
 
 ```bash
 task systemd:verify
-```
-
-Installation and startup require a working user systemd environment:
-
-```bash
 task systemd:install
 ```
 
-A successful template render or `systemd-analyze --user verify` does not prove that the production user manager, timer, service, audio device, GPU, or credentials are operational.
+Template validationは、実hostのuser systemd、timer、audio、GPU、credentialが動作することを証明しません。
 
 ### Windows
 
-`infra/windows/` contains bootstrap, Task Scheduler, launcher, and watchdog assets. Static repository checks do not prove Task Scheduler registration, WSL startup, audio capture, or watchdog recovery on the actual Windows host.
+`infra/windows/`にはbootstrap、Task Scheduler、launcher、watchdog assetsがあります。repository checkだけでTask Scheduler登録、WSL startup、audio capture、watchdog recoveryをenvironment-verifiedとはしません。
 
 ### Reader
 
-The application root is `apps/reader/`. Local repository validation is:
+Reader rootは`apps/reader/`です。
 
 ```bash
 task web:build
 ```
 
-Vercel must be configured with `apps/reader` as its Root Directory before the deployment cutover is considered complete.
+Local build成功とVercel productionのavailability / release provenanceは別のverification layerです。詳細は[`SPEC.md`](SPEC.md)を参照してください。
 
 ## Data and privacy boundary
 
-The current runtime may still read and write machine-local `data/` artifacts and the existing Supabase projection. Human Memory v2 requires:
+Current runtimeにはmigration中のlocal Evidence / artifact stateとexisting Supabase projectionが残ります。Human Memory v2 targetでは次を分離します。
 
-- raw evidence bytes in private object storage;
-- canonical metadata, revisions, ingestion state, outbox events, and publication decisions in PostgreSQL/Supabase;
-- reviewed journal and memory views in a private repository;
-- public output only after an explicit publication decision.
+- raw Evidence bytes: private object storage
+- canonical metadata / revisions / ingestion / publication state: PostgreSQL / Supabase
+- reviewed human-maintained memory view: private memory repository
+- public output: explicit publication decisionを通過したprojection
 
-No current generated summary, novel, image, graph, or vector index is authoritative memory.
+生成summary、novel、image、graph、vector indexは、それだけではauthoritative memoryではありません。
 
 ## Related documents
 
+- [Product specification and guarantees](SPEC.md)
 - [Documentation index](README.md)
-- [Product overview and status](overview.md)
+- [Product overview](overview.md)
 - [Human Memory v2 target architecture](architecture/human-memory-v2.md)
+- [Cross-platform portability](architecture/portability.md)
 - [Current daily pipeline contract](daily_pipeline_contract.md)
 - [Operations](OPERATIONS.md)

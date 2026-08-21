@@ -1,13 +1,13 @@
 # Current daily pipeline contract
 
-Status: implemented in repository, environment verification required  
+Status: implemented in repository; environment verification required  
 Architecture class: legacy-compatible runtime
 
 ## Purpose
 
-The daily pipeline advances unprocessed local recordings through the current file-based generation and synchronization flow. It exists to preserve present behavior while Human Memory v2 canonical persistence is being built.
+Daily pipelineは未処理のlocal recordingsを現在のgeneration / synchronization flowへ進めます。Human Memory v2 canonical persistenceへ移行中も、現行behaviorを維持するためのcontractです。
 
-This contract is not the target state model. Date-based filenames, artifact existence checks, directory scans, and the current Supabase synchronization path are scheduled for replacement by stable IDs, explicit ingestion runs, idempotency records, and an outbox in Phase 3.
+Date-based artifactやexisting-output checkはtarget state modelではありません。stable IDs、explicit ingestion runs、idempotency records、outboxへ置換されるまではlegacy-compatible behaviorとして扱います。
 
 ## Execution contract
 
@@ -15,39 +15,42 @@ This contract is not the target state model. Date-based filenames, artifact exis
 |---|---|
 | Scheduler | `vlog-daily.timer` starts `vlog-daily.service` |
 | Timer source | `infra/systemd/vlog-daily.timer.in` |
-| Schedule | 09:00 in the host's configured local timezone; production expects Asia/Tokyo |
-| Missed run | `Persistent=true` requests a catch-up after the timer becomes available |
-| Entry point | `task process:daily` |
-| Preconditions | repository root, `.env`, locked dependencies, required local directories, and any required audio/GPU/network services are available |
-| Repository success | the command exits with status 0 and repository validation passes |
-| Environment success | the actual service run exits 0, journal evidence exists, and expected outputs and downstream state are verified |
-| Failure | a required command exits non-zero and the failure unit records and reports the event |
+| Schedule | host local time 09:00。productionはAsia/Tokyoを期待 |
+| Missed run | `Persistent=true`によりtimer復帰後のcatch-upを要求 |
+| Repository entry point | `task process:daily` |
+| Runtime console entry point | `vlog-daily` |
+| Preconditions | repository、locked dependencies、runtime directories、必要なaudio/GPU/network/credentialが利用可能 |
+| Repository success | commandが0で終了し、該当repository validationが成功 |
+| Environment success | actual service runが0で終了し、journalとexpected outputs/downstream stateを実測 |
+| Failure | required commandがnon-zeroとなり、failure pathがoperational evidenceを残す |
 
-The timer template currently does not embed an explicit timezone. The production host must therefore be configured for the intended timezone or the template must be changed and revalidated before installation.
+Timer templateはtimezoneを埋め込みません。対象hostが意図したtimezoneであることをenvironment側で確認します。
 
 ## Current processing sequence
 
-1. Inspect VRChat state, resource availability, and pending local work.
-2. Avoid heavy processing while VRChat is active.
-3. Transcribe eligible recordings.
-4. Generate missing summaries, novels, images, and evaluations for dates represented by current files.
-5. Process optional projection queues when configured.
-6. Synchronize current artifacts to the existing Supabase projection.
-7. Emit operational evidence and notifications.
+1. VRChat state、resource availability、pending local workを確認する。
+2. VRChat active中はheavy processingを避ける。
+3. eligible recordingをtranscribeする。
+4. current pipelineが必要とするmissing narrative / image / evaluation artifactsを生成する。
+5. configured projection queueを処理する。
+6. selected artifactsをexisting Supabase projectionへsyncする。
+7. operational evidenceとnotificationを記録する。
 
-The concrete implementation is authoritative when it differs from this summary. Relevant entry points are `Taskfile.yaml`, `apps/capture-vrchat/src/cli.py`, and `apps/capture-vrchat/src/daily.py`.
+Concrete implementationがこの要約と異なる場合はimplementationを優先します。主要entry pointは[`Taskfile.yaml`](../Taskfile.yaml)、`apps/capture-vrchat/src/vlog_capture/cli.py`、`apps/capture-vrchat/src/vlog_capture/daily.py`です。
 
 ## Current data contract
 
+物理directory名はportable runtime resolverとconfigurationに従うため、このcontractでは固定しません。論理的なflowは次です。
+
 | Input | Current output |
 |---|---|
-| `data/recordings/` audio | `data/transcripts/` text |
-| transcript text | `data/summaries/` summary text |
-| summaries | `data/novels/`, `data/photos/`, and evaluation artifacts |
-| selected local artifacts | existing Supabase tables and Storage projections |
-| runtime operations | structured local events, heartbeats, journal entries, and brief notifications |
+| recording Evidence | transcript |
+| transcript | summary / structured derived data |
+| summaries / derived data | narrative、image、evaluation artifacts |
+| selected artifacts | existing Supabase projection |
+| runtime operation | structured events、heartbeats、journal、brief notifications |
 
-Existing outputs may be reused and only missing artifacts generated. That behavior is compatible with the current runtime but does not provide the final v2 guarantees for stable identity, complete provenance, concurrent ingestion, or exact-once outbox delivery.
+Existing outputを再利用しmissing artifactだけ生成するbehaviorは、stable identity、complete provenance、concurrent ingestion、transactional outboxの最終保証ではありません。
 
 ## Operations
 
@@ -59,42 +62,35 @@ task logs
 task down
 ```
 
-`task systemd:verify` validates rendered unit syntax. `task systemd:install` modifies the user systemd environment and must be followed by live status and journal checks.
+`task systemd:verify`はrendered unit syntaxを検証します。`task systemd:install`後はactual user manager、timer、journalを別途確認します。
 
 ## Completion evidence
 
 Repository evidence:
 
-1. Python compile, Ruff check, and Ruff format-check succeed in CI.
-2. `task test` succeeds.
-3. `task doc:check` succeeds.
-4. `task systemd:verify` succeeds.
+1. Python / runtime contract checksが成功する。
+2. `task test`が成功する。
+3. `task doc:check`が成功する。
+4. `task systemd:verify`が成功する。
 
 Environment evidence:
 
-1. the installed timer shows the intended next trigger time and timezone behavior;
-2. `journalctl --user -u vlog-daily.service` records the actual run and exit status;
-3. expected pending counts decrease without losing source files;
-4. resulting artifacts are non-empty and traceable to their current inputs;
-5. Supabase synchronization is verified against live rows, objects, and policy behavior;
-6. failure notifications and recovery evidence are tested without exposing private data.
+1. installed timerのnext triggerとtimezone behaviorを確認する;
+2. `journalctl --user -u vlog-daily.service`でactual runとexit statusを確認する;
+3. source Evidenceを失わずpending workが進むことを確認する;
+4. outputがnon-emptyでcurrent inputへtraceできることを確認する;
+5. Supabase syncをlive rows / objects / policy behaviorで確認する;
+6. failure notificationとrecovery evidenceをprivate dataを露出せず確認する。
 
-GitHub CI alone cannot satisfy the environment evidence.
+GitHub CIだけではenvironment evidenceを満たしません。
 
 ## Replacement criteria
 
-This contract can be retired only after Phase 3 and migration reconciliation establish:
-
-- stable UUIDs for source objects, episodes, and artifacts;
-- `source_hash + pipeline_version` idempotency;
-- explicit ingestion-run state;
-- canonical PostgreSQL persistence;
-- transactional outbox delivery;
-- append-only revisions and provenance;
-- complete reconciliation with legacy files and current Supabase data.
+このcontractは、canonical ingestionへ移行してlegacy flowとのreconciliationが完了した後だけretireできます。target criteriaは[`architecture/human-memory-v2.md`](architecture/human-memory-v2.md)を正準とし、ここへphase statusを複製しません。
 
 ## Related documents
 
+- [Product specification and guarantees](SPEC.md)
 - [Current runtime architecture](architecture.md)
 - [Human Memory v2 architecture](architecture/human-memory-v2.md)
 - [Operations](OPERATIONS.md)

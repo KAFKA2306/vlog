@@ -1,14 +1,16 @@
-# VRChat capture runtime
+# VRChat capture source tree
 
-## Boundaries
+`src/` is the Python source-layout directory. The import package is [`vlog_capture/`](vlog_capture/).
 
-- `domain/`: entities and protocols without provider dependencies.
-- `use_cases/`: orchestration of capture, processing, generation, evaluation, and publication checks.
-- `infrastructure/`: audio, AI, storage, system, settings, and observability adapters.
-- `cli.py` and `cli_handlers.py`: command-line wiring.
-- `daily.py`: current scheduled orchestration.
-- `operations.py`: diagnosis and operational reporting.
+## Package boundaries
 
-Runtime values come from `data/config.yaml`, environment variables, and settings defaults. Do not duplicate them in this README.
+- `vlog_capture/domain/`: provider-independent entities and protocols.
+- `vlog_capture/use_cases/`: capture, processing, generation, evaluation, and publication orchestration.
+- `vlog_capture/infrastructure/`: audio, AI, storage, system, settings, and observability adapters.
+- `vlog_capture/cli.py` and `vlog_capture/cli_handlers.py`: command-line wiring.
+- `vlog_capture/daily.py`: scheduled orchestration.
+- `vlog_capture/operations.py`: diagnosis and operational reporting.
 
-The current application still uses date/file-based state and local artifact directories. Those are legacy-compatible mechanisms scheduled for replacement by canonical IDs, ingestion runs, and outbox state. See [current architecture](../../../docs/architecture.md).
+Runtime values come from configuration, environment, and portability-aware settings. Do not duplicate volatile values in this README.
+
+The current application still includes legacy-compatible file/artifact state while Human Memory v2 canonical ingestion is being built. See [current architecture](../../../docs/architecture.md) and [portability contract](../../../docs/architecture/portability.md).

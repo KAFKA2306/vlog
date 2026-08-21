@@ -1,7 +1,15 @@
 # VRChat capture application
 
-This application contains the current Python runtime. Its import package remains named `src` during migration and is made available through `PYTHONPATH` by repository entry points.
+This application contains the current Python capture and processing runtime.
 
-Responsibilities include VRChat process observation, recording, transcription orchestration, current file-based artifact generation, synchronization, and operational evidence. Canonical v2 persistence is not yet implemented.
+The installable package is `vlog_capture`. Package metadata and console entry points are defined in [`pyproject.toml`](pyproject.toml); repository tasks are defined in [`../../Taskfile.yaml`](../../Taskfile.yaml). Runtime `PYTHONPATH` and the former `src` package name are not part of the current execution contract.
 
-Use `Taskfile.yaml` for commands and see [runtime architecture](../../docs/architecture.md).
+Responsibilities:
+
+- VRChat process observation and audio capture;
+- transcription orchestration;
+- current legacy-compatible artifact generation;
+- synchronization to current projections;
+- operational evidence and diagnosis.
+
+Canonical Human Memory v2 persistence is a separate target architecture. See [current runtime architecture](../../docs/architecture.md) and [Human Memory v2 architecture](../../docs/architecture/human-memory-v2.md).
