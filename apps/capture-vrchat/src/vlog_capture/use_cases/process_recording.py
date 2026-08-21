@@ -1,8 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 
-import yaml
-
 from vlog_capture.domain.entities import RecordingSession
 from vlog_capture.domain.interfaces import (
     DailySummarizerProtocol,
@@ -14,11 +12,7 @@ from vlog_capture.domain.interfaces import (
     TranscriptPreprocessorProtocol,
 )
 from vlog_capture.infrastructure.settings import settings
-from vlog_capture.project import PROJECT_ROOT
 from vlog_capture.use_cases.daily_artifacts import DailyArtifactManager
-
-_PROJECT_ROOT = PROJECT_ROOT
-QUEUE_PATH = _PROJECT_ROOT / "data" / "cognee_queue.yaml"
 
 
 class ProcessRecordingUseCase:
@@ -52,10 +46,7 @@ class ProcessRecordingUseCase:
             self._finalize(audio_path)
             return False
 
-        summary_text = self._save_summary(transcript, session)
-        if summary_text:
-            self._update_memory(summary_text, session)
-
+        self._save_summary(transcript, session)
         self._generate_novel_and_photo(session)
         self._finalize(audio_path)
 
@@ -81,14 +72,11 @@ class ProcessRecordingUseCase:
 
         if transcripts_info:
             _, first_path = transcripts_info[0]
-            p = Path(first_path)
-            cleaned_path = p.with_name(f"cleaned_{p.name}")
+            path = Path(first_path)
+            cleaned_path = path.with_name(f"cleaned_{path.name}")
             self._files.save_text(str(cleaned_path), cleaned)
 
-        summary_text = self._save_summary(cleaned, session)
-        if summary_text:
-            self._update_memory(summary_text, session)
-
+        self._save_summary(cleaned, session)
         self._generate_novel_and_photo(session)
 
         for audio_path in session.file_paths:
@@ -109,7 +97,6 @@ class ProcessRecordingUseCase:
         self._transcriber.unload()
 
         cleaned = self._preprocessor.process(transcript)
-
         if len(cleaned.encode("utf-8")) <= settings.min_transcript_size_bytes:
             print(f"Transcript too short ({len(cleaned.encode('utf-8'))}B), skipping.")
             return None
@@ -120,10 +107,10 @@ class ProcessRecordingUseCase:
         self._files.save_text(cleaned_path, cleaned)
         return cleaned
 
-    def _save_summary(self, transcript: str, session: RecordingSession) -> str | None:
+    def _save_summary(self, transcript: str, session: RecordingSession) -> None:
         target_date = session.start_time.strftime("%Y%m%d")
         source_paths = self._daily_artifacts.summary_sources_for_date(target_date)
-        return self._daily_artifacts.refresh_summary(
+        self._daily_artifacts.refresh_summary(
             target_date,
             self._summarizer,
             self._files,
@@ -131,27 +118,6 @@ class ProcessRecordingUseCase:
             session=session,
             fallback_text=transcript,
         )
-
-    def _update_memory(self, summary_text: str, session: RecordingSession) -> None:
-        target_date = session.start_time.strftime("%Y%m%d")
-        summary_name = f"{target_date}_summary.txt"
-
-        if not QUEUE_PATH.exists():
-            return
-
-        queue = yaml.safe_load(QUEUE_PATH.read_text(encoding="utf-8"))
-        known = {f["name"] for f in queue.get("files", [])}
-        if summary_name not in known:
-            queue.setdefault("files", []).append(
-                {"name": summary_name, "status": "pending", "error": None}
-            )
-            content = yaml.dump(
-                queue,
-                allow_unicode=True,
-                default_flow_style=False,
-                sort_keys=False,
-            )
-            QUEUE_PATH.write_text(content, encoding="utf-8")
 
     def _generate_novel_and_photo(self, session: RecordingSession) -> None:
         if not (self._novelizer and self._image_generator):

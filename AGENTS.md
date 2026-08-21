@@ -16,33 +16,31 @@ The complete documentation map is [docs/README.md](docs/README.md). Agent-specif
 
 ## Repository boundaries
 
-- `apps/`: deployable capture, reader, API, and MCP entry points.
+- `apps/`: deployable applications and runtime entry points.
 - `packages/`: storage-agnostic domain capabilities.
 - `adapters/`: persistence, storage, graph, and external integrations.
 - `infra/`: Supabase, systemd, and Windows assets.
 - `schemas/`: versioned interchange contracts.
-- `docs/`: specification, architecture, contracts, ADRs, operations, and incidents.
+- `docs/`: specification, architecture, operations, and decisions.
 
-Capture runtime is the installable `vlog_capture` package under `apps/capture-vrchat/`. Use the manifest-defined `vlog`, `vlog-service`, `vlog-daily`, and `vlog-operations` console entry points. Do not reintroduce runtime `PYTHONPATH`, `python -m src...`, or retired top-level runtime/infrastructure directories.
+Capture runtime is the installable `vlog_capture` package. Use manifest-defined console entry points; do not reintroduce runtime `PYTHONPATH`, `python -m src...`, or retired top-level runtime directories.
 
 ## Data and privacy
 
-- Raw audio, photos, video, full transcripts, and source documents belong in private storage.
-- Reviewed journals, corrections, relationships, preferences, and long-lived personal memory views do not belong in this public repository.
+- Raw Evidence and private memory belong in private storage, not this public repository.
 - AI output is a candidate derived view, not accepted memory or a publication decision.
-- Accepted memory claims require provenance to source Evidence.
-- Graph/vector systems are rebuildable projections, not canonical memory.
-- Structural migration must not delete or move Evidence before inventory, backup, and reconciliation.
+- Accepted claims require provenance to source Evidence.
+- Graph/vector systems are rebuildable projections, never canonical memory.
+- Structural migration must not move or delete Evidence before inventory, backup, and reconciliation.
 
 ## Change discipline
 
-- Inspect current implementation and the intended diff before modifying a contract.
-- Update the existing authority instead of creating another Markdown specification.
-- Do not duplicate dependency versions, Python requirements, task inventories, model IDs, or temporary service status in docs.
-- Use repository-relative Markdown links and portable paths.
-- Separate implemented-in-repository, CI-verified, and environment-verified claims.
-- Do not change model identifiers without explicit user instruction; inspect current configuration and consuming code first.
+- Inspect current implementation before changing a contract.
+- Update one existing authority instead of creating parallel specifications or aliases.
+- Prefer fewer entry points: `vlog` for product operations, `vlog-operations` for operational diagnosis, `task` for repository orchestration.
+- Do not duplicate versions, requirements, task inventories, model IDs, or volatile service status in Markdown.
 - Preserve useful tests, error context, timeouts, and boundary-specific exception handling.
+- Separate repository/CI verification from actual environment verification.
 
 ## Branch lifecycle
 
@@ -53,14 +51,10 @@ Capture runtime is the installable `vlog_capture` package under `apps/capture-vr
 
 ## Verification
 
-Run checks relevant to the changed boundaries:
+Run the canonical repository gate:
 
 ```bash
-task lint
-task test
-task doc:check
-task systemd:verify
-task web:build
+task verify
 ```
 
-`task lint` may modify files, so review its diff. GitHub CI does not prove live systemd, Windows Task Scheduler, Vercel, Supabase, private storage, audio, or GPU behavior.
+Use focused tasks while iterating. `task lint` is read-only; `task format` modifies Python files. CI does not prove live systemd, Windows Task Scheduler, Vercel, Supabase, private storage, audio, or GPU behavior.

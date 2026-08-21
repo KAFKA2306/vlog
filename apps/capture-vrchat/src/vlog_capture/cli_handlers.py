@@ -1,13 +1,10 @@
 import argparse
 import asyncio
-import json
 import re
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from vlog_capture.domain.audit import AuditState
 from vlog_capture.domain.error_events import ErrorEvent, ErrorKind, ErrorStage
 from vlog_capture.domain.harness import TaskWeight
 from vlog_capture.infrastructure.ai import (
@@ -16,7 +13,6 @@ from vlog_capture.infrastructure.ai import (
     Novelizer,
     Summarizer,
 )
-from vlog_capture.infrastructure.audit import StrictAuditor
 from vlog_capture.infrastructure.daily_state import DailyStateStore
 from vlog_capture.infrastructure.error_log import ErrorLogRepository
 from vlog_capture.infrastructure.graph_storage import GraphStorage
@@ -29,11 +25,11 @@ from vlog_capture.infrastructure.repositories import (
 from vlog_capture.infrastructure.settings import settings
 from vlog_capture.infrastructure.system import (
     AudioRecorder,
-    ProcessMonitor,
     Transcriber,
     TranscriptPreprocessor,
 )
 from vlog_capture.portability import runtime_directories
+from vlog_capture.secure_handlers import cmd_sync as _cmd_strict_sync
 from vlog_capture.use_cases.build_novel import BuildNovelUseCase
 from vlog_capture.use_cases.daily_artifacts import DailyArtifactManager
 from vlog_capture.use_cases.daily_workload import (
@@ -48,15 +44,6 @@ def _harness_run(
     task_name: str, weight: TaskWeight, func: Any, *args: Any, **kwargs: Any
 ) -> Any:
     return ZeroTrustHarness().run(task_name, weight, func, *args, **kwargs)
-
-
-def _guard_vrc_running() -> None:
-    safe, reason = ZeroTrustHarness().guard.check_safety(TaskWeight.HEAVY)
-    if not safe:
-        print(f"⚠️ {reason}. Skipping heavy processing.")
-        import sys
-
-        sys.exit(0)
 
 
 def cmd_record(args: argparse.Namespace) -> None:
@@ -80,7 +67,11 @@ def cmd_record(args: argparse.Namespace) -> None:
 
 
 def cmd_process(args: argparse.Namespace) -> None:
+    requested_sync = args.sync
+    args.sync = False
     _harness_run("process", TaskWeight.HEAVY, _cmd_process_logic, args)
+    if requested_sync:
+        _cmd_strict_sync(args)
 
 
 def _cmd_process_logic(args: argparse.Namespace) -> None:
@@ -94,21 +85,6 @@ def _cmd_process_logic(args: argparse.Namespace) -> None:
         image_generator=ImageGenerator(),
     )
     use_case.execute(args.file, sync=args.sync)
-
-
-def cmd_novel(args: argparse.Namespace) -> None:
-    _harness_run("novel", TaskWeight.HEAVY, _cmd_novel_logic, args)
-
-
-def _cmd_novel_logic(args: argparse.Namespace) -> None:
-    graph_storage = GraphStorage(runtime_directories().cache / "graph" / "graph.jsonl")
-    use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
-    use_case.execute(args.date)
-    SupabaseRepository().sync()
-
-
-def cmd_sync(args: argparse.Namespace) -> None:
-    _harness_run("sync", TaskWeight.LIGHT, SupabaseRepository().sync)
 
 
 def cmd_image_generate(args: argparse.Namespace) -> None:
@@ -134,12 +110,11 @@ def cmd_jules(args: argparse.Namespace) -> None:
 def _cmd_jules_logic(args: argparse.Namespace) -> None:
     repo = TaskRepository()
     if args.action == "add":
-        task_data = JulesClient().parse_task(args.content)
-        repo.add(task_data)
+        repo.add(JulesClient().parse_task(args.content))
     elif args.action == "list":
         repo.list_pending()
     elif args.action == "done":
-        repo.complete(args.task_id)
+        repo.complete(args.content)
 
 
 def cmd_transcribe(args: argparse.Namespace) -> None:
@@ -181,18 +156,7 @@ def _cmd_daily_logic(args: object) -> None:
     plan = collect_daily_workload()
     print(render_daily_workload(plan))
 
-    if plan.counts.recordings_pending > 0:
-        if not plan.can_autorun_recording_flow:
-            print("  recording_flow=paused waiting for VRChat/GPU/CPU headroom")
-        else:
-            _harness_run(
-                "daily_recording_flow",
-                TaskWeight.HEAVY,
-                _cmd_pending_logic,
-                args,
-                sync=False,
-            )
-    else:
+    if plan.counts.recordings_pending == 0 or plan.can_autorun_recording_flow:
         _harness_run(
             "daily_recording_flow",
             TaskWeight.HEAVY,
@@ -200,15 +164,14 @@ def _cmd_daily_logic(args: object) -> None:
             args,
             sync=False,
         )
+    else:
+        print("  recording_flow=paused waiting for VRChat/GPU/CPU headroom")
 
     from vlog_capture.use_cases.evaluate import EvaluateDailyContentUseCase
 
     if plan.counts.novel_days_pending > 0:
-        pending_evaluations = _collect_pending_evaluation_dates(
-            limit=plan.next_action_limit
-        )
         evaluator = EvaluateDailyContentUseCase()
-        for date_str in pending_evaluations:
+        for date_str in _collect_pending_evaluation_dates(limit=plan.next_action_limit):
             evaluator.execute(date_str, sync=False)
 
     _run_daily_postprocessing()
@@ -221,18 +184,18 @@ def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
 
     summary_dates = {
         match.group(1)
-        for f in summary_dir.glob("*_summary.txt")
-        if (match := re.search(r"(\d{8})", f.stem))
+        for path in summary_dir.glob("*_summary.txt")
+        if (match := re.search(r"(\d{8})", path.stem))
     }
     novel_dates = {
         match.group(1)
-        for f in novel_dir.glob("*.md")
-        if (match := re.search(r"(\d{8})", f.stem))
+        for path in novel_dir.glob("*.md")
+        if (match := re.search(r"(\d{8})", path.stem))
     }
     evaluation_dates = {
         match.group(1)
-        for f in evaluation_dir.glob("*.json")
-        if (match := re.search(r"(\d{8})", f.stem))
+        for path in evaluation_dir.glob("*.json")
+        if (match := re.search(r"(\d{8})", path.stem))
     }
 
     pending_dates = sorted((summary_dates & novel_dates) - evaluation_dates)
@@ -240,7 +203,8 @@ def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
 
 
 def cmd_pending(args: argparse.Namespace) -> None:
-    _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args)
+    _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args, sync=False)
+    _cmd_strict_sync(args)
 
 
 def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
@@ -249,51 +213,57 @@ def _cmd_pending_logic(args: argparse.Namespace, sync: bool = True) -> None:
     recording_dir = settings.recording_dir
     file_repo = FileRepository()
     manager = DailyArtifactManager(DailyStateStore())
+
     pending_transcription = [
-        f
-        for f in recording_dir.glob("*")
-        if f.suffix.lower() in [".wav", ".flac", ".mp3"]
-        and not (transcript_dir / f"{f.stem}.txt").exists()
+        path
+        for path in recording_dir.glob("*")
+        if path.suffix.lower() in [".wav", ".flac", ".mp3"]
+        and not (transcript_dir / f"{path.stem}.txt").exists()
     ]
     if pending_transcription:
         transcriber = Transcriber()
         preprocessor = TranscriptPreprocessor()
         for audio_path in pending_transcription:
-            transcript, saved_p = transcriber.transcribe_and_save(str(audio_path))
+            transcript, saved_path = transcriber.transcribe_and_save(str(audio_path))
             cleaned = preprocessor.process(transcript)
-            cleaned_p = str(Path(saved_p).with_name(f"cleaned_{Path(saved_p).name}"))
-            file_repo.save_text(cleaned_p, cleaned)
+            cleaned_path = str(
+                Path(saved_path).with_name(f"cleaned_{Path(saved_path).name}")
+            )
+            file_repo.save_text(cleaned_path, cleaned)
         transcriber.unload()
+
     dates = sorted(
         {
             match.group(1)
-            for f in transcript_dir.glob("*.txt")
-            if (match := re.search(r"(\d{8})", f.stem))
+            for path in transcript_dir.glob("*.txt")
+            if (match := re.search(r"(\d{8})", path.stem))
         }
         | {
             match.group(1)
-            for f in summary_dir.glob("*_summary.txt")
-            if (match := re.search(r"(\d{8})", f.stem))
+            for path in summary_dir.glob("*_summary.txt")
+            if (match := re.search(r"(\d{8})", path.stem))
         }
     )
+
     summarizer = Summarizer()
-    for d in dates:
-        files = manager.summary_sources_for_date(d)
-        manager.refresh_summary(d, summarizer, file_repo, source_paths=files)
+    for date_str in dates:
+        files = manager.summary_sources_for_date(date_str)
+        manager.refresh_summary(date_str, summarizer, file_repo, source_paths=files)
+
     import time
 
     graph_storage = GraphStorage(runtime_directories().cache / "graph" / "graph.jsonl")
     extractor = ExtractGraphUseCase(graph_storage)
-    for d in dates:
-        summary_p = summary_dir / f"{d}_summary.txt"
-        if summary_p.exists():
-            if extractor.execute(summary_p) > 0:
-                time.sleep(4)  # Avoid rate limit (15 RPM)
+    for date_str in dates:
+        summary_path = summary_dir / f"{date_str}_summary.txt"
+        if summary_path.exists() and extractor.execute(summary_path) > 0:
+            time.sleep(4)
 
     use_case = BuildNovelUseCase(Novelizer(), ImageGenerator(), graph_storage)
-    for d in dates:
-        if (summary_dir / f"{d}_summary.txt").exists():
-            use_case.execute(d)
+    for date_str in dates:
+        if (summary_dir / f"{date_str}_summary.txt").exists():
+            use_case.execute(date_str)
+
     if sync:
         SupabaseRepository().sync()
 
@@ -306,23 +276,10 @@ def cmd_curator(args: argparse.Namespace) -> None:
     )
 
 
-def cmd_notify(args: argparse.Namespace) -> None:
-    from vlog_capture.infrastructure.discord import DiscordClient
-
-    DiscordClient().send_message(args.message)
-
-
 def _run_daily_postprocessing() -> None:
-    _best_effort("cognee:init", _run_cognee_init)
     _best_effort("cognee:ingest", _run_cognee_ingest)
     _best_effort("sync", SupabaseRepository().sync)
     _best_effort("notify", _send_daily_notification)
-
-
-def _run_cognee_init() -> None:
-    from scripts.init_cognee_queue import main as init_cognee_queue_main
-
-    init_cognee_queue_main()
 
 
 def _run_cognee_ingest() -> None:
@@ -355,26 +312,6 @@ def cmd_manga(args: argparse.Namespace) -> None:
     _harness_run("manga", TaskWeight.LIGHT, build_manga, args.novel_file)
 
 
-def cmd_check_vrc(args: argparse.Namespace) -> None:
-    if ProcessMonitor().is_running():
-        sys.exit(1)
-
-
-def cmd_audit(args: argparse.Namespace) -> None:
-    report = StrictAuditor(
-        recent_limit=args.recent,
-        trace_window_minutes=args.trace_window_minutes,
-    ).run()
-
-    if args.json:
-        print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
-    else:
-        _print_audit_report(report)
-
-    if args.strict and report.has_blockers:
-        sys.exit(1)
-
-
 def cmd_error(args: argparse.Namespace) -> None:
     repository = ErrorLogRepository()
     if args.action == "record":
@@ -399,30 +336,3 @@ def cmd_error(args: argparse.Namespace) -> None:
             f"kind={event.kind.value} task={event.task_name} "
             f"reason={event.reason}{recording}"
         )
-
-
-def _print_audit_report(report) -> None:
-    counts = {
-        state: 0
-        for state in (
-            AuditState.PASS,
-            AuditState.FAIL,
-            AuditState.UNVERIFIED,
-            AuditState.NOT_APPLICABLE,
-        )
-    }
-    for finding in report.findings:
-        counts[finding.state] += 1
-        details = f" | {finding.details}" if finding.details else ""
-        print(
-            f"{finding.state.value.upper():13} {finding.check_name} :: "
-            f"{finding.evidence}{details}"
-        )
-
-    print(
-        "SUMMARY        "
-        f"pass={counts[AuditState.PASS]} "
-        f"fail={counts[AuditState.FAIL]} "
-        f"unverified={counts[AuditState.UNVERIFIED]} "
-        f"n/a={counts[AuditState.NOT_APPLICABLE]}"
-    )
