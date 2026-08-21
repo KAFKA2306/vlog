@@ -96,7 +96,7 @@ jobs:
       - name: Lint Python sources
         run: uv run --no-sync ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Check Python formatting
-        run: uv run --no-sync ruff format --diff apps/capture-vrchat/src packages adapters scripts tests infra/systemd
+        run: uv run --no-sync ruff format --check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Enforce canonical repository ratchet
         run: |
           grep -Fq 'Evidence -> Human Memory -> Narrative Artifact -> Public Projection' docs/architecture/human-memory-v2.md
