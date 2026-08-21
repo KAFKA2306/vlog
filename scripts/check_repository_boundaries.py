@@ -81,7 +81,9 @@ NON_PORTABLE_TEXT = (
 )
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 H1 = re.compile(r"^#\s+\S", re.MULTILINE)
-CODD_FRONTMATTER = re.compile(r"\A---\s*\n.*?^codd:\s*$.*?^---\s*$", re.MULTILINE | re.DOTALL)
+CODD_FRONTMATTER = re.compile(
+    r"\A---\s*\n.*?^codd:\s*$.*?^---\s*$", re.MULTILINE | re.DOTALL
+)
 MAX_GIT_FILE_BYTES = 100 * 1024 * 1024
 MAX_AGENT_MARKDOWN_LINES = 180
 
