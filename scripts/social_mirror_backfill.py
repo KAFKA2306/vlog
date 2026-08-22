@@ -2,16 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "packages" / "memory-domain" / "src"))
-sys.path.insert(0, str(REPO_ROOT / "packages" / "ingestion" / "src"))
-
-from vlog_ingestion import (  # noqa: E402
+from vlog_ingestion import (
     BackfillSourceKind,
     BackfillSourceRecord,
     SpeakerKind,
