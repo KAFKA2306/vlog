@@ -135,7 +135,7 @@ def toolchain_report(tools: dict[str, dict[str, str | None]]) -> dict[str, Any]:
         }
     return {
         "authority": {
-            "python": ".python-version + requires-python",
+            "python": "pyproject requires-python + CI/devcontainer pin",
             "uv": "CI/bootstrap pin + uv.lock",
             "bun": "apps/reader/package.json packageManager",
             "task": "Taskfile.yaml version contract",
