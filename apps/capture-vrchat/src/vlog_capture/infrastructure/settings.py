@@ -3,10 +3,10 @@ from __future__ import annotations
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 import yaml
-from pydantic import AliasChoices, Field, ValidationInfo, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from vlog_capture.portability import (
     PathFlavor,
@@ -14,12 +14,6 @@ from vlog_capture.portability import (
     runtime_directories,
 )
 from vlog_capture.project import PROJECT_ROOT
-
-
-def _get_project_root() -> Path:
-    """Return the immutable code/config checkout root."""
-
-    return PROJECT_ROOT
 
 
 def is_windows_path_invalid_on_linux(value: Path, *, system: str | None = None) -> bool:
@@ -50,9 +44,7 @@ def resolve_project_path(value: Path) -> Path:
     """Resolve read-only repository assets such as bundled config/prompts."""
 
     value = _validate_host_path(value)
-    if value.is_absolute():
-        return value
-    return _get_project_root() / value
+    return value if value.is_absolute() else PROJECT_ROOT / value
 
 
 def resolve_runtime_path(value: Path, kind: str) -> Path:
@@ -72,8 +64,7 @@ def resolve_runtime_path(value: Path, kind: str) -> Path:
 
 
 def _runtime_default(kind: str, *parts: str) -> Path:
-    directories = runtime_directories()
-    return getattr(directories, kind).joinpath(*parts)
+    return getattr(runtime_directories(), kind).joinpath(*parts)
 
 
 def _normalize_legacy_environment() -> None:
@@ -93,8 +84,8 @@ def _normalize_legacy_environment() -> None:
         "VLOG_ERROR_EVENT_FILE": "VLOG_ERROR_LOG_FILE",
     }
     for legacy, canonical in aliases.items():
-        if canonical not in os.environ and legacy in os.environ:
-            os.environ[canonical] = os.environ[legacy]
+        if legacy in os.environ:
+            os.environ.setdefault(canonical, os.environ[legacy])
 
 
 def _settings_env_file() -> Path | None:
@@ -109,24 +100,24 @@ def _settings_env_file() -> Path | None:
     return path
 
 
-def load_config() -> Dict[str, Any]:
+def _load_yaml(name: str) -> dict[str, Any]:
+    path = PROJECT_ROOT / "data" / name
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle) or {}
+
+
+def load_config() -> dict[str, Any]:
     """Load versioned, non-secret application defaults from the repository."""
 
-    config_path = _get_project_root() / "data/config.yaml"
-    if config_path.exists():
-        with config_path.open("r", encoding="utf-8") as handle:
-            return yaml.safe_load(handle) or {}
-    return {}
+    return _load_yaml("config.yaml")
 
 
-def load_prompts() -> Dict[str, Any]:
+def load_prompts() -> dict[str, Any]:
     """Load versioned prompt templates from the repository."""
 
-    prompts_path = _get_project_root() / "data/prompts.yaml"
-    if prompts_path.exists():
-        with prompts_path.open("r", encoding="utf-8") as handle:
-            return yaml.safe_load(handle) or {}
-    return {}
+    return _load_yaml("prompts.yaml")
 
 
 _config = load_config()
@@ -156,7 +147,7 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("VLOG_GEMINI_API_KEY", "GOOGLE_API_KEY"),
     )
-    gemini_model: str = _config.get("gemini", {}).get("model", _DEFAULT_LLM_MODEL)
+    gemini_model: str = _DEFAULT_LLM_MODEL
     novel_model: str = _config.get("novel", {}).get("model", _DEFAULT_LLM_MODEL)
     novel_max_output_tokens: int = _config.get("novel", {}).get(
         "max_output_tokens", 8192
@@ -186,7 +177,7 @@ class Settings(BaseSettings):
     )
 
     check_interval: int = _config.get("process", {}).get("check_interval", 5)
-    process_names: Set[str] = Field(
+    process_names: set[str] = Field(
         default_factory=lambda: set(
             _config.get("process", {}).get("names", "VRChat").split(",")
         )
@@ -241,7 +232,7 @@ class Settings(BaseSettings):
     )
     image_guidance_scale: float = _config.get("image", {}).get("guidance_scale", 0.0)
     image_seed: int = _config.get("image", {}).get("seed", 42)
-    image_prompt_filters: List[str] = _config.get("image", {}).get("prompt_filters", [])
+    image_prompt_filters: list[str] = _config.get("image", {}).get("prompt_filters", [])
 
     image_generator_default_prompt: str = (
         "(masterpiece, best quality:1.2), anime scenery, "
@@ -280,7 +271,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("VLOG_ERROR_LOG_FILE", "VLOG_ERROR_EVENT_FILE"),
     )
 
-    prompts: Dict[str, Any] = _prompts
+    prompts: dict[str, Any] = _prompts
 
     @field_validator(
         "recording_dir",
@@ -309,8 +300,7 @@ class Settings(BaseSettings):
 
     @field_validator("process_names", mode="after")
     @classmethod
-    def normalize_process_names(cls, value: Set[str], info: ValidationInfo) -> Set[str]:
-        del info
+    def normalize_process_names(cls, value: set[str]) -> set[str]:
         return {name.strip() for name in value if name.strip()}
 
 
