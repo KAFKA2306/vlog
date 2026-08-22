@@ -30,7 +30,7 @@ def test_resolve_project_path_rejects_windows_unc_paths_in_wsl() -> None:
 def test_settings_rejects_windows_paths_in_wsl() -> None:
     with pytest.raises(ValueError, match="Windows path is not valid in WSL"):
         Settings(
-            GOOGLE_API_KEY="test",
+            VLOG_GEMINI_API_KEY="test",
             VLOG_RECORDING_DIR=r"Z:\home\kafka\projects\vlog\recordings",
         )
 
@@ -41,10 +41,14 @@ def test_relative_runtime_path_anchors_to_data_home(
     data_home = tmp_path / "runtime data"
     monkeypatch.setenv("VLOG_DATA_HOME", str(data_home))
     value = Settings(
-        GOOGLE_API_KEY="test",
+        VLOG_GEMINI_API_KEY="test",
         VLOG_RECORDING_DIR="recordings",
     )
     assert value.recording_dir == data_home / "recordings"
+
+
+def test_legacy_google_api_key_remains_accepted() -> None:
+    assert Settings(GOOGLE_API_KEY="legacy-key").gemini_api_key == "legacy-key"
 
 
 def test_explicit_env_file_handles_space_hash_and_unicode(
