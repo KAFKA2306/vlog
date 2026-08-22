@@ -197,7 +197,9 @@ def check(root: Path) -> list[Violation]:
     for retired in RETIRED_PATHS:
         if (root / retired).exists():
             violations.append(
-                Violation("retired-boundary", retired, "retired path must remain removed")
+                Violation(
+                    "retired-boundary", retired, "retired path must remain removed"
+                )
             )
     if "codd-dev" in (root / "pyproject.toml").read_text(encoding="utf-8"):
         violations.append(

@@ -148,4 +148,3 @@ def test_corrupt_jsonl_is_visible_as_incident(tmp_path: Path):
     report = build_report(OperationsLoader(tmp_path).load(90), 90)
     assert report.open_incidents == 1
     assert report.incidents[0].code == "invalid_jsonl"
-

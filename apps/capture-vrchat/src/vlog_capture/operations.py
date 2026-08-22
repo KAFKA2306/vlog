@@ -207,7 +207,6 @@ class OperationsLoader:
             )
         return events
 
-
     @staticmethod
     def _read_jsonl(path: Path) -> Iterable[dict[str, Any]]:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
