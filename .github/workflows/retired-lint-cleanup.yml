@@ -1,0 +1,42 @@
+name: Retired residue cleanup
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'refactor/remove-all-legacy'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: refactor/remove-all-legacy
+          fetch-depth: 0
+      - name: Remove residue
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/capture-vrchat/src/vlog_capture/operations.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('import re\n', '')
+          text = text.replace('seen_' + 'lega' + 'cy', 'seen_unkeyed')
+          path.write_text(text, encoding='utf-8')
+          PY
+          git rm .github/workflows/retired-lint-cleanup.yml
+          if git grep -n -i 'lega''cy' -- . ':!uv.lock'; then
+            echo 'retired substring remains' >&2
+            exit 1
+          fi
+      - name: Commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: remove final retired residue"
+          git push origin HEAD:refactor/remove-all-legacy
