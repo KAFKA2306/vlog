@@ -5,7 +5,6 @@ import argparse
 import html
 import json
 import os
-import re
 import shutil
 import subprocess
 import webbrowser
@@ -263,7 +262,7 @@ class OperationsLoader:
 
     def _dedupe(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen_ids: set[str] = set()
-        seen_legacy: set[tuple[str, str, str, str, str]] = set()
+        seen_unkeyed: set[tuple[str, str, str, str, str]] = set()
         output: list[dict[str, Any]] = []
         for event in events:
             event_id = str(event.get("event_id") or "")
@@ -279,9 +278,9 @@ class OperationsLoader:
                     str(event.get("status")),
                     str(event.get("message"))[:200],
                 )
-                if key in seen_legacy:
+                if key in seen_unkeyed:
                     continue
-                seen_legacy.add(key)
+                seen_unkeyed.add(key)
             output.append(event)
         return output
 
