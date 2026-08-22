@@ -42,7 +42,7 @@ Destructive migration前にnon-destructive inventoryを実行します。
 uv run --no-sync python scripts/phase0_inventory.py
 ```
 
-Retained inventoryとrecoverable backupなしにraw Evidenceを削除・移動しません。migration先とのreconciliation完了前にlegacy Evidenceを削除しません。詳細は[`operations/phase0-inventory.md`](operations/phase0-inventory.md)を正準とします。
+Retained inventoryとrecoverable backupなしにraw Evidenceを削除・移動しません。migration先とのreconciliation完了前にsource Evidenceを削除しません。詳細は[`operations/phase0-inventory.md`](operations/phase0-inventory.md)を正準とします。
 
 ## Supabase
 

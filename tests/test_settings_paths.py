@@ -47,20 +47,12 @@ def test_relative_runtime_path_anchors_to_data_home(
     assert value.recording_dir == data_home / "recordings"
 
 
-def test_legacy_google_api_key_environment_remains_accepted(
+def test_retired_google_api_key_alias_is_ignored(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("VLOG_GEMINI_API_KEY", raising=False)
-    monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
-    assert Settings().gemini_api_key == "legacy-key"
-
-
-def test_canonical_environment_wins_over_legacy(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
-    monkeypatch.setenv("VLOG_GEMINI_API_KEY", "canonical-key")
-    assert Settings().gemini_api_key == "canonical-key"
+    monkeypatch.setenv("GOOGLE_API_KEY", "retired-key")
+    assert Settings().gemini_api_key == ""
 
 
 def test_explicit_env_file_handles_space_hash_and_unicode(

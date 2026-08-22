@@ -12,7 +12,6 @@
 | [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md) | target architecture、canonical stores、migration phases |
 | [`architecture/portability.md`](architecture/portability.md) | cross-platform path/env/filesystem/tool execution contract |
 | [`architecture.md`](architecture.md) | current executable runtimeとdeployable boundaries |
-| [`daily_pipeline_contract.md`](daily_pipeline_contract.md) | current legacy-compatible scheduled execution contract |
 | [`OPERATIONS.md`](OPERATIONS.md) | diagnosis、supervision、incident evidence、recovery |
 | [`MAINTENANCE.md`](MAINTENANCE.md) | repeatable repository / infrastructure maintenance |
 | [`operations/phase0-inventory.md`](operations/phase0-inventory.md) | destructive migration前のnon-destructive inventory |

@@ -15,21 +15,14 @@ RUNTIME_PREFIXES = (
     "scripts/",
 )
 RUNTIME_FILES = {"Taskfile.yaml"}
-# These tools intentionally operate on versioned/legacy repository data rather than
-# serving as runtime state authorities.
-LEGACY_DATA_EXCEPTIONS = {
-    "scripts/migrate_runtime_state.py",
-    "scripts/sync_vault_prompts.py",
-    "scripts/check_runtime_contract.py",
-}
 FORBIDDEN = {
     "PYTHONPATH": "runtime must use installed workspace packages",
     "sys.path.insert": "scripts must use installed workspace packages",
     "USER_WORKING_DIR": "tasks must resolve from the root Taskfile",
     "python3.12/site-packages/nvidia": "GPU libraries must be discovered at runtime",
-    "python -m src": "legacy src package entrypoints are forbidden",
-    "from src": "legacy src imports are forbidden",
-    "import src": "legacy src imports are forbidden",
+    "python -m src": "retired src package entrypoints are forbidden",
+    "from src": "retired src imports are forbidden",
+    "import src": "retired src imports are forbidden",
     "source .env": "shell dotenv parsing is not a configuration authority",
     ". ./.env": "shell dotenv parsing is not a configuration authority",
     "load_dotenv()": "runtime configuration must use Settings and explicit VLOG_ENV_FILE",
@@ -98,10 +91,6 @@ def violations(paths: list[str] | None = None) -> list[str]:
         except UnicodeDecodeError:
             continue
         for token, reason in FORBIDDEN.items():
-            if relative in LEGACY_DATA_EXCEPTIONS and token.startswith(
-                ('Path("data/', "Path('data/", "open('data/", 'open("data/', "data/")
-            ):
-                continue
             if token in text:
                 failures.append(f"{relative}: contains {token!r}: {reason}")
     return failures

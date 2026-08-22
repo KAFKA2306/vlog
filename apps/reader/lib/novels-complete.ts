@@ -66,14 +66,11 @@ const fetchInjectedRows = async (
 }
 
 const getInjectedNovels = async (limit: number, fetchImpl: FetchLike) => {
-  const preferred = await fetchInjectedRows(
+  const rows = await fetchInjectedRows(
     'id,date,title,content,tags,image_url,is_public',
     limit,
     fetchImpl,
   )
-  const rows =
-    preferred ??
-    (await fetchInjectedRows('id,date,title,content,tags,is_public', limit, fetchImpl))
   if (rows === null) return []
   const seen = new Set<string>()
   return rows.flatMap(row => {
@@ -85,10 +82,10 @@ const getInjectedNovels = async (limit: number, fetchImpl: FetchLike) => {
 }
 
 export const getPublicNovels = async (
-  legacyLimit = 60,
+  limit = 60,
   fetchImpl: FetchLike = fetch,
 ): Promise<PublicNovel[]> => {
-  if (fetchImpl !== fetch) return getInjectedNovels(legacyLimit, fetchImpl)
+  if (fetchImpl !== fetch) return getInjectedNovels(limit, fetchImpl)
   const config = getSupabaseConfig()
   if (!config) return []
   const entries = await fetchAllPublicArchiveEntries({ config, fetchImpl, kind: 'novel' })

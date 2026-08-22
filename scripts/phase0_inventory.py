@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
         "--evidence-root",
         action="append",
         dest="evidence_roots",
-        help="Repository-relative legacy root to inventory. Repeat to override defaults.",
+        help="Repository-relative source root to inventory. Repeat to override defaults.",
     )
     parser.add_argument(
         "--fail-on-tracked-evidence",

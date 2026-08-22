@@ -52,7 +52,7 @@ RAW_MEDIA_SUFFIXES = {
     ".avi",
     ".mkv",
 }
-LEGACY_PATHS = (
+RETIRED_PATHS = (
     ".codd",
     ".codd_version",
     "src",
@@ -68,6 +68,8 @@ LEGACY_PATHS = (
     "vlog-daily.timer",
     "vlog-daily-failure.service",
     "apps/capture-vrchat/src/vlog_capture/infrastructure/audit.py",
+    "scripts/migrate_runtime_state.py",
+    "docs/daily_pipeline_contract.md",
 )
 RETIRED_MARKDOWN = {
     "docs/DAILY_MONITORING.md",
@@ -192,10 +194,10 @@ def check(root: Path) -> list[Violation]:
     violations: list[Violation] = []
     tracked = tracked_files(root)
 
-    for legacy in LEGACY_PATHS:
-        if (root / legacy).exists():
+    for retired in RETIRED_PATHS:
+        if (root / retired).exists():
             violations.append(
-                Violation("legacy-boundary", legacy, "legacy path must remain removed")
+                Violation("retired-boundary", retired, "retired path must remain removed")
             )
     if "codd-dev" in (root / "pyproject.toml").read_text(encoding="utf-8"):
         violations.append(

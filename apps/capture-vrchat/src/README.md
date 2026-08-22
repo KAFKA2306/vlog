@@ -13,4 +13,4 @@
 
 Runtime values come from configuration, environment, and portability-aware settings. Do not duplicate volatile values in this README.
 
-The current application still includes legacy-compatible file/artifact state while Human Memory v2 canonical ingestion is being built. See [current architecture](../../../docs/architecture.md) and [portability contract](../../../docs/architecture/portability.md).
+The current application uses file/artifact state while Human Memory v2 canonical ingestion is tracked separately. See [current architecture](../../../docs/architecture.md) and [portability contract](../../../docs/architecture/portability.md).

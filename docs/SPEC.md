@@ -66,7 +66,7 @@ VRChat processを検知
 Next.js Reader / KafLogで表示
 ```
 
-file existenceやdirectory scanによる処理状態はlegacy mechanismです。最終状態では、stable ID、content hash、明示的なingestion state、outboxへ移行します。
+file existenceやdirectory scanによる処理状態はtemporary mechanismです。最終状態では、stable ID、content hash、明示的なingestion state、outboxへ移行します。
 
 ## 5. 動作保証
 

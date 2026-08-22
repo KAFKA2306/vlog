@@ -12,8 +12,8 @@ function fail(message) {
 }
 
 const forbidden = [
-  ['legacy black canvas', '#05070a'],
-  ['legacy cyan accent', '#75e6ff'],
+  ['retired black canvas', '#05070a'],
+  ['retired cyan accent', '#75e6ff'],
   ['radial neon treatment', 'radial-gradient'],
   ['hover lift transform', 'translateY('],
 ]
@@ -104,4 +104,4 @@ for (const token of textTokens) {
 }
 
 if (process.exitCode) process.exit(process.exitCode)
-console.log('design-contract: semantic tokens, legacy-theme ban, focus, motion, and text contrast all pass')
+console.log('design-contract: semantic tokens, retired-theme ban, focus, motion, and text contrast all pass')

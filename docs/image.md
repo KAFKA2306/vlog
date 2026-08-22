@@ -1,6 +1,6 @@
 # Illustration generation boundary
 
-Status: current legacy-compatible runtime; generated output is a rebuildable narrative artifact
+Status: current runtime; generated output is a rebuildable narrative artifact
 
 ## Responsibility
 
@@ -24,7 +24,7 @@ The generator chooses a random seed when no seed is supplied and records that se
 
 - Source recordings and photos are private evidence.
 - Generated prompts and illustrations are derived artifacts.
-- Generated images must retain a reference to their source episode, claim, or current legacy input during migration.
+- Generated images must retain a reference to their source episode, claim, or current source input during migration.
 - Generation does not authorize publication.
 - Public projection requires a separate publication decision and privacy review.
 
@@ -50,6 +50,6 @@ Use tasks defined in `Taskfile.yaml` for generation and Reader validation. Verif
 
 ## Migration target
 
-Human Memory v2 will persist artifact identity, provenance, generation metadata, privacy level, and publication decisions in canonical storage. File existence and date-based names remain current legacy mechanisms until migration and reconciliation are complete.
+Human Memory v2 will persist artifact identity, provenance, generation metadata, privacy level, and publication decisions in canonical storage. File existence and date-based names remain current temporary mechanisms until migration and reconciliation are complete.
 
 See [Human Memory v2 architecture](architecture/human-memory-v2.md) and [current runtime architecture](architecture.md).

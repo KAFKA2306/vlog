@@ -1,6 +1,6 @@
 # Current runtime architecture
 
-この文書は現在実行可能なlegacy-compatible runtimeを記述します。製品不変条件とverification contractは[`SPEC.md`](SPEC.md)、Human Memory v2のtarget persistenceは[`architecture/human-memory-v2.md`](architecture/human-memory-v2.md)を正準とします。
+この文書は現在実行可能なruntimeを記述します。製品不変条件とverification contractは[`SPEC.md`](SPEC.md)、Human Memory v2のtarget persistenceは[`architecture/human-memory-v2.md`](architecture/human-memory-v2.md)を正準とします。
 
 ## Runtime flow
 
@@ -15,7 +15,7 @@ flowchart LR
     C --> O[operational events / heartbeats]
 ```
 
-現在のpipelineはlocal artifactと既存artifactの有無を利用してpending workを判断します。これはmigration中に維持しているbehaviorであり、Human Memory v2の最終state modelではありません。machine-local pathの扱いは[`architecture/portability.md`](architecture/portability.md)に従います。
+現在のpipelineはlocal artifactと既存artifactの有無を利用してpending workを判断します。Human Memory v2のtarget state modelは別途定義されます。machine-local pathの扱いは[`architecture/portability.md`](architecture/portability.md)に従います。
 
 ## Deployable boundaries
 
@@ -57,9 +57,7 @@ Domain modelはSupabase、Graphiti、Cognee、Qdrant、model SDK、Next.js、sys
 
 ## Current processing state
 
-現在のdaily pipelineは、local recording / transcript / generated artifactと既存Supabase projectionを利用して処理対象を決定します。stable IDs、content hash、explicit ingestion run、`source_hash + pipeline_version` idempotency、transactional outboxへ置換されるまではlegacy-compatible stateとして扱います。
-
-具体的なscheduled execution contractは[`daily_pipeline_contract.md`](daily_pipeline_contract.md)を参照してください。
+現在のdaily pipelineは、local recording / transcript / generated artifactと既存Supabase projectionを利用して処理対象を決定します。Human Memory v2のtarget state modelはstable IDs、content hash、explicit ingestion run、`source_hash + pipeline_version` idempotency、transactional outboxです。
 
 ## Runtime supervision
 
@@ -90,7 +88,7 @@ Local build成功とVercel productionのavailability / release provenanceは別�
 
 ## Data and privacy boundary
 
-Current runtimeにはmigration中のlocal Evidence / artifact stateとexisting Supabase projectionが残ります。Human Memory v2 targetでは次を分離します。
+Current runtimeはlocal Evidence / artifact stateとexisting Supabase projectionを使用します。Human Memory v2 targetでは次を分離します。
 
 - raw Evidence bytes: private object storage
 - canonical metadata / revisions / ingestion / publication state: PostgreSQL / Supabase
@@ -106,5 +104,4 @@ Current runtimeにはmigration中のlocal Evidence / artifact stateとexisting S
 - [Product overview](overview.md)
 - [Human Memory v2 target architecture](architecture/human-memory-v2.md)
 - [Cross-platform portability](architecture/portability.md)
-- [Current daily pipeline contract](daily_pipeline_contract.md)
 - [Operations](OPERATIONS.md)
