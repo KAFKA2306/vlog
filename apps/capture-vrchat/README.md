@@ -8,7 +8,7 @@ Responsibilities:
 
 - VRChat process observation and audio capture;
 - transcription orchestration;
-- current legacy-compatible artifact generation;
+- current artifact generation;
 - synchronization to current projections;
 - operational evidence and diagnosis.
 

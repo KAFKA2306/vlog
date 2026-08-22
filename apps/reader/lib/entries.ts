@@ -103,7 +103,7 @@ export const formatDateOnly = (value: string) => {
 
 export const diaryPermalink = (date: string) => `/day/${encodeURIComponent(date)}`
 
-export const getLatestSummaries = async (_legacyLimit?: number): Promise<Entry[]> => {
+export const getLatestSummaries = async (_limit?: number): Promise<Entry[]> => {
   const remoteEntries = await getRemotePublicArchiveEntries('diary')
   if (remoteEntries !== null) return remoteEntries
 

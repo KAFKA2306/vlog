@@ -5,7 +5,6 @@ import argparse
 import html
 import json
 import os
-import re
 import shutil
 import subprocess
 import webbrowser
@@ -93,7 +92,7 @@ class OperationsReport:
 
 class OperationsLoader:
     def __init__(self, root: Path | None = None) -> None:
-        # Explicit roots preserve the legacy test/import layout; production uses state home.
+        # Explicit roots isolate tests; production uses state home.
         self.root = (
             (root / "data") if root is not None else runtime_directories().state
         ).resolve()
@@ -114,7 +113,6 @@ class OperationsLoader:
         events.extend(self._load_jsonl(event_path))
         events.extend(self._load_incidents(self.root / "incidents.jsonl"))
         events.extend(self._load_daily_runs(self.root / "daily_runs.jsonl"))
-        events.extend(self._load_legacy_log(self.root / "logs/vlog.log"))
         filtered = [event for event in events if self._timestamp(event) >= cutoff]
         filtered.sort(key=self._timestamp)
         return self._dedupe(filtered)
@@ -209,78 +207,6 @@ class OperationsLoader:
             )
         return events
 
-    def _load_legacy_log(self, path: Path) -> list[dict[str, Any]]:
-        if not path.is_file():
-            return []
-        timestamp_re = re.compile(r"^(\d{4}-\d{2}-\d{2}[ T][0-9:.,+-]+)")
-        events: list[dict[str, Any]] = []
-        with path.open("r", encoding="utf-8", errors="replace") as handle:
-            for line_no, raw in enumerate(handle, start=1):
-                lower = raw.lower()
-                if not any(
-                    token in lower
-                    for token in (
-                        "error",
-                        "failed",
-                        "exception",
-                        "traceback",
-                        "warning",
-                        "429",
-                    )
-                ):
-                    continue
-                match = timestamp_re.search(raw)
-                timestamp = match.group(1).replace(",", ".") if match else None
-                category, component, operation, code = self._classify_legacy(raw)
-                severity = (
-                    Severity.ERROR
-                    if any(
-                        token in lower
-                        for token in (
-                            "error",
-                            "failed",
-                            "exception",
-                            "traceback",
-                            "429",
-                        )
-                    )
-                    else Severity.WARNING
-                )
-                events.append(
-                    self._canonical(
-                        {
-                            "timestamp": timestamp,
-                            "category": category,
-                            "component": component,
-                            "operation": operation,
-                            "status": EventStatus.FAILED,
-                            "severity_text": severity,
-                            "code": code,
-                            "message": raw.strip()[:800],
-                            "context": {"line_no": line_no},
-                        },
-                        source=str(path),
-                    )
-                )
-        return events
-
-    @staticmethod
-    def _classify_legacy(message: str) -> tuple[str, str, str, str]:
-        lower = message.lower()
-        if "429" in lower or "resource_exhausted" in lower or "quota" in lower:
-            return "generation", "gemini", "generate", "provider_rate_limited"
-        if "/snap/bin/task" in lower or "task: not found" in lower:
-            return "scheduler", "systemd", "launch", "scheduler_binary_missing"
-        if "record" in lower or "sounddevice" in lower or "inputstream" in lower:
-            return "recording", "audio-recorder", "record", "recording_failure"
-        if "whisper" in lower or "transcrib" in lower:
-            return "transcription", "whisper", "transcribe", "transcription_failure"
-        if "supabase" in lower or "sync" in lower:
-            return "sync", "supabase", "sync", "sync_failure"
-        if "discord" in lower or "notify" in lower:
-            return "notification", "discord", "notify", "notification_failure"
-        return "infrastructure", "legacy-log", "runtime", "legacy_runtime_failure"
-
     @staticmethod
     def _read_jsonl(path: Path) -> Iterable[dict[str, Any]]:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
@@ -335,7 +261,7 @@ class OperationsLoader:
 
     def _dedupe(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen_ids: set[str] = set()
-        seen_legacy: set[tuple[str, str, str, str, str]] = set()
+        seen_unkeyed: set[tuple[str, str, str, str, str]] = set()
         output: list[dict[str, Any]] = []
         for event in events:
             event_id = str(event.get("event_id") or "")
@@ -351,9 +277,9 @@ class OperationsLoader:
                     str(event.get("status")),
                     str(event.get("message"))[:200],
                 )
-                if key in seen_legacy:
+                if key in seen_unkeyed:
                     continue
-                seen_legacy.add(key)
+                seen_unkeyed.add(key)
             output.append(event)
         return output
 
@@ -599,7 +525,7 @@ def run_doctor(root: Path) -> int:
         (
             "no stale /snap/bin/task",
             "/snap/bin/task" not in daily_text,
-            "legacy scheduler path absent",
+            "retired scheduler path absent",
         ),
         (
             "systemd watchdog",

@@ -19,7 +19,7 @@ VLogは、VRChat sessionから得たEvidenceをAI生成文で置き換えるの�
 
 移行中は2つのarchitectureを区別します。
 
-- **Current runtime**: `apps/capture-vrchat/` と `apps/reader/` を中心とする、legacy-compatibleな実行系。
+- **Current runtime**: `apps/capture-vrchat/` と `apps/reader/` を中心とする、現在の実行系。
 - **Human Memory v2 target**: stable identity、explicit ingestion state、append-only revision、private Evidence storage、canonical persistenceを持つtarget architecture。
 
 「現在動くもの」と「将来の正準構造」を同じstatusとして記述しません。

@@ -12,7 +12,7 @@ Transcription and image generation can contend with VRChat for GPU, CPU, memory,
 
 The current daily entry point checks VRChat state before heavy processing and exits without starting the heavy path when the application is active. Runtime resource checks and the current implementation remain authoritative.
 
-The schedule itself is not part of this ADR. It is defined by `infra/systemd/vlog-daily.timer.in` and the current daily pipeline contract.
+The schedule itself is not part of this ADR. It is defined by `infra/systemd/vlog-daily.timer.in`; runtime supervision and verification are documented in `docs/OPERATIONS.md`.
 
 ## Consequences
 
@@ -23,5 +23,5 @@ The schedule itself is not part of this ADR. It is defined by `infra/systemd/vlo
 
 ## References
 
-- [Current daily pipeline contract](../daily_pipeline_contract.md)
 - [Operations](../OPERATIONS.md)
+- [Current runtime architecture](../architecture.md)

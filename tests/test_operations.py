@@ -148,17 +148,3 @@ def test_corrupt_jsonl_is_visible_as_incident(tmp_path: Path):
     report = build_report(OperationsLoader(tmp_path).load(90), 90)
     assert report.open_incidents == 1
     assert report.incidents[0].code == "invalid_jsonl"
-
-
-def test_legacy_patterns_are_classified(tmp_path: Path):
-    log_path = tmp_path / "data/logs/vlog.log"
-    log_path.parent.mkdir(parents=True)
-    log_path.write_text(
-        "2026-06-20 10:00:00 [ERROR] Gemini 429 RESOURCE_EXHAUSTED\n"
-        "2026-07-27 05:30:00 [ERROR] /snap/bin/task: not found\n",
-        encoding="utf-8",
-    )
-    events = OperationsLoader(tmp_path).load(120)
-    codes = {event["code"] for event in events}
-    assert "provider_rate_limited" in codes
-    assert "scheduler_binary_missing" in codes

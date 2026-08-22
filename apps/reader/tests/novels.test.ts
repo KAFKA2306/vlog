@@ -71,36 +71,6 @@ describe('Novel public projection', () => {
     expect(url.searchParams.get('limit')).toBe('60')
   })
 
-  test('falls back when a legacy table has no image_url column', async () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://project.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'public-anon-key'
-
-    let call = 0
-    const fetchMock = (async () => {
-      call += 1
-      if (call === 1) return new Response('missing image_url', { status: 400 })
-      return new Response(
-        JSON.stringify([
-          {
-            id: '22222222-2222-4222-8222-222222222222',
-            date: '2026-08-02',
-            title: 'Legacy Novel',
-            content: 'legacy public content',
-            tags: [],
-            is_public: true,
-          },
-        ]),
-        { status: 200, headers: { 'content-type': 'application/json' } },
-      )
-    }) as typeof fetch
-
-    const novels = await getPublicNovels(60, fetchMock)
-
-    expect(call).toBe(2)
-    expect(novels).toHaveLength(1)
-    expect(novels[0].imageUrl).toBeNull()
-  })
-
   test('returns an empty public archive when Supabase public config is absent', async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

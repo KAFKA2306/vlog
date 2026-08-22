@@ -33,7 +33,7 @@ Positive:
 - Windows and Linux filesystem semantics are isolated;
 - Task Scheduler/systemd behavior becomes diagnosable;
 - CI can enforce filename/path contracts before host deployment;
-- future private object storage can replace legacy data bridging without changing identity.
+- future private object storage can replace temporary data bridging without changing identity.
 
 Costs:
 

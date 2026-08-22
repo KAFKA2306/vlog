@@ -73,5 +73,4 @@ Structured eventの実装は`apps/capture-vrchat/src/vlog_capture/infrastructure
 - [Documentation index](README.md)
 - [Maintenance](MAINTENANCE.md)
 - [Current runtime architecture](architecture.md)
-- [Daily pipeline contract](daily_pipeline_contract.md)
 - [Phase 0 inventory](operations/phase0-inventory.md)

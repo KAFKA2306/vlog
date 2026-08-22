@@ -29,7 +29,7 @@ GitHub commit SHA
 
 WindowsとWSL/Linuxは同じphysical checkoutを共有する必要がありません。Windows-mounted WSL path、WSL UNC、一般UNCはboundary locationであり、canonical production code checkoutではありません。
 
-Evidence transportは別のconcernです。private object-storage cutover完了までは明示的なlegacy data bridgeを許容しますが、それによってcheckout pathをauthorityにはしません。
+Evidence transportは別のconcernです。private object-storage cutover完了までは明示的なtemporary data bridgeを許容しますが、それによってcheckout pathをauthorityにはしません。
 
 ## Path support matrix
 
@@ -68,7 +68,7 @@ Portable target locations:
 - Windows config: roaming AppData `VLog`
 - Windows state / cache: local AppData `VLog`
 
-実際のruntime directory resolutionは`apps/capture-vrchat/src/vlog_capture/portability.py`を正準とします。legacy repo-local dataのmigration stateを文書へ固定pathとして複製しません。
+実際のruntime directory resolutionは`apps/capture-vrchat/src/vlog_capture/portability.py`を正準とします。repo-local source dataのmigration stateを文書へ固定pathとして複製しません。
 
 ## Executables and toolchains
 
@@ -82,7 +82,7 @@ Python-minor-specific NVIDIA pathを文字列で組み立てず、installed pack
 
 ## Python packaging
 
-Issue #82 / PR #100でlegacy `src` package名とruntime `PYTHONPATH`依存は撤去済みです。capture runtimeはuv workspaceのinstallable `vlog_capture` packageとして実行します。
+Issue #82 / PR #100でretired `src` package名とruntime `PYTHONPATH`依存は撤去済みです。capture runtimeはuv workspaceのinstallable `vlog_capture` packageとして実行します。
 
 ```text
 vlog

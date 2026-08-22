@@ -47,20 +47,43 @@ def test_relative_runtime_path_anchors_to_data_home(
     assert value.recording_dir == data_home / "recordings"
 
 
-def test_legacy_google_api_key_environment_remains_accepted(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("VLOG_GEMINI_API_KEY", raising=False)
-    monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
-    assert Settings().gemini_api_key == "legacy-key"
+def test_settings_use_one_environment_prefix() -> None:
+    assert Settings.model_config["env_prefix"] == "VLOG_"
 
 
-def test_canonical_environment_wins_over_legacy(
+@pytest.mark.parametrize(
+    ("retired_env", "canonical_env", "field"),
+    [
+        ("GOOGLE_API_KEY", "VLOG_GEMINI_API_KEY", "gemini_api_key"),
+        ("GOOGLE_JULES_API_KEY", "VLOG_JULES_API_KEY", "jules_api_key"),
+        ("SUPABASE_URL", "VLOG_SUPABASE_URL", "supabase_url"),
+        (
+            "SUPABASE_SERVICE_ROLE_KEY",
+            "VLOG_SUPABASE_SERVICE_ROLE_KEY",
+            "supabase_service_role_key",
+        ),
+        ("DISCORD_WEBHOOK_URL", "VLOG_DISCORD_WEBHOOK_URL", "discord_webhook_url"),
+    ],
+)
+def test_retired_environment_aliases_are_ignored(
     monkeypatch: pytest.MonkeyPatch,
+    retired_env: str,
+    canonical_env: str,
+    field: str,
 ) -> None:
-    monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
-    monkeypatch.setenv("VLOG_GEMINI_API_KEY", "canonical-key")
-    assert Settings().gemini_api_key == "canonical-key"
+    monkeypatch.delenv(canonical_env, raising=False)
+    monkeypatch.setenv(retired_env, "retired-value")
+    assert getattr(Settings(), field) == ""
+
+
+def test_retired_error_event_alias_is_ignored(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    retired_path = tmp_path / "retired.jsonl"
+    monkeypatch.delenv("VLOG_ERROR_LOG_FILE", raising=False)
+    monkeypatch.setenv("VLOG_ERROR_EVENT_FILE", str(retired_path))
+    assert Settings().error_log_file != retired_path
+    assert Settings().error_log_file.name == "error_events.jsonl"
 
 
 def test_explicit_env_file_handles_space_hash_and_unicode(

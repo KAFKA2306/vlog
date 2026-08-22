@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from vlog_capture.portability import (
     PathFlavor,
@@ -120,11 +120,12 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
         case_sensitive=False,
+        env_prefix="VLOG_",
     )
 
     gemini_api_key: str = Field(
         default="",
-        validation_alias=AliasChoices("VLOG_GEMINI_API_KEY", "GOOGLE_API_KEY"),
+        validation_alias="VLOG_GEMINI_API_KEY",
     )
     gemini_model: str = _DEFAULT_LLM_MODEL
     novel_model: str = _config.get("novel", {}).get("model", _DEFAULT_LLM_MODEL)
@@ -134,25 +135,21 @@ class Settings(BaseSettings):
 
     jules_api_key: str = Field(
         default="",
-        validation_alias=AliasChoices("VLOG_JULES_API_KEY", "GOOGLE_JULES_API_KEY"),
+        validation_alias="VLOG_JULES_API_KEY",
     )
     jules_model: str = _config.get("jules", {}).get("model", _DEFAULT_LLM_MODEL)
 
     supabase_url: str = Field(
         default="",
-        validation_alias=AliasChoices("VLOG_SUPABASE_URL", "SUPABASE_URL"),
+        validation_alias="VLOG_SUPABASE_URL",
     )
     supabase_service_role_key: str = Field(
         default="",
-        validation_alias=AliasChoices(
-            "VLOG_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"
-        ),
+        validation_alias="VLOG_SUPABASE_SERVICE_ROLE_KEY",
     )
     discord_webhook_url: str = Field(
         default="",
-        validation_alias=AliasChoices(
-            "VLOG_DISCORD_WEBHOOK_URL", "DISCORD_WEBHOOK_URL"
-        ),
+        validation_alias="VLOG_DISCORD_WEBHOOK_URL",
     )
 
     check_interval: int = _config.get("process", {}).get("check_interval", 5)
@@ -247,7 +244,7 @@ class Settings(BaseSettings):
     )
     error_log_file: Path = Field(
         default_factory=lambda: _runtime_default("state", "error_events.jsonl"),
-        validation_alias=AliasChoices("VLOG_ERROR_LOG_FILE", "VLOG_ERROR_EVENT_FILE"),
+        validation_alias="VLOG_ERROR_LOG_FILE",
     )
 
     prompts: dict[str, Any] = _prompts
