@@ -1,60 +1,33 @@
 # AGENTS.md
 
-VLog is a public OSS engine for capturing VRChat Evidence, deriving reviewable memory claims, generating narrative artifacts, and publishing only explicitly approved projections.
+VLog is a public OSS engine: Evidence -> reviewable memory -> narrative artifacts -> explicitly approved public projections.
 
 ## Authority
 
-Use these sources in order:
+Use, in order:
 
-1. executable schemas, tests, package manifests, `Taskfile.yaml`, and implementation;
-2. [product specification and guarantees](docs/SPEC.md);
-3. [Human Memory v2 architecture](docs/architecture/human-memory-v2.md) for target state;
-4. [current runtime architecture](docs/architecture.md) and component runbooks for existing behavior;
-5. [ADR index](docs/adr/README.md) for decision rationale.
+1. implementation, tests, schemas, package manifests, and `Taskfile.yaml`;
+2. [product specification](docs/SPEC.md);
+3. [Human Memory v2 target](docs/architecture/human-memory-v2.md);
+4. [current runtime](docs/architecture.md) and runbooks;
+5. [ADRs](docs/adr/README.md).
 
-The complete documentation map is [docs/README.md](docs/README.md). Agent-specific files are routers, not parallel specifications.
+Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific files are routers only.
 
-## Repository boundaries
+## Invariants
 
-- `apps/`: deployable applications and runtime entry points.
-- `packages/`: storage-agnostic domain capabilities.
-- `adapters/`: persistence, storage, graph, and external integrations.
-- `infra/`: Supabase, systemd, and Windows assets.
-- `schemas/`: versioned interchange contracts.
-- `docs/`: specification, architecture, operations, and decisions.
+- Public repository contains no raw Evidence, private memory, credentials, or unapproved publication state.
+- AI output is derived/candidate data. Accepted claims require source provenance.
+- Graph/vector systems are rebuildable projections, not canonical memory.
+- Do not move or delete Evidence during structural migration until inventory, backup, and reconciliation complete.
+- Runtime is the installable `vlog_capture` package; do not restore `PYTHONPATH`, `python -m src...`, or retired top-level runtime trees.
+- Prefer existing authorities over new aliases/specs; do not duplicate versions, commands, model IDs, requirements, or volatile status.
+- Entry points: `vlog` for product operations, `vlog-operations` for diagnosis, `task` for repository orchestration.
+- Preserve useful tests, timeouts, error context, and boundary-specific exception handling.
+- Repository/CI verification does not prove live host or service state.
 
-Capture runtime is the installable `vlog_capture` package. Use manifest-defined console entry points; do not reintroduce runtime `PYTHONPATH`, `python -m src...`, or retired top-level runtime directories.
-
-## Data and privacy
-
-- Raw Evidence and private memory belong in private storage, not this public repository.
-- AI output is a candidate derived view, not accepted memory or a publication decision.
-- Accepted claims require provenance to source Evidence.
-- Graph/vector systems are rebuildable projections, never canonical memory.
-- Structural migration must not move or delete Evidence before inventory, backup, and reconciliation.
-
-## Change discipline
+## Change workflow
 
 - Inspect current implementation before changing a contract.
-- Update one existing authority instead of creating parallel specifications or aliases.
-- Prefer fewer entry points: `vlog` for product operations, `vlog-operations` for operational diagnosis, `task` for repository orchestration.
-- Do not duplicate versions, requirements, task inventories, model IDs, or volatile service status in Markdown.
-- Preserve useful tests, error context, timeouts, and boundary-specific exception handling.
-- Separate repository/CI verification from actual environment verification.
-
-## Branch lifecycle
-
-- `main` and same-repository head branches of open pull requests are the only remote branches allowed to persist.
-- Create a remote work branch only as part of immediately opening its pull request.
-- When a pull request is merged or closed, its same-repository head branch must be deleted.
-- `.github/workflows/branch-lifecycle.yml` is the executable enforcement authority.
-
-## Verification
-
-Run the canonical repository gate:
-
-```bash
-task verify
-```
-
-Use focused tasks while iterating. `task lint` is read-only; `task format` modifies Python files. CI does not prove live systemd, Windows Task Scheduler, Vercel, Supabase, private storage, audio, or GPU behavior.
+- Keep remote branches to `main` and same-repository open-PR heads; `.github/workflows/branch-lifecycle.yml` enforces cleanup.
+- Run `task verify`. Use focused tasks while iterating; `task lint` is read-only and `task format` mutates Python.

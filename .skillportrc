@@ -1,6 +1,2 @@
-# SkillPort Configuration
-# See: https://github.com/gotalab/skillport
-
 skills_dir: ~/.gemini/skills
-instructions:
-  - AGENTS.md
+instructions: [AGENTS.md]

@@ -41,6 +41,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+CLAUDE.local.md
 
 # Repository-owned data only
 data/**/*
@@ -55,14 +56,11 @@ logs/
 *.png
 
 # Frontend
-apps/reader/node_modules/
-apps/reader/.next/
-apps/reader/.vercel/
+node_modules/
+.next/
+.vercel/
 apps/reader/cloudflared
-apps/reader/package-lock.json
-apps/reader/.env.local
 apps/reader/out/
-apps/reader/build/
 
 # Lock files (keep uv.lock and bun.lock)
 package-lock.json
