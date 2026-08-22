@@ -47,6 +47,10 @@ def test_relative_runtime_path_anchors_to_data_home(
     assert value.recording_dir == data_home / "recordings"
 
 
+def test_settings_use_one_environment_prefix() -> None:
+    assert Settings.model_config["env_prefix"] == "VLOG_"
+
+
 @pytest.mark.parametrize(
     ("retired_env", "canonical_env", "field"),
     [
