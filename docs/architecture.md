@@ -23,8 +23,6 @@ flowchart LR
 |---|---|---|
 | `apps/capture-vrchat/` | VRChat observation、audio capture、transcription、generation、sync、operations | implemented |
 | `apps/reader/` | current Supabase projectionを読むNext.js Reader | implemented |
-| `apps/api/` | canonical memory向けHTTP boundary | reserved |
-| `apps/mcp/` | read-first memory tool boundary | reserved |
 
 ## Python runtime boundary
 
