@@ -14,7 +14,7 @@ jobs:
     name: Portability (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
-      GOOGLE_API_KEY: test-key
+      VLOG_GEMINI_API_KEY: test-key
     strategy:
       fail-fast: false
       matrix:
@@ -80,7 +80,7 @@ jobs:
   python:
     runs-on: ubuntu-latest
     env:
-      GOOGLE_API_KEY: test-key
+      VLOG_GEMINI_API_KEY: test-key
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -106,6 +106,9 @@ jobs:
           grep -Fq 'https://kaflog.vercel.app' .github/workflows/production-smoke.yml
           grep -Fq 'only the default branch and same-repository open-PR heads may persist' .github/workflows/branch-lifecycle.yml
           grep -Fq 'closed PR heads and orphan branches are deleted' .github/workflows/branch-lifecycle.yml
+          grep -Fq 'VLOG_GEMINI_API_KEY=' .env.example
+          ! grep -Eq '^(GOOGLE_API_KEY|SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|DISCORD_WEBHOOK_URL)=' .env.example
+          ! grep -Fq 'GOOGLE_API_KEY:' .github/workflows/test.yml
           test ! -e .github/workflows/weekly-repo-research.yml
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py
