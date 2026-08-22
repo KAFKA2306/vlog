@@ -3,17 +3,17 @@ from pathlib import Path
 import pytest
 from vlog_capture.infrastructure.settings import (
     Settings,
-    _get_project_root,
     _settings_env_file,
     is_posix_path_invalid_on_windows,
     is_windows_path_invalid_on_linux,
     resolve_project_path,
 )
+from vlog_capture.project import PROJECT_ROOT
 
 
 def test_resolve_project_path_anchors_relative_readonly_assets() -> None:
     assert resolve_project_path(Path("data/prompts.yaml")) == (
-        _get_project_root() / "data/prompts.yaml"
+        PROJECT_ROOT / "data/prompts.yaml"
     )
 
 
