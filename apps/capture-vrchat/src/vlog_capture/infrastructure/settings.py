@@ -120,6 +120,7 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
         case_sensitive=False,
+        env_prefix="VLOG_",
     )
 
     gemini_api_key: str = Field(
