@@ -108,6 +108,100 @@ jobs:
 
           edit("scripts/check_repository_boundaries.py", boundaries)
 
+          def operations(text: str) -> str:
+              text = text.replace(
+                  "# Explicit roots preserve the legacy test/import layout; production uses state home.",
+                  "# Explicit roots isolate tests; production uses state home.",
+              )
+              text = text.replace(
+                  '        events.extend(self._load_legacy_log(self.root / "logs/vlog.log"))\n',
+                  "",
+              )
+              text, count = re.subn(
+                  r"\n    def _load_legacy_log\([\s\S]*?(?=\n    @staticmethod\n    def _read_jsonl)",
+                  "\n",
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit("plain-log compatibility parser not found")
+              return text.replace("legacy scheduler path absent", "retired scheduler path absent")
+
+          edit("apps/capture-vrchat/src/vlog_capture/operations.py", operations)
+
+          def novels(text: str) -> str:
+              old = '''  const preferred = await fetchInjectedRows(\n    'id,date,title,content,tags,image_url,is_public',\n    limit,\n    fetchImpl,\n  )\n  const rows =\n    preferred ??\n    (await fetchInjectedRows('id,date,title,content,tags,is_public', limit, fetchImpl))\n'''
+              new = '''  const rows = await fetchInjectedRows(\n    'id,date,title,content,tags,image_url,is_public',\n    limit,\n    fetchImpl,\n  )\n'''
+              if old not in text:
+                  raise SystemExit("novel schema fallback not found")
+              return text.replace(old, new).replace("legacyLimit", "limit")
+
+          edit("apps/reader/lib/novels-complete.ts", novels)
+
+          def novel_tests(text: str) -> str:
+              result, count = re.subn(
+                  r"\n  test\('falls back when a legacy table has no image_url column',[\s\S]*?(?=\n  test\('returns an empty public archive)",
+                  "",
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit("novel schema fallback test not found")
+              return result
+
+          edit("apps/reader/tests/novels.test.ts", novel_tests)
+
+          replacements = {
+              "apps/capture-vrchat/README.md": {
+                  "current legacy-compatible artifact generation": "current artifact generation",
+              },
+              "apps/capture-vrchat/src/README.md": {
+                  "The current application still includes legacy-compatible file/artifact state while Human Memory v2 canonical ingestion is being built.": "The current application uses file/artifact state while Human Memory v2 canonical ingestion is tracked separately.",
+              },
+              "apps/capture-vrchat/src/vlog_capture/use_cases/mbti/README.md": {
+                  "within the legacy runtime": "within the current runtime",
+              },
+              "apps/reader/scripts/check-design-contract.mjs": {
+                  "legacy black canvas": "retired black canvas",
+                  "legacy cyan accent": "retired cyan accent",
+                  "legacy-theme ban": "retired-theme ban",
+              },
+              "docs/SPEC.md": {
+                  "legacy mechanism": "temporary mechanism",
+              },
+              "docs/adr/0012-cross-platform-portability.md": {
+                  "legacy data bridging": "temporary data bridging",
+              },
+              "docs/architecture/portability.md": {
+                  "legacy data bridge": "temporary data bridge",
+                  "legacy repo-local data": "repo-local source data",
+                  "legacy `src` package": "retired `src` package",
+              },
+              "docs/image.md": {
+                  "current legacy-compatible runtime": "current runtime",
+                  "current legacy input": "current source input",
+                  "current legacy mechanisms": "current temporary mechanisms",
+              },
+              "docs/operations/phase0-inventory.md": {
+                  "legacy evidence layout": "source evidence layout",
+                  "legacy private files": "private source files",
+              },
+              "docs/overview.md": {
+                  "legacy-compatibleな実行系": "現在の実行系",
+              },
+              "scripts/phase0_inventory.py": {
+                  "Repository-relative legacy root to inventory.": "Repository-relative source root to inventory.",
+              },
+          }
+          for path, mapping in replacements.items():
+              def replace_all(text: str, mapping=mapping, path=path) -> str:
+                  for old, new in mapping.items():
+                      if old not in text:
+                          raise SystemExit(f"expected text missing in {path}: {old}")
+                      text = text.replace(old, new)
+                  return text
+              edit(path, replace_all)
+
           def architecture(text: str) -> str:
               text = text.replace("legacy-compatible runtime", "runtime")
               text = text.replace(
@@ -143,16 +237,11 @@ jobs:
           )
 
           def human_memory(text: str) -> str:
-              replacements = {
-                  "legacy removal": "retired-system removal",
-                  "Legacy removal": "Retired-system removal",
-                  "legacy copies": "retired copies",
-                  "legacy files": "retired files",
-                  "The package remains named `src` during the behavior-preserving migration.": "The installable runtime package is `vlog_capture`.",
-              }
-              for old, new in replacements.items():
-                  text = text.replace(old, new)
-              return text
+              text = text.replace(
+                  "The package remains named `src` during the behavior-preserving migration.",
+                  "The installable runtime package is `vlog_capture`.",
+              )
+              return text.replace("Legacy", "Retired").replace("legacy", "retired")
 
           edit("docs/architecture/human-memory-v2.md", human_memory)
           PY
