@@ -6,19 +6,16 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "packages" / "memory-domain" / "src"))
-sys.path.insert(0, str(REPO_ROOT / "packages" / "ingestion" / "src"))
-
-from vlog_ingestion import (  # noqa: E402
+from vlog_ingestion import (
     BackfillCandidateStatus,
     BackfillSourceKind,
     BackfillSourceRecord,
     SpeakerKind,
     dry_run_social_mirror_backfill,
 )
-from vlog_memory_domain import SocialMirrorEvidenceLevel  # noqa: E402
+from vlog_memory_domain import SocialMirrorEvidenceLevel
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "social_mirror_backfill.jsonl"
 
 

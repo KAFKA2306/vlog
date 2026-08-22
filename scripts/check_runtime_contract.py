@@ -24,6 +24,7 @@ LEGACY_DATA_EXCEPTIONS = {
 }
 FORBIDDEN = {
     "PYTHONPATH": "runtime must use installed workspace packages",
+    "sys.path.insert": "scripts must use installed workspace packages",
     "USER_WORKING_DIR": "tasks must resolve from the root Taskfile",
     "python3.12/site-packages/nvidia": "GPU libraries must be discovered at runtime",
     "python -m src": "legacy src package entrypoints are forbidden",
