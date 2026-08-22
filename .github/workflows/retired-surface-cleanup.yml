@@ -1,0 +1,175 @@
+name: Retired surface cleanup
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'refactor/remove-all-legacy'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: refactor/remove-all-legacy
+          fetch-depth: 0
+
+      - name: Remove retired compatibility surfaces
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def edit(path: str, transform) -> None:
+              target = Path(path)
+              before = target.read_text(encoding="utf-8")
+              after = transform(before)
+              if after == before:
+                  raise SystemExit(f"no change produced for {path}")
+              target.write_text(after, encoding="utf-8")
+
+          for path in (
+              "scripts/migrate_runtime_state.py",
+              "tests/test_runtime_state_migration.py",
+          ):
+              target = Path(path)
+              if not target.exists():
+                  raise SystemExit(f"expected retired file missing: {path}")
+              target.unlink()
+
+          def settings(text: str) -> str:
+              text = text.replace(
+                  "from pydantic import AliasChoices, Field, field_validator",
+                  "from pydantic import Field, field_validator",
+              )
+              replacements = {
+                  'validation_alias=AliasChoices("VLOG_GEMINI_API_KEY", "GOOGLE_API_KEY"),': 'validation_alias="VLOG_GEMINI_API_KEY",',
+                  'validation_alias=AliasChoices("VLOG_JULES_API_KEY", "GOOGLE_JULES_API_KEY"),': 'validation_alias="VLOG_JULES_API_KEY",',
+                  'validation_alias=AliasChoices("VLOG_SUPABASE_URL", "SUPABASE_URL"),': 'validation_alias="VLOG_SUPABASE_URL",',
+                  'validation_alias=AliasChoices(\n            "VLOG_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"\n        ),': 'validation_alias="VLOG_SUPABASE_SERVICE_ROLE_KEY",',
+                  'validation_alias=AliasChoices(\n            "VLOG_DISCORD_WEBHOOK_URL", "DISCORD_WEBHOOK_URL"\n        ),': 'validation_alias="VLOG_DISCORD_WEBHOOK_URL",',
+                  'validation_alias=AliasChoices("VLOG_ERROR_LOG_FILE", "VLOG_ERROR_EVENT_FILE"),': 'validation_alias="VLOG_ERROR_LOG_FILE",',
+              }
+              for old, new in replacements.items():
+                  if old not in text:
+                      raise SystemExit(f"settings pattern missing: {old}")
+                  text = text.replace(old, new)
+              return text
+
+          edit("apps/capture-vrchat/src/vlog_capture/infrastructure/settings.py", settings)
+
+          def settings_tests(text: str) -> str:
+              pattern = re.compile(
+                  r"def test_legacy_google_api_key_environment_remains_accepted\([\s\S]*?(?=def test_explicit_env_file_handles_space_hash_and_unicode)"
+              )
+              replacement = '''def test_retired_google_api_key_alias_is_ignored(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    monkeypatch.delenv("VLOG_GEMINI_API_KEY", raising=False)\n    monkeypatch.setenv("GOOGLE_API_KEY", "retired-key")\n    assert Settings().gemini_api_key == ""\n\n\n'''
+              result, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit("environment compatibility tests not found")
+              return result
+
+          edit("tests/test_settings_paths.py", settings_tests)
+
+          def runtime_contract(text: str) -> str:
+              text, count = re.subn(
+                  r"# These tools intentionally operate on versioned/legacy repository data rather than\n# serving as runtime state authorities\.\nLEGACY_DATA_EXCEPTIONS = \{[\s\S]*?\}\n",
+                  "",
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit("runtime exception block not found")
+              text, count = re.subn(
+                  r"\s{12}if relative in LEGACY_DATA_EXCEPTIONS and token\.startswith\([\s\S]*?\s{12}\):\n\s{16}continue\n",
+                  "",
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit("runtime exception branch not found")
+              return text.replace("legacy src", "retired src")
+
+          edit("scripts/check_runtime_contract.py", runtime_contract)
+
+          def boundaries(text: str) -> str:
+              text = text.replace("LEGACY_PATHS", "RETIRED_PATHS")
+              text = text.replace("for legacy in RETIRED_PATHS:", "for retired in RETIRED_PATHS:")
+              text = text.replace("(root / legacy).exists()", "(root / retired).exists()")
+              text = text.replace('Violation("legacy-boundary", legacy, "legacy path must remain removed")', 'Violation("retired-boundary", retired, "retired path must remain removed")')
+              marker = '    "apps/capture-vrchat/src/vlog_capture/infrastructure/audit.py",\n'
+              addition = '    "scripts/migrate_runtime_state.py",\n    "docs/daily_pipeline_contract.md",\n'
+              if marker not in text:
+                  raise SystemExit("retired path marker not found")
+              return text.replace(marker, marker + addition, 1)
+
+          edit("scripts/check_repository_boundaries.py", boundaries)
+
+          def architecture(text: str) -> str:
+              text = text.replace("legacy-compatible runtime", "runtime")
+              text = text.replace(
+                  "現在のpipelineはlocal artifactと既存artifactの有無を利用してpending workを判断します。これはmigration中に維持しているbehaviorであり、Human Memory v2の最終state modelではありません。machine-local pathの扱いは",
+                  "現在のpipelineはlocal artifactと既存artifactの有無を利用してpending workを判断します。Human Memory v2のtarget state modelは別途定義されます。machine-local pathの扱いは",
+              )
+              text = text.replace(
+                  "現在のdaily pipelineは、local recording / transcript / generated artifactと既存Supabase projectionを利用して処理対象を決定します。stable IDs、content hash、explicit ingestion run、`source_hash + pipeline_version` idempotency、transactional outboxへ置換されるまではlegacy-compatible stateとして扱います。\n\n具体的なscheduled execution contractは[`daily_pipeline_contract.md`](daily_pipeline_contract.md)を参照してください。",
+                  "現在のdaily pipelineは、local recording / transcript / generated artifactと既存Supabase projectionを利用して処理対象を決定します。Human Memory v2のtarget state modelはstable IDs、content hash、explicit ingestion run、`source_hash + pipeline_version` idempotency、transactional outboxです。",
+              )
+              text = text.replace(
+                  "Current runtimeにはmigration中のlocal Evidence / artifact stateとexisting Supabase projectionが残ります。Human Memory v2 targetでは次を分離します。",
+                  "Current runtimeはlocal Evidence / artifact stateとexisting Supabase projectionを使用します。Human Memory v2 targetでは次を分離します。",
+              )
+              return "\n".join(
+                  line for line in text.splitlines()
+                  if "daily_pipeline_contract.md" not in line
+              ) + "\n"
+
+          edit("docs/architecture.md", architecture)
+
+          edit(
+              "docs/README.md",
+              lambda text: "\n".join(
+                  line for line in text.splitlines()
+                  if "daily_pipeline_contract.md" not in line
+              ) + "\n",
+          )
+
+          edit(
+              "docs/MAINTENANCE.md",
+              lambda text: text.replace("legacy Evidence", "source Evidence"),
+          )
+
+          def human_memory(text: str) -> str:
+              replacements = {
+                  "legacy removal": "retired-system removal",
+                  "Legacy removal": "Retired-system removal",
+                  "legacy copies": "retired copies",
+                  "legacy files": "retired files",
+                  "The package remains named `src` during the behavior-preserving migration.": "The installable runtime package is `vlog_capture`.",
+              }
+              for old, new in replacements.items():
+                  text = text.replace(old, new)
+              return text
+
+          edit("docs/architecture/human-memory-v2.md", human_memory)
+          PY
+
+          git rm .github/workflows/retired-surface-cleanup.yml
+
+          if git grep -n -i -w legacy -- . ':!uv.lock'; then
+            echo "retired terminology remains in tracked text" >&2
+            exit 1
+          fi
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --stat
+          git commit -m "refactor: remove retired compatibility surfaces"
+          git push origin HEAD:refactor/remove-all-legacy
