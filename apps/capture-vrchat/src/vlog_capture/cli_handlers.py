@@ -149,6 +149,7 @@ def cmd_daily(args: argparse.Namespace) -> None:
 
     DailyPipeline().run()
 
+
 def cmd_pending(args: argparse.Namespace) -> None:
     _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args, sync=False)
     _cmd_strict_sync(args)
