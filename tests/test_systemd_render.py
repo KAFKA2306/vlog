@@ -31,6 +31,10 @@ def test_render_units_uses_supplied_repository_root(tmp_path: Path) -> None:
     assert "checkout\\x20with\\x20space" in monitor
     assert "/home/kafka/" not in monitor
 
+    daily = (output / "vlog-daily.service").read_text(encoding="utf-8")
+    assert " run --frozen vlog daily" in daily
+    assert " run --frozen vlog-daily" not in daily
+
 
 def test_templates_do_not_commit_checkout_path() -> None:
     for template in (REPO_ROOT / "infra" / "systemd").glob("*.in"):
