@@ -18,4 +18,4 @@ Validate rendered units without installing:
 task systemd:verify
 ```
 
-The installer writes units to `${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user`, creates the runtime homes, reloads the user manager, enables the daily timer, and restarts the monitor service. Entry points are installed from the uv workspace (`vlog-service`, `vlog-daily`, `vlog-operations`); unit files do not construct Python import paths.
+The installer writes units to `${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user`, creates the runtime homes, reloads the user manager, enables the daily timer, and restarts the monitor service. Entry points are installed from the uv workspace (`vlog`, `vlog-service`, `vlog-operations`); the daily timer runs `vlog daily`. Unit files do not construct Python import paths.

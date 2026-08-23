@@ -38,7 +38,6 @@ gpu = [
 [project.scripts]
 vlog = "vlog_capture.cli:main"
 vlog-service = "vlog_capture.main:main"
-vlog-daily = "vlog_capture.daily:main"
 vlog-operations = "vlog_capture.operations:main"
 
 [build-system]
