@@ -1,14 +1,12 @@
-from pathlib import Path
 import re
 
 
-SECURITY_MIGRATION = Path(
-    "infra/supabase/migrations/20260802070700_secure_rls.sql"
-)
+SECURITY_MIGRATION = "infra/supabase/migrations/20260802070700_secure_rls.sql"
 
 
 def test_rls_has_no_public_write_all_policy() -> None:
-    sql = SECURITY_MIGRATION.read_text(encoding="utf-8").lower()
+    with open(SECURITY_MIGRATION, encoding="utf-8") as handle:
+        sql = handle.read().lower()
     assert not re.search(r"for\s+all\s+using\s*\(\s*true\s*\)", sql)
     assert "to anon, authenticated" in sql
     assert "using (is_public = true)" in sql
