@@ -1,0 +1,43 @@
+name: Format unified daily runtime
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'refactor/unify-daily-runtime'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: refactor/unify-daily-runtime
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: '0.12.5'
+      - run: uv sync --locked
+      - name: Format and verify surface
+        shell: bash
+        run: |
+          uv run --no-sync ruff format apps/capture-vrchat/src/vlog_capture/cli_handlers.py tests/test_cli_daily.py
+          git rm .github/workflows/format-unified-daily.yml
+          test ! -e apps/capture-vrchat/src/vlog_capture/use_cases/daily_workload.py
+          test ! -e tests/test_daily_workload.py
+          ! grep -Fq 'vlog-daily = ' apps/capture-vrchat/pyproject.toml
+          grep -Fq 'run --frozen vlog daily' infra/systemd/vlog-daily.service.in
+          git diff --check
+      - name: Commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: format unified daily runtime"
+          git push origin HEAD:refactor/unify-daily-runtime
