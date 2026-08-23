@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import re
 from datetime import datetime
 from pathlib import Path
@@ -32,10 +31,6 @@ from vlog_capture.portability import runtime_directories
 from vlog_capture.secure_handlers import cmd_sync as _cmd_strict_sync
 from vlog_capture.use_cases.build_novel import BuildNovelUseCase
 from vlog_capture.use_cases.daily_artifacts import DailyArtifactManager
-from vlog_capture.use_cases.daily_workload import (
-    collect_daily_workload,
-    render_daily_workload,
-)
 from vlog_capture.use_cases.extract_graph import ExtractGraphUseCase
 from vlog_capture.use_cases.process_recording import ProcessRecordingUseCase
 
@@ -149,58 +144,10 @@ def _cmd_summarize_logic(args: argparse.Namespace) -> None:
 
 
 def cmd_daily(args: argparse.Namespace) -> None:
-    _harness_run("daily", TaskWeight.LIGHT, _cmd_daily_logic, args)
+    del args
+    from vlog_capture.daily import DailyPipeline
 
-
-def _cmd_daily_logic(args: object) -> None:
-    plan = collect_daily_workload()
-    print(render_daily_workload(plan))
-
-    if plan.counts.recordings_pending == 0 or plan.can_autorun_recording_flow:
-        _harness_run(
-            "daily_recording_flow",
-            TaskWeight.HEAVY,
-            _cmd_pending_logic,
-            args,
-            sync=False,
-        )
-    else:
-        print("  recording_flow=paused waiting for VRChat/GPU/CPU headroom")
-
-    from vlog_capture.use_cases.evaluate import EvaluateDailyContentUseCase
-
-    if plan.counts.novel_days_pending > 0:
-        evaluator = EvaluateDailyContentUseCase()
-        for date_str in _collect_pending_evaluation_dates(limit=plan.next_action_limit):
-            evaluator.execute(date_str, sync=False)
-
-    _run_daily_postprocessing()
-
-
-def _collect_pending_evaluation_dates(limit: int | None = None) -> list[str]:
-    summary_dir = settings.summary_dir
-    novel_dir = settings.novel_out_dir
-    evaluation_dir = runtime_directories().data / "evaluations"
-
-    summary_dates = {
-        match.group(1)
-        for path in summary_dir.glob("*_summary.txt")
-        if (match := re.search(r"(\d{8})", path.stem))
-    }
-    novel_dates = {
-        match.group(1)
-        for path in novel_dir.glob("*.md")
-        if (match := re.search(r"(\d{8})", path.stem))
-    }
-    evaluation_dates = {
-        match.group(1)
-        for path in evaluation_dir.glob("*.json")
-        if (match := re.search(r"(\d{8})", path.stem))
-    }
-
-    pending_dates = sorted((summary_dates & novel_dates) - evaluation_dates)
-    return pending_dates[:limit] if limit is not None else pending_dates
-
+    DailyPipeline().run()
 
 def cmd_pending(args: argparse.Namespace) -> None:
     _harness_run("pending_all", TaskWeight.HEAVY, _cmd_pending_logic, args, sync=False)
@@ -274,36 +221,6 @@ def cmd_curator(args: argparse.Namespace) -> None:
     _harness_run(
         "curator", TaskWeight.LIGHT, EvaluateDailyContentUseCase().execute, args.date
     )
-
-
-def _run_daily_postprocessing() -> None:
-    _best_effort("cognee:ingest", _run_cognee_ingest)
-    _best_effort("sync", SupabaseRepository().sync)
-    _best_effort("notify", _send_daily_notification)
-
-
-def _run_cognee_ingest() -> None:
-    from scripts.ingest_to_cognee import main as ingest_to_cognee_main
-
-    asyncio.run(ingest_to_cognee_main())
-
-
-def _send_daily_notification() -> None:
-    from vlog_capture.infrastructure.discord import DiscordClient
-
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    DiscordClient().send_message(
-        "✅ 日次処理が完了しました（"
-        f"{timestamp}）\n"
-        "🌐 Reader: https://kaflog.vercel.app"
-    )
-
-
-def _best_effort(label: str, func: Any, *args: Any, **kwargs: Any) -> None:
-    try:
-        func(*args, **kwargs)
-    except Exception as exc:
-        print(f"⚠️ {label} failed ({exc}). Continuing anyway.")
 
 
 def cmd_manga(args: argparse.Namespace) -> None:

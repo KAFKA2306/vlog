@@ -31,7 +31,6 @@ capture applicationはuv workspace上のinstallable package `vlog_capture`です
 ```text
 vlog             -> vlog_capture.cli:main
 vlog-service     -> vlog_capture.main:main
-vlog-daily       -> vlog_capture.daily:main
 vlog-operations  -> vlog_capture.operations:main
 ```
 

@@ -46,7 +46,7 @@ cp .env.example .env
 export VLOG_ENV_FILE="$PWD/.env"
 ```
 
-`.env.example`のVLog runtime設定は`VLOG_*`が正準です。既存deployment向けの旧環境変数名はruntime互換層だけで受け付けます。systemdではrepository内`.env`を使わず、必要なら`VLOG_ENV_FILE`へ明示的な絶対パスを設定します。
+`.env.example`のVLog runtime設定は`VLOG_*`だけを受け付けます。systemdではrepository内`.env`を使わず、必要なら`VLOG_ENV_FILE`へ明示的な絶対パスを設定します。
 
 実録音・文字起こし・同期には対象hostのaudio device、VRChat、GPU/model、network、credentialが別途必要です。secretやprivate Evidenceをcommitしません。
 

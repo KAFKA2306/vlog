@@ -13,7 +13,7 @@ Environment=VLOG_CONFIG_HOME=@VLOG_CONFIG_HOME@
 Environment=VLOG_DATA_HOME=@VLOG_DATA_HOME@
 Environment=VLOG_STATE_HOME=@VLOG_STATE_HOME@
 Environment=VLOG_CACHE_HOME=@VLOG_CACHE_HOME@
-ExecStart=@VLOG_UV@ run --frozen vlog-daily
+ExecStart=@VLOG_UV@ run --frozen vlog daily
 Environment="PATH=/snap/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 NoNewPrivileges=yes
