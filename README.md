@@ -12,6 +12,7 @@ VLogは、VRChatのEvidenceからreview可能なHuman Memory、Narrative Artifac
 
 | 目的 | 正準 |
 |---|---|
+| 公開Reader | [KafLog](https://kaflog.vercel.app/) |
 | 製品仕様・動作保証 | [`docs/SPEC.md`](docs/SPEC.md) |
 | 文書マップ | [`docs/README.md`](docs/README.md) |
 | Human Memory v2 | [`docs/architecture/human-memory-v2.md`](docs/architecture/human-memory-v2.md) |
