@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import time
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -11,13 +10,7 @@ from uuid import uuid4
 
 from .normalizer import normalize_source
 from .parser import parse_observation
-from .reader import (
-    SourceBoundaryError,
-    UnstableSourceError,
-    discover_source_paths,
-    read_source_file,
-    validate_source_root,
-)
+from .reader import discover_source_paths, read_source_file, validate_source_root
 
 PIPELINE_VERSION = "human-memory-v2:vrcpet-autonomous-1"
 
@@ -124,11 +117,15 @@ def _load_completed(ledger_path: Path, pipeline_version: str) -> set[str]:
     completed: set[str] = set()
     if not ledger_path.is_file():
         return completed
-    for line in ledger_path.read_text(encoding="utf-8").splitlines():
+    for line_number, line in enumerate(
+        ledger_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         try:
             payload = json.loads(line)
-        except json.JSONDecodeError:
-            continue
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"invalid VRCPet ledger JSON at line {line_number}: {ledger_path}"
+            ) from exc
         if (
             payload.get("status") == "succeeded"
             and payload.get("pipeline_version") == pipeline_version
@@ -152,8 +149,6 @@ def run_ingest(
     run_id: str | None = None,
     pipeline_version: str = PIPELINE_VERSION,
     dry_run: bool = False,
-    read_retries: int = 3,
-    retry_delay_seconds: float = 0.25,
 ) -> IngestSummary:
     effective_run_id = run_id or str(uuid4())
     repository = Path(project_root or os.environ.get("VLOG_PROJECT_ROOT", Path.cwd()))
@@ -169,20 +164,8 @@ def run_ingest(
 
     configured_root = source_root or os.environ.get("VLOG_VRCPET_ROOT")
     if not configured_root:
-        summary = IngestSummary(effective_run_id, "skipped", 0, 0, 0, 0, 0, output_path)
-        _atomic_write(
-            output_path, json.dumps(summary.as_dict(), sort_keys=True).encode()
-        )
-        return summary
-
-    try:
-        root = validate_source_root(configured_root)
-    except (OSError, SourceBoundaryError, ValueError):
-        summary = IngestSummary(effective_run_id, "skipped", 0, 0, 0, 0, 0, output_path)
-        _atomic_write(
-            output_path, json.dumps(summary.as_dict(), sort_keys=True).encode()
-        )
-        return summary
+        raise ValueError("VRCPet source root is required; set VLOG_VRCPET_ROOT")
+    root = validate_source_root(configured_root)
 
     paths = discover_source_paths(root)
     ledger_path = effective_state / "vrcpet" / "ledger.jsonl"
@@ -201,21 +184,10 @@ def run_ingest(
         private_evidence_root = configured_private_root
     else:
         private_evidence_root = _private_root(effective_data, repository)
-    ingested = skipped = failed = parse_issues = 0
+    ingested = skipped = parse_issues = 0
 
     for relative_path in paths:
-        source = None
-        for attempt in range(max(1, read_retries)):
-            try:
-                source = read_source_file(root, relative_path)
-                break
-            except UnstableSourceError:
-                if attempt + 1 == max(1, read_retries):
-                    failed += 1
-                else:
-                    time.sleep(max(0.0, retry_delay_seconds))
-        if source is None:
-            continue
+        source = read_source_file(root, relative_path)
         if source.size_bytes == 0:
             skipped += 1
             continue
@@ -228,65 +200,59 @@ def run_ingest(
             skipped += 1
             continue
 
-        try:
-            if private_evidence_root is not None:
-                _persist_raw(
-                    source.raw_bytes,
-                    private_root=private_evidence_root,
-                    observation_type=parsed.observation_type,
-                    digest=digest,
-                )
-            manifest = dict(observation.manifest)
-            manifest["metadata"] = dict(manifest["metadata"])
-            manifest["metadata"].update(
+        if private_evidence_root is not None:
+            _persist_raw(
+                source.raw_bytes,
+                private_root=private_evidence_root,
+                observation_type=parsed.observation_type,
+                digest=digest,
+            )
+        manifest = dict(observation.manifest)
+        manifest["metadata"] = dict(manifest["metadata"])
+        manifest["metadata"].update(
+            {
+                "record_count": len(parsed.records),
+                "parse_issue_codes": _safe_issue_codes(parsed.issues),
+                "pipeline_version": pipeline_version,
+            }
+        )
+        manifest_path = (
+            effective_state
+            / "vrcpet"
+            / "manifests"
+            / f"{observation.source_object.id}.json"
+        )
+        _atomic_write(
+            manifest_path,
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode(),
+        )
+        if not dry_run:
+            _append_jsonl(
+                ledger_path,
                 {
+                    "run_id": effective_run_id,
+                    "source_object_id": observation.source_object.id,
+                    "source_hash": digest,
+                    "pipeline_version": pipeline_version,
+                    "status": "succeeded",
+                    "kind": observation.source_object.kind.value,
+                    "observation_type": parsed.observation_type,
+                    "source_relative_path": source.relative_path,
                     "record_count": len(parsed.records),
                     "parse_issue_codes": _safe_issue_codes(parsed.issues),
-                    "pipeline_version": pipeline_version,
-                }
+                    "recorded_at": observation.manifest["recorded_at"],
+                },
             )
-            manifest_path = (
-                effective_state
-                / "vrcpet"
-                / "manifests"
-                / f"{observation.source_object.id}.json"
-            )
-            _atomic_write(
-                manifest_path,
-                json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode(),
-            )
-            if not dry_run:
-                _append_jsonl(
-                    ledger_path,
-                    {
-                        "run_id": effective_run_id,
-                        "source_object_id": observation.source_object.id,
-                        "source_hash": digest,
-                        "pipeline_version": pipeline_version,
-                        "status": "succeeded",
-                        "kind": observation.source_object.kind.value,
-                        "observation_type": parsed.observation_type,
-                        "source_relative_path": source.relative_path,
-                        "record_count": len(parsed.records),
-                        "parse_issue_codes": _safe_issue_codes(parsed.issues),
-                        "recorded_at": observation.manifest["recorded_at"],
-                    },
-                )
-                completed.add(digest)
-            ingested += 1
-        except (OSError, ValueError):
-            failed += 1
+            completed.add(digest)
+        ingested += 1
 
-    status = (
-        "failed" if failed and not ingested else "partial" if failed else "succeeded"
-    )
     summary = IngestSummary(
         effective_run_id,
-        status,
+        "succeeded",
         len(paths),
         ingested,
         skipped,
-        failed,
+        0,
         parse_issues,
         output_path,
     )
