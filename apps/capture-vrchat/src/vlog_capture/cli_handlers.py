@@ -1,4 +1,5 @@
 import argparse
+import json
 import re
 from datetime import datetime
 from pathlib import Path
@@ -116,6 +117,18 @@ def cmd_transcribe(args: argparse.Namespace) -> None:
     _harness_run(
         "transcribe", TaskWeight.HEAVY, Transcriber().transcribe_and_save, args.file
     )
+
+
+def cmd_vrcpet_ingest(args: argparse.Namespace) -> None:
+    from vlog_capture.vrcpet_ingest import ingest
+
+    result = ingest(
+        run_id=args.run_id,
+        source_root=args.source_root,
+        private_root=args.private_root,
+        dry_run=args.dry_run,
+    )
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
 
 
 def cmd_summarize(args: argparse.Namespace) -> None:

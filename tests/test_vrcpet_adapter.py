@@ -11,15 +11,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "packages" / "memory-domain" / "src"))
 
+import vlog_vrcpet.normalizer as normalizer_module  # noqa: E402
 from vlog_memory_domain import (  # noqa: E402
     Episode,
     PrivacyLevel,
     SourceKind,
     SourceObject,
 )
-
-import adapters.vrcpet.normalizer as normalizer_module  # noqa: E402
-from adapters.vrcpet import (  # noqa: E402
+from vlog_vrcpet import (  # noqa: E402
     SourceBoundaryError,
     SourceFile,
     UnstableSourceError,

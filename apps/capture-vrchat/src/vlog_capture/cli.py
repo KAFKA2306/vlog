@@ -13,6 +13,7 @@ from vlog_capture.cli_handlers import (
     cmd_record,
     cmd_summarize,
     cmd_transcribe,
+    cmd_vrcpet_ingest,
 )
 from vlog_capture.secure_handlers import cmd_audit, cmd_notify, cmd_novel, cmd_sync
 
@@ -60,6 +61,17 @@ def main() -> None:
         subparsers, "transcribe", "Transcribe audio file", cmd_transcribe
     )
     p_transcribe.add_argument("--file", required=True)
+
+    p_vrcpet = _command(
+        subparsers,
+        "vrcpet-ingest",
+        "Ingest private VRCPet observations",
+        cmd_vrcpet_ingest,
+    )
+    p_vrcpet.add_argument("--run-id")
+    p_vrcpet.add_argument("--source-root")
+    p_vrcpet.add_argument("--private-root")
+    p_vrcpet.add_argument("--dry-run", action="store_true")
 
     p_summarize = _command(
         subparsers, "summarize", "Summarize transcript", cmd_summarize

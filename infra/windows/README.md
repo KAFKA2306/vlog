@@ -51,6 +51,16 @@ CUDA/cuDNN/cuBLASのWindows DLL directoryは `.venv-win` のPython minor version
 
 repository CIやPowerShell parser PASSは、Task Scheduler・VRChat・audio deviceの実機動作保証を代替しない。
 
+## VRCPet / Muchio observation ingest
+
+The shared command is `uv run --frozen vlog vrcpet-ingest`. On a Windows-native
+checkout, configure `VLOG_VRCPET_ROOT` to the private VRCPet data directory and
+`VLOG_PRIVATE_EVIDENCE_ROOT` to a directory outside the Git checkout. The command
+only reads the source, writes private state/evidence, and is also invoked by the
+normal WSL `vlog daily` timer when that timer is the selected daily scheduler.
+Missing source data is recorded as a skip; raw conversation text is never written
+to the public repository.
+
 ## ログ
 
 標準値では次を参照する。

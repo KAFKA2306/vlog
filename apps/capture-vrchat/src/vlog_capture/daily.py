@@ -90,6 +90,17 @@ class DailyPipeline:
             env["VLOG_DAILY_VERIFIED"] = "0"
             dates = [date.today() - timedelta(days=1), date.today()]
 
+            self._stage(
+                run_id,
+                "vrcpet:ingest",
+                ["vrcpet-adapter"],
+                [self.state_root / "vrcpet" / "runs" / f"{run_id}.json"],
+                env,
+                "vrcpet-ingest",
+                "--run-id",
+                run_id,
+            )
+
             for target in dates:
                 date_str = target.strftime("%Y%m%d")
                 for audio_path in self._recordings(date_str):
