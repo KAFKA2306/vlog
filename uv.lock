@@ -11,6 +11,7 @@ members = [
     "vlog-memory-domain",
     "vlog-privacy",
     "vlog-vrchat-osc",
+    "vlog-vrcpet",
 ]
 
 [[package]]
@@ -2830,6 +2831,7 @@ dependencies = [
     { name = "vlog-memory-domain" },
     { name = "vlog-privacy" },
     { name = "vlog-vrchat-osc" },
+    { name = "vlog-vrcpet" },
 ]
 
 [package.optional-dependencies]
@@ -2857,6 +2859,7 @@ requires-dist = [
     { name = "vlog-memory-domain", editable = "packages/memory-domain" },
     { name = "vlog-privacy", editable = "packages/privacy" },
     { name = "vlog-vrchat-osc", editable = "adapters/vrchat-osc" },
+    { name = "vlog-vrcpet", editable = "adapters/vrcpet" },
 ]
 provides-extras = ["gpu", "cognee"]
 
@@ -2888,6 +2891,7 @@ dependencies = [
     { name = "vlog-memory-domain" },
     { name = "vlog-privacy" },
     { name = "vlog-vrchat-osc" },
+    { name = "vlog-vrcpet" },
 ]
 
 [package.optional-dependencies]
@@ -2930,6 +2934,7 @@ requires-dist = [
     { name = "vlog-memory-domain", editable = "packages/memory-domain" },
     { name = "vlog-privacy", editable = "packages/privacy" },
     { name = "vlog-vrchat-osc", editable = "adapters/vrchat-osc" },
+    { name = "vlog-vrcpet", editable = "adapters/vrcpet" },
 ]
 provides-extras = ["gpu"]
 
@@ -2969,6 +2974,17 @@ requires-dist = [{ name = "vlog-memory-domain", editable = "packages/memory-doma
 name = "vlog-vrchat-osc"
 version = "0.1.0"
 source = { editable = "adapters/vrchat-osc" }
+
+[[package]]
+name = "vlog-vrcpet"
+version = "0.1.0"
+source = { editable = "adapters/vrcpet" }
+dependencies = [
+    { name = "vlog-memory-domain" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "vlog-memory-domain", editable = "packages/memory-domain" }]
 
 [[package]]
 name = "websockets"

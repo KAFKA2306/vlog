@@ -9,6 +9,11 @@ def test_failure_prevents_success_notification(tmp_path: Path) -> None:
 
     def runner(command, env, cwd):
         calls.append((list(command), dict(env), cwd))
+        if "vrcpet-ingest" in command:
+            run_id = env["VLOG_RUN_ID"]
+            artifact = tmp_path / "data/vrcpet/runs" / f"{run_id}.json"
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_text("{}", encoding="utf-8")
         if "sync" in command:
             raise RuntimeError("sync failed")
 
@@ -27,6 +32,11 @@ def test_success_notification_runs_after_audit(tmp_path: Path) -> None:
 
     def runner(command, env, cwd):
         calls.append((list(command), dict(env), cwd))
+        if "vrcpet-ingest" in command:
+            run_id = env["VLOG_RUN_ID"]
+            artifact = tmp_path / "data/vrcpet/runs" / f"{run_id}.json"
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_text("{}", encoding="utf-8")
         if "sync" in command:
             run_id = env["VLOG_RUN_ID"]
             report = tmp_path / "data/sync_reports" / f"{run_id}.json"

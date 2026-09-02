@@ -57,7 +57,7 @@ tasks:
 
   typecheck:
     desc: Python型検査
-    cmd: $UV run --frozen ty check apps/capture-vrchat/src packages tests infra/systemd
+    cmd: $UV run --frozen ty check apps/capture-vrchat/src packages adapters tests infra/systemd
 
   test:
     desc: Python test
@@ -94,6 +94,10 @@ tasks:
     env:
       COGNEE_SKIP_CONNECTION_TEST: "true"
     cmd: $UV run --extra cognee python scripts/ingest_to_cognee.py
+
+  vrcpet:ingest:
+    desc: VRCPet/Muchioのprivate observationを冪等に取り込む
+    cmd: $UV run --frozen vlog vrcpet-ingest
 
   cognee:status:
     desc: Cognee projection queueを表示

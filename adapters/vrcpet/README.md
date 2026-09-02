@@ -40,3 +40,8 @@ read-only SourceFile
 ```
 
 `pipeline_version` belongs to `IngestionRun`; VRCPet-specific path/provenance details remain in manifest metadata. The existing `schemas/source-manifest.schema.json` contract is reused rather than introducing a VRCPet-specific canonical schema.
+
+The installable `vlog-vrcpet` workspace package exposes `vlog vrcpet-ingest` for a
+single idempotent scan. The daily pipeline invokes the same command automatically.
+It writes only private evidence, private manifests, and a sanitized ledger; the
+source directory is never modified.

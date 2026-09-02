@@ -20,6 +20,7 @@ dependencies = [
     "vlog-memory-domain",
     "vlog-privacy",
     "vlog-vrchat-osc",
+    "vlog-vrcpet",
 ]
 
 [project.optional-dependencies]
