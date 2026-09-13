@@ -12,6 +12,16 @@ Install and start:
 task systemd:install
 ```
 
+Before installation, the installer resolves `uv` and `systemctl` to absolute executable paths and prints their versions. It then reuses those exact paths for the entire registration run, so an interactive shell alias/function or later PATH lookup cannot change the executable mid-run. Diagnose resolution without changing service state:
+
+```bash
+infra/systemd/install.sh --diagnose
+```
+
+`VLOG_UV_EXE` and `VLOG_SYSTEMCTL_EXE` may be set to explicit absolute executable paths. Missing, relative, or non-executable paths fail before unit rendering or service registration.
+
+After upgrading or moving `uv`/`systemctl`, rerun `task systemd:install`. This re-resolves the executables, re-renders the units with the current absolute `uv` path, reloads the user manager, and restarts/enables the service/timer. Do not edit the rendered units by hand.
+
 Validate rendered units without installing:
 
 ```bash
