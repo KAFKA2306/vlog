@@ -32,7 +32,9 @@ def test_installer_diagnose_resolves_binaries_with_minimal_path(tmp_path: Path) 
     assert f"resolved systemctl: {bin_dir / 'systemctl'} (systemd 999)" in result.stdout
 
 
-def test_installer_fails_before_registration_when_systemctl_is_missing(tmp_path: Path) -> None:
+def test_installer_fails_before_registration_when_systemctl_is_missing(
+    tmp_path: Path,
+) -> None:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     _fake_executable(bin_dir / "uv", "uv 9.9.9")
