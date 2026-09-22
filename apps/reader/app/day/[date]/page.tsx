@@ -17,7 +17,7 @@ export async function generateStaticParams() {
   return (await getLatestSummaries(60)).map(entry => ({ date: entry.date }))
 }
 
-export const dynamicParams = false
+export const dynamicParams = true
 
 export default async function DayPage({ params }: Props) {
   const { date } = await params
