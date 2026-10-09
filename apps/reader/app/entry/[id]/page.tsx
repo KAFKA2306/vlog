@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { formatDateOnly, getEntryById, getPublishedEntries } from '@/lib/entries'
+import { formatDateOnly, getEntryById } from '@/lib/entries'
 
 type Props = {
   params: Promise<{
@@ -10,10 +10,11 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  return (await getPublishedEntries()).map(entry => ({ id: entry.id }))
+  return []
 }
 
-export const dynamicParams = false
+export const dynamicParams = true
+export const revalidate = 300
 
 export default async function EntryPage({ params }: Props) {
   const { id } = await params
