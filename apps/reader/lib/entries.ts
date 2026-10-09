@@ -12,6 +12,7 @@ export type Entry = {
   imageUrl: string | null
   title: string
   content: string
+  source?: 'summary' | 'novel'
 }
 
 const DATA_ROOT = path.resolve(process.cwd(), '..', '..', 'data')
@@ -19,7 +20,6 @@ const SUMMARY_DIR = path.join(DATA_ROOT, 'summaries')
 const TRANSCRIPT_DIR = path.join(DATA_ROOT, 'transcripts')
 const DAILY_STATE_FILE = path.join(DATA_ROOT, 'daily_state.json')
 const MIN_PUBLISHABLE_BYTES = 50
-const PUBLICATION_START_DATE = '2025-01-01'
 
 const getSupabaseConfig = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
