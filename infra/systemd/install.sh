@@ -14,6 +14,15 @@ if [[ -f .env ]]; then
   set +a
 fi
 
+# Older installs may have linked generated units back into the checkout. Remove
+# only those links so rendering cannot write machine-local units into Git.
+for unit in vlog.service vlog-monitor-failure.service vlog-daily.service vlog-daily-failure.service vlog-daily.timer; do
+  destination="$UNIT_DIR/$unit"
+  if [[ -L "$destination" ]]; then
+    unlink "$destination"
+  fi
+done
+
 python3 infra/systemd/render.py --root "$ROOT" --output "$UNIT_DIR"
 systemctl --user daemon-reload
 systemctl --user enable --now vlog-daily.timer

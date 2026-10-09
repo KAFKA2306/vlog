@@ -1,3 +1,5 @@
 @echo off
-call "%~dp0infra\windows\run.bat" %*
+pushd "%~dp0"
+call "infra\windows\run.bat" %*
+popd
 exit /b %ERRORLEVEL%

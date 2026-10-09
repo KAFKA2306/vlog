@@ -10,10 +10,10 @@ def _read(name: str) -> str:
 
 def test_root_launchers_delegate_to_windows_implementation() -> None:
     assert (ROOT / "run.bat").read_text(encoding="utf-8") == (
-        '@echo off\ncall "%~dp0infra\\windows\\run.bat" %*\nexit /b %ERRORLEVEL%\n'
+        '@echo off\npushd "%~dp0"\ncall "infra\\windows\\run.bat" %*\npopd\nexit /b %ERRORLEVEL%\n'
     )
     assert (ROOT / "bootstrap.bat").read_text(encoding="utf-8") == (
-        '@echo off\ncall "%~dp0infra\\windows\\bootstrap.bat" %*\nexit /b %ERRORLEVEL%\n'
+        '@echo off\npushd "%~dp0"\ncall "infra\\windows\\bootstrap.bat" %*\npopd\nexit /b %ERRORLEVEL%\n'
     )
 
 

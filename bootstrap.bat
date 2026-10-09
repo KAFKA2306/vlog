@@ -1,3 +1,5 @@
 @echo off
-call "%~dp0infra\windows\bootstrap.bat" %*
+pushd "%~dp0"
+call "infra\windows\bootstrap.bat" %*
+popd
 exit /b %ERRORLEVEL%

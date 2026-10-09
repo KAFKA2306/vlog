@@ -124,6 +124,20 @@ cat data/heartbeats/vlog-service.json
 
 ## Recording checks
 
+Before any batch processing, run the non-mutating hygiene check:
+
+```bash
+task hygiene:check
+```
+
+If it reports unusable recordings, isolate them with the explicit quarantine task:
+
+```bash
+task clean:corrupted
+```
+
+Quarantine moves files to `data/archives/quarantine/` and records a structured local event; it does not delete source content.
+
 The recorder and monitor are expected to surface:
 
 - input stream startup failure or timeout;
