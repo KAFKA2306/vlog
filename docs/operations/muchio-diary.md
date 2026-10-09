@@ -24,7 +24,14 @@ cat data/muchio_diaries/2026-10-09.md
 sha256sum data/muchio_diaries/2026-10-09.md
 ~~~
 
-人物、発言、私的情報、誤推定がないか確認します。日記を修正した場合は、生成時のマニフェストと不一致になるため公開されません。修正後に再生成・レビューして整合した日記を公開します。
+人物、発言、私的情報、誤推定がないか確認し、必要なら日記を修正します。修正後、レビュー済みの本文ハッシュを確定します。
+
+~~~bash
+uv run --frozen python scripts/muchio_diary.py review \
+  --date 2026-10-09 --output data/muchio_diaries
+~~~
+
+このコマンドはローカルのマニフェストを更新するだけで、公開しません。返された SHA-256 を次の publish に指定します。
 
 ## 3. レビュー済みの日付だけ公開
 
