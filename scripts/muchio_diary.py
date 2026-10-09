@@ -2,6 +2,7 @@
 
 Raw VRCPet logs remain local. Generation and public publication are separate commands.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -13,9 +14,23 @@ from pathlib import Path
 from typing import Any
 
 TEXT_KEYS = {
-    "text", "message", "content", "utterance", "recognized_text", "transcript",
-    "speech", "sentence", "word", "heard", "spoken", "phrase", "recognized",
-    "pet_utterance", "user_utterance", "recognized_word", "heard_word",
+    "text",
+    "message",
+    "content",
+    "utterance",
+    "recognized_text",
+    "transcript",
+    "speech",
+    "sentence",
+    "word",
+    "heard",
+    "spoken",
+    "phrase",
+    "recognized",
+    "pet_utterance",
+    "user_utterance",
+    "recognized_word",
+    "heard_word",
 }
 TIME_KEYS = ("timestamp", "time", "datetime", "created_at", "recorded_at")
 SPEAKER_KEYS = ("speaker", "source", "actor", "role")
@@ -105,14 +120,14 @@ def make_diary(lines: list[str], day: str, summarizer: Any) -> str:
     if not chunks:
         raise ValueError("No recognized text; cannot generate an evidence-backed diary")
     summaries = [
-        summarizer.summarize(PRIVATE_NOTE + chunk, date_str=day)
-        for chunk in chunks
+        summarizer.summarize(PRIVATE_NOTE + chunk, date_str=day) for chunk in chunks
     ]
     result = (
         summaries[0]
         if len(summaries) == 1
         else summarizer.summarize(
-            PRIVATE_NOTE + "【同日の分割要約。重複をまとめた日記を作成してください】\n"
+            PRIVATE_NOTE
+            + "【同日の分割要約。重複をまとめた日記を作成してください】\n"
             + "\n\n".join(summaries),
             date_str=day,
         )
@@ -122,7 +137,9 @@ def make_diary(lines: list[str], day: str, summarizer: Any) -> str:
     return result
 
 
-def generate(logs: Path, output: Path, date_filter: str | None = None) -> dict[str, int]:
+def generate(
+    logs: Path, output: Path, date_filter: str | None = None
+) -> dict[str, int]:
     from vlog_capture.infrastructure.ai import Summarizer
     from vlog_capture.infrastructure.settings import settings
 
@@ -233,31 +250,45 @@ def publish(output: Path, day: str, expected_hash: str) -> str:
     if not content.strip():
         raise ValueError("Diary is empty")
     if not settings.supabase_url or not settings.supabase_service_role_key:
-        raise RuntimeError("VLOG_SUPABASE_URL and VLOG_SUPABASE_SERVICE_ROLE_KEY required")
+        raise RuntimeError(
+            "VLOG_SUPABASE_URL and VLOG_SUPABASE_SERVICE_ROLE_KEY required"
+        )
     client = create_client(settings.supabase_url, settings.supabase_service_role_key)
-    existing = client.table("daily_entries").select("file_path").eq("date", day).execute()
+    existing = (
+        client.table("daily_entries").select("file_path").eq("date", day).execute()
+    )
     other_paths = [
         row.get("file_path")
         for row in (getattr(existing, "data", None) or [])
         if row.get("file_path") != f"muchio/{day}"
     ]
     if other_paths:
-        raise RuntimeError("Existing diary on date; merge/review instead of duplicating")
-    response = client.table("daily_entries").upsert(
-        [
-            {
-                "file_path": f"muchio/{day}",
-                "date": day,
-                "title": f"Muchio日記 {day}",
-                "content": content.decode("utf-8"),
-                "tags": ["muchio", "diary"],
-                "is_public": True,
-            }
-        ],
-        on_conflict="file_path",
-    ).execute()
+        raise RuntimeError(
+            "Existing diary on date; merge/review instead of duplicating"
+        )
+    response = (
+        client.table("daily_entries")
+        .upsert(
+            [
+                {
+                    "file_path": f"muchio/{day}",
+                    "date": day,
+                    "title": f"Muchio日記 {day}",
+                    "content": content.decode("utf-8"),
+                    "tags": ["muchio", "diary"],
+                    "is_public": True,
+                }
+            ],
+            on_conflict="file_path",
+        )
+        .execute()
+    )
     rows = getattr(response, "data", None)
-    if not isinstance(rows, list) or len(rows) != 1 or rows[0].get("is_public") is not True:
+    if (
+        not isinstance(rows, list)
+        or len(rows) != 1
+        or rows[0].get("is_public") is not True
+    ):
         raise RuntimeError("Public row upsert could not be verified")
     metadata["published"] = True
     metadata["published_sha256"] = actual
@@ -280,7 +311,9 @@ def main() -> None:
         default=runtime_directories().data / "muchio_diaries",
     )
     parser.add_argument("--date")
-    parser.add_argument("--sha", help="Full SHA-256 digest of the diary text you reviewed")
+    parser.add_argument(
+        "--sha", help="Full SHA-256 digest of the diary text you reviewed"
+    )
     args = parser.parse_args()
     if args.action == "generate":
         from scripts.asset_manifest import configured_vrcpet_logs

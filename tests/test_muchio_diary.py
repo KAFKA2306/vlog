@@ -8,12 +8,15 @@ from scripts import muchio_diary
 
 
 def test_muchio_extracts_utterances_not_private_metadata() -> None:
-    assert muchio_diary.event_line(
-        {
-            "timestamp": "2026-10-09",
-            "payload": {"recognized_text": "こんにちは", "token": "do-not-forward"},
-        }
-    ) == "2026-10-09: こんにちは"
+    assert (
+        muchio_diary.event_line(
+            {
+                "timestamp": "2026-10-09",
+                "payload": {"recognized_text": "こんにちは", "token": "do-not-forward"},
+            }
+        )
+        == "2026-10-09: こんにちは"
+    )
     assert muchio_diary.event_line({"pet_id": "private", "actor": "name"}) is None
 
 
@@ -33,8 +36,7 @@ def test_muchio_generate_uses_existing_prompt_and_skips_unchanged(
     logs = tmp_path / "logs"
     logs.mkdir()
     (logs / "2026-10-09.jsonl").write_text(
-        json.dumps({"payload": {"message": "こんにちは"}, "pet_id": "secret"})
-        + "\n",
+        json.dumps({"payload": {"message": "こんにちは"}, "pet_id": "secret"}) + "\n",
         encoding="utf-8",
     )
     output = tmp_path / "diaries"
