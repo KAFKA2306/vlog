@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 import { ARTIFACT_SEMANTICS } from '@/lib/artifact-semantics'
 import { formatDateOnly } from '@/lib/entries'
-import { getPublicNovelById, getPublicNovels } from '@/lib/novels'
+import { getPublicNovelById } from '@/lib/novels'
 
 import styles from './page.module.css'
 
@@ -15,10 +15,11 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  return (await getPublicNovels(60)).map(novel => ({ id: novel.id }))
+  return []
 }
 
-export const dynamicParams = false
+export const dynamicParams = true
+export const revalidate = 300
 
 export default async function NovelPage({ params }: Props) {
   const { id } = await params
