@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { formatDateOnly, getPublishedEntries } from '@/lib/entries'
 import { HOME_COPY } from '@/lib/site-copy'
 
+export const revalidate = 300
+
 export default async function Page() {
   const entries = await getPublishedEntries()
 
