@@ -1,12 +1,12 @@
 import argparse
 import hashlib
-import os
 import sqlite3
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+from vlog_capture.portability import runtime_directories
 
 LARGE_BYTES = 50 * 1024 * 1024
 DATA_DIR = "data"
@@ -199,6 +199,14 @@ def link_mochio(db: Path, config: Path) -> int:
     return len(events)
 
 
+def configured_vrcpet_logs() -> Path | None:
+    config = runtime_directories().config / "vrcpet.yaml"
+    if not config.is_file():
+        return None
+    payload = yaml.safe_load(config.read_text(encoding="utf-8"))
+    return Path(payload["logs_dir"])
+
+
 def link_mochio_days(db: Path, logs_dir: Path) -> int:
     rows = [
         (path.stem, "active_day", path.name)
@@ -244,7 +252,7 @@ def _main() -> None:
     parser.add_argument(
         "--vrcpet-logs",
         type=Path,
-        default=Path(os.environ["VLOG_VRCPET_LOGS"]) if os.environ.get("VLOG_VRCPET_LOGS") else None,
+        default=None,
     )
     args = parser.parse_args()
     if args.command == "mark-hygiene":
@@ -260,8 +268,9 @@ def _main() -> None:
         print(f"hygiene_marked={marked} flagged={len(flagged)}")
     elif args.command == "link-mochio":
         print(f"mochio_events={link_mochio(args.db, args.mochio)}")
-        if args.vrcpet_logs is not None:
-            print(f"mochio_active_days={link_mochio_days(args.db, args.vrcpet_logs)}")
+        logs = args.vrcpet_logs or configured_vrcpet_logs()
+        if logs is not None:
+            print(f"mochio_active_days={link_mochio_days(args.db, logs)}")
     elif args.command == "scan":
         print(f"scan_id={scan(args.root, args.db)}")
     elif args.command == "diff":

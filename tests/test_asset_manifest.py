@@ -107,3 +107,19 @@ def test_link_mochio_days_marks_nonempty_log_days_without_reading_content(tmp_pa
             "SELECT event_date, kind, ref FROM fact_mochio_event WHERE kind = 'active_day'"
         ).fetchall()
     assert rows == [("2026-08-11", "active_day", "2026-08-11.jsonl")]
+
+
+def test_vrcpet_logs_dir_is_read_from_host_config(tmp_path: Path, monkeypatch) -> None:
+    logs = tmp_path / "vrcpet-data" / "logs"
+    logs.mkdir(parents=True)
+    config_home = tmp_path / "config"
+    config_home.mkdir()
+    (config_home / "vrcpet.yaml").write_text(f"logs_dir: {logs}\n", encoding="utf-8")
+    monkeypatch.setenv("VLOG_CONFIG_HOME", str(config_home))
+    monkeypatch.delenv("VLOG_VRCPET_LOGS", raising=False)
+    assert asset_manifest.configured_vrcpet_logs() == logs
+
+
+def test_vrcpet_logs_dir_is_none_when_not_configured(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("VLOG_CONFIG_HOME", str(tmp_path / "empty"))
+    assert asset_manifest.configured_vrcpet_logs() is None
