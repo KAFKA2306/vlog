@@ -7,6 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 IGNORED = [
     "data/asset_manifest.sqlite",
+    "data/private/nikki/2026-08-11.md",
+    "nikki/2026-08-11.md",
     "frontend/reader/node_modules/pkg/index.js",
     "frontend/reader/.next/cache/chunk.js",
     "frontend/reader/next-env.d.ts",

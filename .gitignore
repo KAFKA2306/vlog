@@ -88,3 +88,6 @@ codd/scan/
 .codd/scan/
 frontend/reader/next-env.d.ts
 *.tsbuildinfo
+
+# Private diary drafts (never publish without review)
+nikki/
