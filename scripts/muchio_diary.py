@@ -186,6 +186,30 @@ def generate(logs: Path, output: Path, date_filter: str | None = None) -> dict[s
     return report
 
 
+def review(output: Path, day: str) -> str:
+    """Seal the exact locally reviewed diary without publishing it."""
+    if not DAY_PATTERN.fullmatch(day):
+        raise ValueError("date must be YYYY-MM-DD")
+    date.fromisoformat(day)
+    target = output / f"{day}.md"
+    manifest = output / f"{day}.json"
+    content = target.read_bytes()
+    if not content.strip():
+        raise ValueError("Cannot review an empty diary")
+    metadata = json.loads(manifest.read_text(encoding="utf-8"))
+    if metadata.get("date") != day:
+        raise ValueError("Manifest date does not match")
+    actual = digest(content)
+    metadata["diary_sha256"] = actual
+    metadata["reviewed_sha256"] = actual
+    metadata["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+    metadata["published"] = False
+    manifest.write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return actual
+
+
 def publish(output: Path, day: str, expected_hash: str) -> str:
     """Publish only an explicitly reviewed diary, never a raw observation."""
     from supabase import create_client
@@ -202,6 +226,7 @@ def publish(output: Path, day: str, expected_hash: str) -> str:
     if (
         actual != expected_hash
         or metadata.get("diary_sha256") != actual
+        or metadata.get("reviewed_sha256") != actual
         or metadata.get("date") != day
     ):
         raise ValueError("Diary content or manifest differs from the reviewed hash")
@@ -247,7 +272,7 @@ def main() -> None:
     from vlog_capture.portability import runtime_directories
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["generate", "publish"])
+    parser.add_argument("action", choices=["generate", "review", "publish"])
     parser.add_argument("--logs-dir", type=Path)
     parser.add_argument(
         "--output",
@@ -264,6 +289,10 @@ def main() -> None:
         if source is None:
             parser.error("Set --logs-dir or configure vrcpet.yaml logs_dir")
         print(json.dumps(generate(source, args.output, args.date), ensure_ascii=False))
+    elif args.action == "review":
+        if not args.date:
+            parser.error("review requires --date")
+        print(review(args.output, args.date))
     else:
         if not args.date or not args.sha:
             parser.error("publish requires --date and --sha (reviewed content hash)")
