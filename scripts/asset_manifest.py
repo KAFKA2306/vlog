@@ -243,7 +243,10 @@ def mark_hygiene(db: Path, root: Path, recording_dir: Path, flagged: set[str]) -
 
 def _main() -> None:
     parser = argparse.ArgumentParser(description="VLog asset star-schema manifest")
-    parser.add_argument("command", choices=["scan", "diff", "unprocessed", "link-mochio", "mark-hygiene"])
+    parser.add_argument(
+        "command",
+        choices=["scan", "diff", "unprocessed", "link-mochio", "mark-hygiene"],
+    )
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--db", type=Path, default=Path("data/asset_manifest.sqlite"))
     parser.add_argument("--stage", default="")

@@ -52,3 +52,6 @@ dev = [
     "ruff>=0.14.9",
     "ty>=0.0.64",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

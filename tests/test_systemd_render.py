@@ -11,7 +11,9 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def test_render_units_uses_supplied_repository_root(tmp_path: Path, monkeypatch) -> None:
+def test_render_units_uses_supplied_repository_root(
+    tmp_path: Path, monkeypatch
+) -> None:
     repo = tmp_path / "checkout with space"
     repo.mkdir()
     (repo / "pyproject.toml").write_text("[project]\nname='vlog'\n", encoding="utf-8")

@@ -94,7 +94,9 @@ def test_mark_hygiene_processes_only_unflagged_audio(tmp_path: Path) -> None:
     ]
 
 
-def test_link_mochio_days_marks_nonempty_log_days_without_reading_content(tmp_path: Path) -> None:
+def test_link_mochio_days_marks_nonempty_log_days_without_reading_content(
+    tmp_path: Path,
+) -> None:
     logs = tmp_path / "logs"
     logs.mkdir()
     (logs / "2026-08-11.jsonl").write_text('{"secret": "not read"}\n', encoding="utf-8")
@@ -120,6 +122,8 @@ def test_vrcpet_logs_dir_is_read_from_host_config(tmp_path: Path, monkeypatch) -
     assert asset_manifest.configured_vrcpet_logs() == logs
 
 
-def test_vrcpet_logs_dir_is_none_when_not_configured(tmp_path: Path, monkeypatch) -> None:
+def test_vrcpet_logs_dir_is_none_when_not_configured(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("VLOG_CONFIG_HOME", str(tmp_path / "empty"))
     assert asset_manifest.configured_vrcpet_logs() is None
