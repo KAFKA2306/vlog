@@ -55,6 +55,8 @@ tasks:
         ■ メンテナンス
           task lint                     コード品質チェック
           task clean                    キャッシュ削除
+          task hygiene:check            録音の破損チェック
+          task clean:corrupted          破損録音を隔離
           task commit MESSAGE="..."     Git commit
           task vault:sync               Prompt Vault から Kafka 設定を同期
 
@@ -151,9 +153,7 @@ tasks:
 
   process:daily:
     desc: 日次処理（昨日＋今日）
-    cmds:
-      - $UV run python -m src.cli check-vrc || (echo "⚠️ VRChat running. Aborting heavy processing." && exit 0)
-      - $UV run python -m src.cli daily
+    cmd: $UV run python -m src.daily
 
   curator:eval:
     desc: コンテンツ評価 (The Curator)
@@ -270,6 +270,22 @@ tasks:
       [
         "rm -rf __pycache__ .ruff_cache && find . -type d -name __pycache__ -exec rm -rf {} + || true",
       ]
+
+  hygiene:check:
+    desc: 録音の破損チェック（隔離なし）
+    cmd: $UV run --no-sync python scripts/hygiene_check.py
+
+  assets:scan:
+    desc: アセット台帳のスキャン（スタースキーマ）
+    cmd: $UV run --no-sync python scripts/asset_manifest.py scan
+
+  assets:diff:
+    desc: 直前スキャンからの差分表示
+    cmd: $UV run --no-sync python scripts/asset_manifest.py diff
+
+  clean:corrupted:
+    desc: 破損録音を data/archives/quarantine に隔離
+    cmd: $UV run --no-sync python scripts/hygiene_check.py --quarantine
 
   commit:
     desc: Git commit
@@ -431,13 +447,16 @@ tasks:
     desc: 日次処理の実行結果を確認
     cmds:
       - echo "■ 最新実行ログ"
-      - test -f /tmp/vlog-daily.log && tail -20 /tmp/vlog-daily.log || echo "No log file yet"
+      - test -f data/daily_runs.jsonl && tail -20 data/daily_runs.jsonl || echo "No daily run log yet"
       - echo ""
       - echo "■ systemd タイマー状態"
-      - systemctl --user list-timers vlog-daily.timer
+      - systemctl --user list-timers vlog-daily.timer --all --no-pager
       - echo ""
       - echo "■ 直近 24 時間のサービス実行記録"
-      - journalctl --user -u vlog-daily.service --since "24 hours ago" -o short
+      - journalctl --user -u vlog-daily.service --since "24 hours ago" --no-pager -o short
+      - echo ""
+      - echo "■ 厳格な証跡監査"
+      - $UV run python -m src.cli audit --no-strict --recent 100 --trace-window-minutes 30
 
   log:daily:
     desc: vlog-daily.service のジャーナルログを表示
@@ -445,7 +464,7 @@ tasks:
       - journalctl --user -u vlog-daily.service --no-pager
 
   log:clear:
-    desc: vlog-daily.log をクリア（新しい週の開始時）
+    desc: 旧一時ログを削除（必要時のみ）
     cmds:
       - rm -f /tmp/vlog-daily.log && echo "✅ Log cleared"
 
