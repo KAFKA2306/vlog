@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -276,6 +276,9 @@ class StrictRunAuditor:
         if not isinstance(value, str):
             return None
         try:
-            return datetime.fromisoformat(value)
+            parsed = datetime.fromisoformat(value)
         except ValueError:
             return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=datetime.now().astimezone().tzinfo)
+        return parsed.astimezone(timezone.utc)

@@ -48,6 +48,17 @@ body {
   overflow-x: hidden;
 }
 
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.18;
+  content: '';
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.34'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
 h1,
 h2 {
   font-family: var(--font-heading);
@@ -57,7 +68,7 @@ h2 {
 
 .page {
   min-height: 100vh;
-  padding: 64px 20px 80px;
+  padding: 34px 24px 100px;
 }
 
 .wrap {
@@ -70,8 +81,51 @@ h2 {
 }
 
 .site-header {
-  max-width: 640px;
-  margin-bottom: 40px;
+  padding-bottom: 58px;
+  border-bottom: 1px solid var(--line);
+}
+
+.topline,
+.section-heading,
+.entry-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.topline {
+  color: var(--paper-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+}
+
+.wordmark {
+  color: var(--paper);
+  font-weight: 700;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-chip span {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--acid);
+  box-shadow: 0 0 14px var(--acid);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 40px;
+  align-items: end;
+  margin-top: 92px;
 }
 
 .eyebrow {
@@ -98,11 +152,75 @@ h2 {
   line-height: 1.85;
 }
 
+.archive-card {
+  position: relative;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  color: var(--ink);
+  background: var(--acid);
+  transform: rotate(2deg);
+}
+
+.archive-card::after {
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(16, 17, 19, 0.34);
+  content: '';
+}
+
+.archive-label,
+.archive-caption {
+  position: relative;
+  z-index: 1;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+
+.archive-card strong {
+  position: relative;
+  z-index: 1;
+  font-size: 5.5rem;
+  line-height: 0.8;
+  letter-spacing: -0.09em;
+}
+
+.entries-section {
+  padding-top: 42px;
+}
+
+.section-heading {
+  align-items: end;
+  margin-bottom: 22px;
+}
+
+.section-heading .eyebrow {
+  margin-bottom: 8px;
+  color: var(--paper-faint);
+}
+
+.section-heading h2 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  letter-spacing: -0.05em;
+}
+
+.section-count {
+  color: var(--paper-faint);
+  font-size: 0.67rem;
+  letter-spacing: 0.14em;
+}
+
 .entries {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   list-style: none;
+}
+
+.entry-item-featured {
+  grid-column: 1 / -1;
 }
 
 .entry-link {
@@ -191,7 +309,15 @@ h2 {
 
 .day-date {
   display: block;
-  margin-top: 18px;
+  margin-top: 22px;
+  color: var(--acid);
+  font-size: 0.75rem;
+}
+
+.day-image-frame {
+  aspect-ratio: 16 / 9;
+  margin-top: 32px;
+  border: 1px solid var(--line);
 }
 
 .artifact-note {
@@ -232,15 +358,56 @@ h2 {
 
 @media (max-width: 720px) {
   .page {
-    padding: 36px 16px 64px;
+    padding: 24px 16px 72px;
+  }
+
+  .topline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 34px;
+    margin-top: 64px;
+  }
+
+  .site-title {
+    font-size: clamp(3rem, 16vw, 5rem);
+  }
+
+  .archive-card {
+    width: 170px;
+    min-height: 150px;
+    margin-left: auto;
+  }
+
+  .archive-card strong {
+    font-size: 4.4rem;
   }
 
   .site-header {
-    margin-bottom: 28px;
+    padding-bottom: 38px;
   }
 
   .entries {
     grid-template-columns: 1fr;
+  }
+
+  .entry-item-featured {
+    grid-column: auto;
+  }
+
+  .entry-featured {
+    display: flex;
+    min-height: 300px;
+    gap: 0;
+  }
+
+  .entry-featured .entry-image-frame {
+    height: auto;
+    margin: -8px -8px 22px;
   }
 
   .entry-link {
@@ -253,7 +420,7 @@ h2 {
   }
 
   .entry-body {
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1.9;
   }
 }

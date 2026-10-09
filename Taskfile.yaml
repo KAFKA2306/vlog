@@ -107,6 +107,22 @@ tasks:
     desc: runtime summariesからpersona skillを生成
     cmd: $UV run --frozen python scripts/distill_user_persona.py
 
+  assets:scan:
+    desc: アセット台帳のスキャン（スタースキーマ）
+    cmd: $UV run --frozen python scripts/asset_manifest.py scan
+
+  assets:diff:
+    desc: 直前スキャンからの差分表示
+    cmd: $UV run --frozen python scripts/asset_manifest.py diff
+
+  assets:mochio:
+    desc: ムチォの購入日・版リリース日を台帳に連携
+    cmd: $UV run --frozen python scripts/asset_manifest.py link-mochio
+
+  assets:hygiene:
+    desc: 録音のhygiene結果を台帳の処理済み状態に記録
+    cmd: $UV run --frozen python scripts/asset_manifest.py mark-hygiene
+
   verify:
     desc: repository-level full verification
     cmds:

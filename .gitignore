@@ -71,3 +71,20 @@ yarn.lock
 *.temp
 *.bak
 *copy*
+
+# Large generated and vendored artifacts
+**/node_modules/
+**/.next/
+*.node
+*.sst
+*.so.*
+
+# Nested repository (own .git) and local tool state
+colleague-skill/
+.serena/
+
+# Generated code-graph scans and Next.js/TypeScript build output
+codd/scan/
+.codd/scan/
+frontend/reader/next-env.d.ts
+*.tsbuildinfo

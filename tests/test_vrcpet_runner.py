@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -16,27 +15,32 @@ def _roots(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     return project, source, private, state
 
 
-def test_missing_source_is_a_durable_skip(tmp_path: Path) -> None:
+def test_missing_source_configuration_fails_loudly(tmp_path: Path) -> None:
     _, _, private, state = _roots(tmp_path)
 
-    summary = run_ingest(
-        source_root=tmp_path / "does-not-exist",
-        project_root=tmp_path / "checkout",
-        private_root=private,
-        state_root=state,
-        run_id="skip-run",
-    )
+    with pytest.raises(ValueError, match="VLOG_VRCPET_ROOT"):
+        run_ingest(
+            project_root=tmp_path / "checkout",
+            private_root=private,
+            state_root=state,
+            run_id="missing-config-run",
+        )
 
-    assert summary.status == "skipped"
-    assert json.loads(summary.output_path.read_text()) == {
-        "discovered": 0,
-        "failed": 0,
-        "ingested": 0,
-        "parse_issues": 0,
-        "run_id": "skip-run",
-        "skipped": 0,
-        "status": "skipped",
-    }
+    assert not private.exists()
+
+
+def test_missing_source_path_fails_loudly(tmp_path: Path) -> None:
+    _, _, private, state = _roots(tmp_path)
+
+    with pytest.raises((OSError, ValueError)):
+        run_ingest(
+            source_root=tmp_path / "does-not-exist",
+            project_root=tmp_path / "checkout",
+            private_root=private,
+            state_root=state,
+            run_id="missing-source-run",
+        )
+
     assert not private.exists()
 
 
@@ -70,6 +74,23 @@ def test_ingest_persists_private_bytes_and_is_idempotent(tmp_path: Path) -> None
     assert (private / "vrcpet/profile").is_dir()
     assert len(state.joinpath("vrcpet/ledger.jsonl").read_text().splitlines()) == 2
     assert conversation == (source / "logs" / "2026-09-02.jsonl").read_bytes()
+
+
+def test_corrupt_ledger_fails_loudly(tmp_path: Path) -> None:
+    project, source, private, state = _roots(tmp_path)
+    (source / "profile.json").write_text('{"name":"pet"}', encoding="utf-8")
+    ledger = state / "vrcpet" / "ledger.jsonl"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text("{broken\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="invalid VRCPet ledger JSON"):
+        run_ingest(
+            source_root=source,
+            project_root=project,
+            private_root=private,
+            state_root=state,
+            run_id="corrupt-ledger-run",
+        )
 
 
 def test_public_state_does_not_contain_observation_text(tmp_path: Path) -> None:
@@ -107,4 +128,56 @@ def test_private_evidence_cannot_be_inside_checkout(tmp_path: Path) -> None:
             project_root=project,
             private_root=project / "data" / "private-evidence",
             state_root=state,
+        )
+
+
+def test_unstable_read_is_retried_then_recovers(tmp_path: Path, monkeypatch) -> None:
+    from vlog_vrcpet import runner
+    from vlog_vrcpet.reader import UnstableSourceError, read_source_file
+
+    project, source, private, state = _roots(tmp_path)
+    (source / "profile.json").write_text('{"name":"pet"}', encoding="utf-8")
+    calls = {"count": 0}
+
+    def flaky(root, relative_path):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise UnstableSourceError("changed while reading")
+        return read_source_file(root, relative_path)
+
+    monkeypatch.setattr(runner, "read_source_file", flaky)
+    summary = run_ingest(
+        source_root=source,
+        project_root=project,
+        private_root=private,
+        state_root=state,
+        run_id="retry-run",
+        retry_delay_seconds=0,
+    )
+
+    assert summary.status == "succeeded"
+    assert summary.ingested == 1
+    assert calls["count"] == 2
+
+
+def test_unstable_read_fails_loudly_after_retries(tmp_path: Path, monkeypatch) -> None:
+    from vlog_vrcpet import runner
+    from vlog_vrcpet.reader import UnstableSourceError
+
+    project, source, private, state = _roots(tmp_path)
+    (source / "profile.json").write_text('{"name":"pet"}', encoding="utf-8")
+
+    def always_unstable(root, relative_path):
+        raise UnstableSourceError("changed while reading")
+
+    monkeypatch.setattr(runner, "read_source_file", always_unstable)
+    with pytest.raises(UnstableSourceError):
+        run_ingest(
+            source_root=source,
+            project_root=project,
+            private_root=private,
+            state_root=state,
+            run_id="unstable-run",
+            read_retries=2,
+            retry_delay_seconds=0,
         )

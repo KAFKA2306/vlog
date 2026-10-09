@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from vlog_capture.domain.audit import AuditState
@@ -121,3 +122,47 @@ def test_unrelated_trace_does_not_pass(tmp_path: Path, monkeypatch) -> None:
     stage = next(f for f in report.findings if f.check_name.startswith("stage:"))
     assert stage.state is AuditState.UNVERIFIED
     assert "image_generator" in (stage.details or "")
+
+
+def test_mixed_timezone_timestamps_are_comparable(tmp_path: Path, monkeypatch) -> None:
+    run_id = "run-mixed-timezones"
+    prepare_contract(tmp_path, monkeypatch, run_id)
+    run_log = tmp_path / "data/daily_runs.jsonl"
+    trace_log = tmp_path / "data/traces.jsonl"
+    naive_start = datetime(2026, 8, 2, 7, 0, 0)
+    local_tz = datetime.now().astimezone().tzinfo
+    aware_trace = naive_start.replace(tzinfo=local_tz).astimezone(timezone.utc)
+    write_jsonl(
+        run_log,
+        [
+            {
+                "timestamp": "2026-08-02T07:00:00",
+                "run_id": run_id,
+                "task_name": "summarize:20260801",
+                "status": "try",
+            },
+            {
+                "timestamp": "2026-08-02T07:00:03",
+                "run_id": run_id,
+                "task_name": "summarize:20260801",
+                "status": "success",
+                "expected_components": ["summarizer"],
+                "completed_components": ["summarizer"],
+                "verification": {"verified": True},
+            },
+        ],
+    )
+    write_jsonl(
+        trace_log,
+        [
+            {
+                "timestamp": aware_trace.replace(microsecond=1).isoformat(),
+                "run_id": run_id,
+                "task_name": "summarize:20260801",
+                "component": "summarizer",
+            }
+        ],
+    )
+    report = StrictRunAuditor(run_id, run_log, trace_log).run()
+    stage = next(f for f in report.findings if f.check_name.startswith("stage:"))
+    assert stage.state is AuditState.PASS

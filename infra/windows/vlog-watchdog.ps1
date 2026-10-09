@@ -16,6 +16,8 @@ else {
 $logDir = Join-Path $windowsState "logs"
 $logPath = Join-Path $logDir "watchdog.log"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$env:XDG_RUNTIME_DIR = "/run/user/1000"
+$env:DBUS_SESSION_BUS_ADDRESS = "unix:path=/run/user/1000/bus"
 
 function Write-WatchdogLog([string]$Message) {
     $line = "{0:o} {1}" -f (Get-Date), $Message
@@ -59,10 +61,17 @@ printf '%s %s\n' "`$active" "`$age"
 "@
 
 try {
-    $result = (& wsl.exe -d $Distro -- bash -lc $probe 2>&1 | Out-String).Trim()
-    $parts = $result -split '\s+'
-    $active = if ($parts.Count -ge 1) { $parts[0] } else { "unknown" }
-    $age = if ($parts.Count -ge 2 -and $parts[1] -match '^\d+$') { [int]$parts[1] } else { 999999 }
+    $active = (& wsl.exe -d $Distro -- systemctl --user is-active vlog.service 2>$null | Out-String).Trim()
+    $heartbeatPath = "$ProjectPath/data/heartbeats/vlog-service.json"
+    $modifiedText = (& wsl.exe -d $Distro -- stat -c %Y $heartbeatPath 2>$null | Out-String).Trim()
+    $modified = 0L
+    if (-not [int64]::TryParse($modifiedText, [ref]$modified)) {
+        $modified = 0L
+    }
+    $age = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - $modified
+    if ($age -lt 0) {
+        $age = 0
+    }
 
     if ($active -eq "active" -and $age -le $HeartbeatMaxAgeSeconds) {
         Write-WatchdogLog "healthy service=$active heartbeat_age=${age}s"

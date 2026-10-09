@@ -1,58 +1,52 @@
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
 
-import { ARTIFACT_SEMANTICS } from '@/lib/artifact-semantics'
-import {
-  formatDateOnly,
-  getLatestSummaries,
-  getSummaryByDate,
-} from '@/lib/entries'
+import { formatDateOnly, getEntryById, getPublishedEntries } from '@/lib/entries'
 
 type Props = {
   params: Promise<{
-    date: string
+    id: string
   }>
 }
 
 export async function generateStaticParams() {
-  return (await getLatestSummaries()).map(entry => ({ date: entry.date }))
+  return (await getPublishedEntries()).map(entry => ({ id: entry.id }))
 }
 
-export const dynamicParams = true
+export const dynamicParams = false
 
-export default async function DayPage({ params }: Props) {
-  const { date } = await params
-  const entry = await getSummaryByDate(date)
+export default async function EntryPage({ params }: Props) {
+  const { id } = await params
+  const entry = await getEntryById(id)
 
   return (
     <main className="page">
       <div className="wrap narrow">
         <Link className="back-link" href="/">
-          ← 日記一覧
+          ← 一覧に戻る
         </Link>
 
         {entry === null ? (
           <div className="empty-state">
-            <h1>日記が見つかりません</h1>
-            <p>{formatDateOnly(date)} の公開日記はありません。</p>
+            <h1>記事が見つかりません</h1>
+            <p>公開状態が変更された可能性があります。</p>
           </div>
         ) : (
           <>
             <header className="day-header">
-              <p className="eyebrow">{ARTIFACT_SEMANTICS.diary.label}</p>
-              <h1 className="day-title">{entry.title}</h1>
-              <time className="day-date" dateTime={date}>
-                {formatDateOnly(date)}
-              </time>
-              <p className="artifact-note">
-                {ARTIFACT_SEMANTICS.diary.description}
+              <p className="eyebrow">
+                {entry.source === 'novel' ? 'NOVEL' : 'VRCHAT DIARY'}
               </p>
+              <h1 className="day-title">{entry.title}</h1>
+              <time className="day-date" dateTime={entry.date}>
+                {formatDateOnly(entry.date)}
+              </time>
             </header>
             {entry.imageUrl ? (
               <div className="day-image-frame">
                 <Image
                   src={entry.imageUrl}
-                  alt={`${formatDateOnly(date)}のVRChat記録`}
+                  alt={`${formatDateOnly(entry.date)}の${entry.source === 'novel' ? '小説' : 'VRChat記録'}`}
                   className="day-image"
                   width={960}
                   height={540}

@@ -19,6 +19,16 @@ const SUMMARY_DIR = path.join(DATA_ROOT, 'summaries')
 const TRANSCRIPT_DIR = path.join(DATA_ROOT, 'transcripts')
 const DAILY_STATE_FILE = path.join(DATA_ROOT, 'daily_state.json')
 const MIN_PUBLISHABLE_BYTES = 50
+const PUBLICATION_START_DATE = '2025-01-01'
+
+const getSupabaseConfig = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+
+  return url && key ? { key, url } : null
+}
 
 type DailyStateEntry = {
   summary_source_files?: string[]
@@ -93,6 +103,77 @@ const readSummary = async (fileName: string): Promise<Entry | null> => {
   }
 }
 
+type SupabaseEntry = {
+  id: string
+  date: string
+  title: string
+  content: string
+  image_url: string | null
+}
+
+const fetchSupabase = async (
+  table: 'daily_entries' | 'novels',
+  query: Record<string, string>,
+) => {
+  const config = getSupabaseConfig()
+  if (!config) return null
+
+  const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/${table}`)
+  Object.entries(query).forEach(([name, value]) => url.searchParams.set(name, value))
+
+  const response = await fetch(url, {
+    headers: {
+      apikey: config.key,
+      Authorization: `Bearer ${config.key}`,
+    },
+    next: { revalidate: 300 },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Supabase request failed: ${response.status}`)
+  }
+
+  return (await response.json()) as SupabaseEntry[]
+}
+
+const getRemoteEntries = async (
+  table: 'daily_entries' | 'novels',
+  source: EntrySource,
+): Promise<Entry[] | null> => {
+  const pageSize = 100
+  const rows: SupabaseEntry[] = []
+  let offset = 0
+
+  while (true) {
+    const page = await fetchSupabase(table, {
+      select: 'id,date,title,content,image_url',
+      is_public: 'eq.true',
+      date: `gte.${PUBLICATION_START_DATE}`,
+      order: 'date.desc',
+      limit: String(pageSize),
+      offset: String(offset),
+    })
+
+    if (page === null) return null
+    rows.push(...page)
+    if (page.length < pageSize) break
+    offset += pageSize
+  }
+
+  return rows.map(row => ({
+    id: row.id,
+    date: row.date,
+    imageUrl: row.image_url,
+    source,
+    title: row.title,
+    content: row.content,
+  })) ?? null
+}
+
+const getRemoteSummaries = () => getRemoteEntries('daily_entries', 'summary')
+
+const getRemoteNovels = () => getRemoteEntries('novels', 'novel')
+
 export const formatDateOnly = (value: string) => {
   return new Intl.DateTimeFormat(undefined, {
     year: 'numeric',
@@ -121,6 +202,20 @@ export const getLatestSummaries = async (_limit?: number): Promise<Entry[]> => {
   }
 }
 
+export const getPublishedEntries = async (): Promise<Entry[]> => {
+  const [summaries, novels] = await Promise.all([
+    getRemoteSummaries(),
+    getRemoteNovels(),
+  ])
+
+  if (summaries === null || novels === null) return getLatestSummaries()
+
+  return [...summaries, ...novels].sort(
+    (left, right) =>
+      new Date(right.date).getTime() - new Date(left.date).getTime(),
+  )
+}
+
 export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
   if (date < PUBLICATION_START_DATE) return null
 
@@ -134,4 +229,51 @@ export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
   } catch {
     return null
   }
+}
+
+export const getEntryById = async (id: string): Promise<Entry | null> => {
+  const [summaries, novels] = await Promise.all([
+    fetchSupabase('daily_entries', {
+      select: 'id,date,title,content,image_url',
+      is_public: 'eq.true',
+      id: `eq.${id}`,
+      limit: '1',
+    }),
+    fetchSupabase('novels', {
+      select: 'id,date,title,content,image_url',
+      is_public: 'eq.true',
+      id: `eq.${id}`,
+      limit: '1',
+    }),
+  ])
+
+  const row = summaries?.[0]
+  if (row) {
+    return {
+      id: row.id,
+      date: row.date,
+      imageUrl: row.image_url,
+      source: 'summary',
+      title: row.title,
+      content: row.content,
+    }
+  }
+
+  const novel = novels?.[0]
+  if (novel) {
+    return {
+      id: novel.id,
+      date: novel.date,
+      imageUrl: novel.image_url,
+      source: 'novel',
+      title: novel.title,
+      content: novel.content,
+    }
+  }
+
+  if (summaries === null && novels === null && id.startsWith('summary:')) {
+    return getSummaryByDate(id.slice('summary:'.length))
+  }
+
+  return null
 }

@@ -27,6 +27,10 @@ bootstrap は Python 3.12 の locked uv workspace と GPU extra を同期し、`
 
 secret/configをdotenvから供給する必要がある場合は、repo外のabsolute fileを用意して `VLOG_ENV_FILE` として明示する。
 
+## 実行ファイル更新時
+
+`uv.exe`、`cmd.exe`、`powershell.exe` / `pwsh.exe` を更新・移動した場合は、既存 Task の PATH 再探索に期待しない。`bootstrap.bat` または `register_task.ps1` を再実行して `VlogAutoDiary` を再登録し、watchdog を使う場合は `install-vlog-watchdog.ps1` も再実行する。各登録スクリプトは `Get-Command ... .Source` で実体を解決し、登録した absolute executable を表示する。
+
 ## 手動起動
 
     run.bat
@@ -69,6 +73,8 @@ to the public repository.
     Get-Content "$env:LOCALAPPDATA\VLog\State\logs\vlog.log" -Tail 50
 
 `VLOG_STATE_HOME` を設定した場合はその配下の `logs/` がauthorityになる。
+
+`vlog.log` は起動時に加えて、VRChat が待機中・検出中であることを状態変更時に記録し、同じ状態が続く場合は 5 分ごとに heartbeat を記録する。30 秒ごとの内部 heartbeat は `data/heartbeats/vlog-service.json` を更新する。
 
 ## 停止と再起動
 
