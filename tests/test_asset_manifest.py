@@ -92,3 +92,18 @@ def test_mark_hygiene_processes_only_unflagged_audio(tmp_path: Path) -> None:
         "data/archives/bad.flac",
         "docs/a.md",
     ]
+
+
+def test_link_mochio_days_marks_nonempty_log_days_without_reading_content(tmp_path: Path) -> None:
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "2026-08-11.jsonl").write_text('{"secret": "not read"}\n', encoding="utf-8")
+    (logs / "2026-08-12.jsonl").write_text("", encoding="utf-8")
+    (logs / "pet.log").write_text("ignored", encoding="utf-8")
+    db = tmp_path / "manifest.sqlite"
+    asset_manifest.link_mochio_days(db, logs)
+    with sqlite3.connect(db) as conn:
+        rows = conn.execute(
+            "SELECT event_date, kind, ref FROM fact_mochio_event WHERE kind = 'active_day'"
+        ).fetchall()
+    assert rows == [("2026-08-11", "active_day", "2026-08-11.jsonl")]

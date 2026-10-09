@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import os
 import sqlite3
 import subprocess
 from datetime import datetime, timezone
@@ -198,6 +199,20 @@ def link_mochio(db: Path, config: Path) -> int:
     return len(events)
 
 
+def link_mochio_days(db: Path, logs_dir: Path) -> int:
+    rows = [
+        (path.stem, "active_day", path.name)
+        for path in sorted(logs_dir.glob("*.jsonl"))
+        if path.stat().st_size > 0
+    ]
+    with _connect(db) as conn:
+        conn.executemany(
+            "INSERT OR IGNORE INTO fact_mochio_event (event_date, kind, ref) VALUES (?, ?, ?)",
+            rows,
+        )
+    return len(rows)
+
+
 def mark_hygiene(db: Path, root: Path, recording_dir: Path, flagged: set[str]) -> int:
     prefix = recording_dir.relative_to(root).as_posix() + "/"
     with _connect(db) as conn:
@@ -226,6 +241,11 @@ def _main() -> None:
     parser.add_argument("--stage", default="")
     parser.add_argument("--mochio", type=Path, default=Path("config/mochio.yaml"))
     parser.add_argument("--recording-dir", type=Path, default=Path("data/archives"))
+    parser.add_argument(
+        "--vrcpet-logs",
+        type=Path,
+        default=Path(os.environ["VLOG_VRCPET_LOGS"]) if os.environ.get("VLOG_VRCPET_LOGS") else None,
+    )
     args = parser.parse_args()
     if args.command == "mark-hygiene":
         import hygiene_check
@@ -240,6 +260,8 @@ def _main() -> None:
         print(f"hygiene_marked={marked} flagged={len(flagged)}")
     elif args.command == "link-mochio":
         print(f"mochio_events={link_mochio(args.db, args.mochio)}")
+        if args.vrcpet_logs is not None:
+            print(f"mochio_active_days={link_mochio_days(args.db, args.vrcpet_logs)}")
     elif args.command == "scan":
         print(f"scan_id={scan(args.root, args.db)}")
     elif args.command == "diff":
