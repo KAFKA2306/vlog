@@ -115,9 +115,9 @@ tasks:
     desc: 直前スキャンからの差分表示
     cmd: $UV run --frozen python scripts/asset_manifest.py diff
 
-  assets:mochio:
+  assets:muchio:
     desc: ムチォの購入日・版リリース日を台帳に連携
-    cmd: $UV run --frozen python scripts/asset_manifest.py link-mochio
+    cmd: $UV run --frozen python scripts/asset_manifest.py link-muchio
 
   assets:hygiene:
     desc: 録音のhygiene結果を台帳の処理済み状態に記録

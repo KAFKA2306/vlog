@@ -52,8 +52,8 @@ def test_processed_state_resets_when_content_changes(tmp_path: Path) -> None:
     assert asset_manifest.unprocessed(db, "summarize") == ["docs/a.md"]
 
 
-def test_link_mochio_records_purchase_and_releases_idempotently(tmp_path: Path) -> None:
-    config = tmp_path / "mochio.yaml"
+def test_link_muchio_records_purchase_and_releases_idempotently(tmp_path: Path) -> None:
+    config = tmp_path / "muchio.yaml"
     config.write_text(
         "product:\n  name: ムチォ\n  purchased_on: 2026-08-11\n"
         "releases:\n"
@@ -62,11 +62,11 @@ def test_link_mochio_records_purchase_and_releases_idempotently(tmp_path: Path) 
         encoding="utf-8",
     )
     db = tmp_path / "manifest.sqlite"
-    asset_manifest.link_mochio(db, config)
-    asset_manifest.link_mochio(db, config)
+    asset_manifest.link_muchio(db, config)
+    asset_manifest.link_muchio(db, config)
     with sqlite3.connect(db) as conn:
         events = conn.execute(
-            "SELECT event_date, kind, ref FROM fact_mochio_event ORDER BY event_date"
+            "SELECT event_date, kind, ref FROM fact_muchio_event ORDER BY event_date"
         ).fetchall()
     assert events == [
         ("2026-07-28", "release", "1.0.0"),
@@ -94,7 +94,7 @@ def test_mark_hygiene_processes_only_unflagged_audio(tmp_path: Path) -> None:
     ]
 
 
-def test_link_mochio_days_marks_nonempty_log_days_without_reading_content(
+def test_link_muchio_days_marks_nonempty_log_days_without_reading_content(
     tmp_path: Path,
 ) -> None:
     logs = tmp_path / "logs"
@@ -103,10 +103,10 @@ def test_link_mochio_days_marks_nonempty_log_days_without_reading_content(
     (logs / "2026-08-12.jsonl").write_text("", encoding="utf-8")
     (logs / "pet.log").write_text("ignored", encoding="utf-8")
     db = tmp_path / "manifest.sqlite"
-    asset_manifest.link_mochio_days(db, logs)
+    asset_manifest.link_muchio_days(db, logs)
     with sqlite3.connect(db) as conn:
         rows = conn.execute(
-            "SELECT event_date, kind, ref FROM fact_mochio_event WHERE kind = 'active_day'"
+            "SELECT event_date, kind, ref FROM fact_muchio_event WHERE kind = 'active_day'"
         ).fetchall()
     assert rows == [("2026-08-11", "active_day", "2026-08-11.jsonl")]
 

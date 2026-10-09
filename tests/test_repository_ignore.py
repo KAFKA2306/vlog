@@ -23,7 +23,7 @@ IGNORED = [
 ]
 
 TRACKED = [
-    "config/mochio.yaml",
+    "config/muchio.yaml",
     "Taskfile.yaml",
     "scripts/asset_manifest.py",
     "pyproject.toml",

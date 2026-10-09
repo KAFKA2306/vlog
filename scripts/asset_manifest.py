@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS fact_processing (
     processed_at TEXT NOT NULL,
     PRIMARY KEY (asset_key, stage)
 );
-CREATE TABLE IF NOT EXISTS fact_mochio_event (
+CREATE TABLE IF NOT EXISTS fact_muchio_event (
     event_date TEXT NOT NULL,
     kind TEXT NOT NULL,
     ref TEXT NOT NULL,
@@ -183,7 +183,7 @@ def unprocessed(db: Path, stage: str) -> list[str]:
     return [row[0] for row in rows]
 
 
-def link_mochio(db: Path, config: Path) -> int:
+def link_muchio(db: Path, config: Path) -> int:
     payload = yaml.safe_load(config.read_text(encoding="utf-8"))
     name = payload["product"]["name"]
     events = [(str(payload["product"]["purchased_on"]), "purchase", name)]
@@ -193,7 +193,7 @@ def link_mochio(db: Path, config: Path) -> int:
     ]
     with _connect(db) as conn:
         conn.executemany(
-            "INSERT OR IGNORE INTO fact_mochio_event (event_date, kind, ref) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO fact_muchio_event (event_date, kind, ref) VALUES (?, ?, ?)",
             events,
         )
     return len(events)
@@ -207,7 +207,7 @@ def configured_vrcpet_logs() -> Path | None:
     return Path(payload["logs_dir"])
 
 
-def link_mochio_days(db: Path, logs_dir: Path) -> int:
+def link_muchio_days(db: Path, logs_dir: Path) -> int:
     rows = [
         (path.stem, "active_day", path.name)
         for path in sorted(logs_dir.glob("*.jsonl"))
@@ -215,7 +215,7 @@ def link_mochio_days(db: Path, logs_dir: Path) -> int:
     ]
     with _connect(db) as conn:
         conn.executemany(
-            "INSERT OR IGNORE INTO fact_mochio_event (event_date, kind, ref) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO fact_muchio_event (event_date, kind, ref) VALUES (?, ?, ?)",
             rows,
         )
     return len(rows)
@@ -245,12 +245,12 @@ def _main() -> None:
     parser = argparse.ArgumentParser(description="VLog asset star-schema manifest")
     parser.add_argument(
         "command",
-        choices=["scan", "diff", "unprocessed", "link-mochio", "mark-hygiene"],
+        choices=["scan", "diff", "unprocessed", "link-muchio", "mark-hygiene"],
     )
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--db", type=Path, default=Path("data/asset_manifest.sqlite"))
     parser.add_argument("--stage", default="")
-    parser.add_argument("--mochio", type=Path, default=Path("config/mochio.yaml"))
+    parser.add_argument("--muchio", type=Path, default=Path("config/muchio.yaml"))
     parser.add_argument("--recording-dir", type=Path, default=Path("data/archives"))
     parser.add_argument(
         "--vrcpet-logs",
@@ -269,11 +269,11 @@ def _main() -> None:
         }
         marked = mark_hygiene(args.db, root, recording_dir, flagged)
         print(f"hygiene_marked={marked} flagged={len(flagged)}")
-    elif args.command == "link-mochio":
-        print(f"mochio_events={link_mochio(args.db, args.mochio)}")
+    elif args.command == "link-muchio":
+        print(f"muchio_events={link_muchio(args.db, args.muchio)}")
         logs = args.vrcpet_logs or configured_vrcpet_logs()
         if logs is not None:
-            print(f"mochio_active_days={link_mochio_days(args.db, logs)}")
+            print(f"muchio_active_days={link_muchio_days(args.db, logs)}")
     elif args.command == "scan":
         print(f"scan_id={scan(args.root, args.db)}")
     elif args.command == "diff":
