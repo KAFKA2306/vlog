@@ -5,8 +5,11 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 LARGE_BYTES = 50 * 1024 * 1024
 DATA_DIR = "data"
+AUDIO_SUFFIXES = {".aac", ".flac", ".m4a", ".mp3", ".ogg", ".wav"}
 CHUNK_BYTES = 1024 * 1024
 
 SCHEMA = """
@@ -32,6 +35,12 @@ CREATE TABLE IF NOT EXISTS fact_processing (
     sha256 TEXT NOT NULL,
     processed_at TEXT NOT NULL,
     PRIMARY KEY (asset_key, stage)
+);
+CREATE TABLE IF NOT EXISTS fact_mochio_event (
+    event_date TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    ref TEXT NOT NULL,
+    PRIMARY KEY (event_date, kind, ref)
 );
 """
 
@@ -173,14 +182,65 @@ def unprocessed(db: Path, stage: str) -> list[str]:
     return [row[0] for row in rows]
 
 
+def link_mochio(db: Path, config: Path) -> int:
+    payload = yaml.safe_load(config.read_text(encoding="utf-8"))
+    name = payload["product"]["name"]
+    events = [(str(payload["product"]["purchased_on"]), "purchase", name)]
+    events += [
+        (str(release["released_on"]), "release", str(release["version"]))
+        for release in payload["releases"]
+    ]
+    with _connect(db) as conn:
+        conn.executemany(
+            "INSERT OR IGNORE INTO fact_mochio_event (event_date, kind, ref) VALUES (?, ?, ?)",
+            events,
+        )
+    return len(events)
+
+
+def mark_hygiene(db: Path, root: Path, recording_dir: Path, flagged: set[str]) -> int:
+    prefix = recording_dir.relative_to(root).as_posix() + "/"
+    with _connect(db) as conn:
+        scan_id = _latest_scan_id(conn)
+        keys = [
+            row[0]
+            for row in conn.execute(
+                "SELECT asset_key FROM fact_asset_state WHERE scan_id = ? AND asset_key LIKE ?",
+                (scan_id, prefix + "%"),
+            )
+        ]
+    marked = 0
+    for key in keys:
+        if key in flagged or Path(key).suffix.lower() not in AUDIO_SUFFIXES:
+            continue
+        mark_processed(db, key, "hygiene")
+        marked += 1
+    return marked
+
+
 def _main() -> None:
     parser = argparse.ArgumentParser(description="VLog asset star-schema manifest")
-    parser.add_argument("command", choices=["scan", "diff", "unprocessed"])
+    parser.add_argument("command", choices=["scan", "diff", "unprocessed", "link-mochio", "mark-hygiene"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--db", type=Path, default=Path("data/asset_manifest.sqlite"))
     parser.add_argument("--stage", default="")
+    parser.add_argument("--mochio", type=Path, default=Path("config/mochio.yaml"))
+    parser.add_argument("--recording-dir", type=Path, default=Path("data/archives"))
     args = parser.parse_args()
-    if args.command == "scan":
+    if args.command == "mark-hygiene":
+        import hygiene_check
+
+        root = Path.cwd().resolve()
+        recording_dir = args.recording_dir.resolve()
+        flagged = {
+            finding.path.resolve().relative_to(root).as_posix()
+            for finding in hygiene_check.scan(recording_dir)
+        }
+        marked = mark_hygiene(args.db, root, recording_dir, flagged)
+        print(f"hygiene_marked={marked} flagged={len(flagged)}")
+    elif args.command == "link-mochio":
+        print(f"mochio_events={link_mochio(args.db, args.mochio)}")
+    elif args.command == "scan":
         print(f"scan_id={scan(args.root, args.db)}")
     elif args.command == "diff":
         for kind, key in diff_latest(args.db):
