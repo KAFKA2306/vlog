@@ -6,13 +6,15 @@ import {
   getRemotePublicArchiveEntries,
 } from './public-archive'
 
+export type EntrySource = 'summary' | 'novel'
+
 export type Entry = {
   id: string
   date: string
   imageUrl: string | null
   title: string
   content: string
-  source?: 'summary' | 'novel'
+  source?: EntrySource
 }
 
 const DATA_ROOT = path.resolve(process.cwd(), '..', '..', 'data')
