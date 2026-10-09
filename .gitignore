@@ -82,3 +82,9 @@ yarn.lock
 # Nested repository (own .git) and local tool state
 colleague-skill/
 .serena/
+
+# Generated code-graph scans and Next.js/TypeScript build output
+codd/scan/
+.codd/scan/
+frontend/reader/next-env.d.ts
+*.tsbuildinfo
