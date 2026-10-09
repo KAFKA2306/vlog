@@ -22,6 +22,7 @@ from src.infrastructure.repositories import (
     TaskRepository,
 )
 from src.infrastructure.system import (
+    AudioRecorder,
     ProcessMonitor,
     Transcriber,
     TranscriptPreprocessor,
@@ -395,3 +396,21 @@ def _print_audit_report(report) -> None:
         f"unverified={counts[AuditState.UNVERIFIED]} "
         f"n/a={counts[AuditState.NOT_APPLICABLE]}"
     )
+
+
+def cmd_record(args: argparse.Namespace) -> None:
+    _harness_run("record", TaskWeight.LIGHT, _cmd_record_logic, args)
+
+
+def _cmd_record_logic(args: argparse.Namespace) -> None:
+    import time
+
+    recorder = AudioRecorder()
+    path = recorder.start()
+    print(f"Recording started: {path}")
+    print("Press Ctrl+C to stop.")
+    try:
+        while True:
+            time.sleep(1)
+    finally:
+        recorder.stop()

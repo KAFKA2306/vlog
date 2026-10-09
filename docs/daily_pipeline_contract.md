@@ -28,12 +28,13 @@ The timer template currently does not embed an explicit timezone. The production
 ## Current processing sequence
 
 1. Inspect VRChat state, resource availability, and pending local work.
-2. Avoid heavy processing while VRChat is active.
-3. Transcribe eligible recordings.
-4. Generate missing summaries, novels, images, and evaluations for dates represented by current files.
-5. Process optional projection queues when configured.
-6. Synchronize current artifacts to the existing Supabase projection.
-7. Emit operational evidence and notifications.
+2. Quarantine unusable recordings before batch processing.
+3. Avoid heavy processing while VRChat is active.
+4. Transcribe eligible recordings.
+5. Generate missing summaries, novels, images, and evaluations for dates represented by current files.
+6. Process optional projection queues when configured.
+7. Synchronize current artifacts to the existing Supabase projection.
+8. Emit operational evidence and notifications.
 
 The concrete implementation is authoritative when it differs from this summary. Relevant entry points are `Taskfile.yaml`, `apps/capture-vrchat/src/cli.py`, and `apps/capture-vrchat/src/daily.py`.
 

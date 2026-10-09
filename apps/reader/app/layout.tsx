@@ -2,8 +2,8 @@ import './globals.css'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'VRChat Auto Diary',
-  description: 'VRChatで過ごした時間を読み返す日記',
+  title: 'VLog / Reader',
+  description: 'VRChatで過ごした時間を読み返す公開記録',
 }
 
 export default function RootLayout({

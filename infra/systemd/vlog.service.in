@@ -8,7 +8,7 @@ StartLimitBurst=5
 
 [Service]
 Type=notify
-NotifyAccess=main
+NotifyAccess=all
 WatchdogSec=120s
 TimeoutStartSec=30s
 TimeoutStopSec=60s
@@ -26,10 +26,6 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
-RestrictSUIDSGID=yes
 ReadWritePaths=@VLOG_ROOT@/data
 ReadOnlyPaths=@VLOG_ROOT@/apps/capture-vrchat @VLOG_ROOT@/packages @VLOG_ROOT@/pyproject.toml @VLOG_ROOT@/uv.lock
 

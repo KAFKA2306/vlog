@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -42,3 +43,21 @@ def test_success_notification_runs_after_audit(tmp_path: Path) -> None:
     assert audit_index < notify_index
     assert run_id
     assert calls[notify_index][1]["VLOG_DAILY_VERIFIED"] == "1"
+
+
+def test_daily_run_quarantines_unusable_recordings(tmp_path: Path) -> None:
+    recordings = tmp_path / "data/recordings"
+    recordings.mkdir(parents=True)
+    bad_recording = recordings / f"{date.today():%Y%m%d}_broken.flac"
+    bad_recording.write_bytes(b"")
+
+    def runner(command, env, cwd):
+        if "sync" in command:
+            report = tmp_path / "data/sync_reports" / f"{env['VLOG_RUN_ID']}.json"
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text("{}", encoding="utf-8")
+
+    DailyPipeline(runner=runner, monitor=lambda: False, project_root=tmp_path).run()
+
+    assert not bad_recording.exists()
+    assert (tmp_path / "data/archives/quarantine" / bad_recording.name).exists()

@@ -1,6 +1,7 @@
 from src.infrastructure.settings import settings
-from src.use_cases import daily_workload
 from src.use_cases.daily_workload import collect_daily_workload, render_daily_workload
+
+from src.use_cases import daily_workload
 
 
 class StubResourceMonitor:

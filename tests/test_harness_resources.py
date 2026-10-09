@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from src.domain.harness import TaskWeight
+
 from src.infrastructure import harness
 
 

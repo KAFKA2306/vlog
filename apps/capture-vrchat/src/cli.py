@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 
 def main() -> None:
     load_dotenv()
+    from src.main import setup_logging
+
+    setup_logging()
     parser = argparse.ArgumentParser(description="VLog CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -18,6 +21,7 @@ def main() -> None:
         cmd_manga,
         cmd_pending,
         cmd_process,
+        cmd_record,
         cmd_summarize,
         cmd_transcribe,
     )
@@ -32,6 +36,7 @@ def main() -> None:
     p_novel.add_argument("--date", required=True, help="Target date (YYYYMMDD)")
     p_novel.add_argument("--out", help="Output filename")
 
+    subparsers.add_parser("record", help="Start manual recording")
     subparsers.add_parser("sync", help="Strictly sync data to Supabase")
 
     p_image_generate = subparsers.add_parser("image-generate", help="Generate image")
@@ -112,6 +117,8 @@ def main() -> None:
     elif args.command == "pending":
         cmd_pending(args)
         cmd_sync(args)
+    elif args.command == "record":
+        cmd_record(args)
     elif args.command == "notify":
         cmd_notify(args)
     elif args.command == "check-vrc":

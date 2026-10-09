@@ -17,7 +17,9 @@ def test_render_units_uses_supplied_repository_root(tmp_path: Path) -> None:
     (repo / "pyproject.toml").write_text("[project]\nname='vlog'\n", encoding="utf-8")
     output = tmp_path / "units"
 
-    paths = MODULE.render_units(repo, output)
+    mock_uv = tmp_path / "uv"
+    mock_uv.touch()
+    paths = MODULE.render_units(repo, output, uv_path=mock_uv)
 
     assert {path.name for path in paths} == {
         "vlog.service",

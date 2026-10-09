@@ -15,6 +15,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from dotenv import load_dotenv
+
 from src.infrastructure.observability import (
     EventStatus,
     OperationalEventLog,
@@ -562,6 +564,7 @@ def write_report_files(
 
 
 def run_doctor(root: Path) -> int:
+    load_dotenv(root / ".env", override=False)
     log = OperationalEventLog(root / "data/error_events.jsonl")
     daily_text = (
         (root / "infra/systemd/vlog-daily.service.in").read_text(encoding="utf-8")
@@ -588,7 +591,7 @@ def run_doctor(root: Path) -> int:
         ),
         (
             "daily ExecStart",
-            "uv run python -m src.daily" in daily_text,
+            "run python -m src.daily" in daily_text,
             "repo-relative uv daily runner",
         ),
         (

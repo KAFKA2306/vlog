@@ -74,6 +74,7 @@ class DailyPipeline:
             env = dict(os.environ)
             env["VLOG_RUN_ID"] = run_id
             env["VLOG_DAILY_VERIFIED"] = "0"
+            self._quarantine_unusable_recordings()
             dates = [date.today() - timedelta(days=1), date.today()]
 
             for target in dates:
@@ -211,6 +212,18 @@ class DailyPipeline:
                 error=exc,
             )
             raise
+
+    def _quarantine_unusable_recordings(self) -> None:
+        from scripts.hygiene_check import quarantine, scan
+
+        recording_dir = self.project_root / "data/recordings"
+        findings = scan(recording_dir)
+        if findings:
+            quarantine(
+                findings,
+                self.project_root / "data/archives/quarantine",
+                self.project_root / "data/error_events.jsonl",
+            )
 
     def _stage(
         self,
