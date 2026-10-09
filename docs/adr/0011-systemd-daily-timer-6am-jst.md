@@ -16,11 +16,11 @@ The installed timer must therefore be inspected on the target host. Repository s
 
 ## Consequences
 
-- The intended production schedule is documented in one timer template and the daily pipeline contract.
+- The production schedule has one repository authority: `infra/systemd/vlog-daily.timer.in`.
 - Host timezone drift can change the actual trigger time.
-- Schedule changes require template, contract, tests, and live timer verification.
+- Schedule changes require template, tests, and live timer verification.
 
 ## References
 
-- [Current daily pipeline contract](../daily_pipeline_contract.md)
 - [Operations](../OPERATIONS.md)
+- [Current runtime architecture](../architecture.md)

@@ -34,21 +34,19 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 *.log
 
 # Environment & Secrets
 .env
 .env.local
 .env.*.local
+CLAUDE.local.md
 
-# Data (Ignore all by default, allow only essential configs)
+# Repository-owned data only
 data/**/*
 !data/config.yaml
 !data/prompts.yaml
-!data/tasks.json
-!data/cognee_queue.yaml
-!data/profile.yaml
-!data/.gitkeep
 
 # Logs and Media
 logs/
@@ -56,24 +54,15 @@ logs/
 *.flac
 *.mp3
 *.png
-data/traces.jsonl
-data/evaluations/
-
-# Allow documentation markdown files
-!docs/**/*.md
-!*.md
 
 # Frontend
-apps/reader/node_modules/
-apps/reader/.next/
-apps/reader/.vercel/
+node_modules/
+.next/
+.vercel/
 apps/reader/cloudflared
-apps/reader/package-lock.json
-apps/reader/.env.local
 apps/reader/out/
-apps/reader/build/
 
-# Lock files (keep uv.lock, ignore others)
+# Lock files (keep uv.lock and bun.lock)
 package-lock.json
 yarn.lock
 
@@ -82,11 +71,3 @@ yarn.lock
 *.temp
 *.bak
 *copy*
-# Large generated and vendored artifacts
-**/node_modules/
-**/.next/
-*.node
-*.sst
-*.so.*
-# Nested repository (own .git); tracked separately
-colleague-skill/

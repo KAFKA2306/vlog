@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any, Mapping
 from uuid import UUID, uuid4
 
@@ -21,6 +22,29 @@ def _validate_id(value: str, field_name: str) -> None:
 def _validate_aware(value: datetime, field_name: str) -> None:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field_name} must be timezone-aware")
+
+
+def _validate_sha256(value: str, field_name: str) -> None:
+    if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value.lower()):
+        raise ValueError(f"{field_name} must be a 64-character hexadecimal digest")
+
+
+def _is_machine_local_locator(value: str) -> bool:
+    lowered = value.lower()
+    return (
+        PureWindowsPath(value).is_absolute()
+        or PurePosixPath(value).is_absolute()
+        or lowered.startswith("file:")
+    )
+
+
+def _validate_object_uri(value: str, privacy: PrivacyLevel) -> None:
+    if not value.strip():
+        raise ValueError("object_uri must not be empty")
+    if _is_machine_local_locator(value):
+        raise ValueError("object_uri must not be a machine-local filesystem path")
+    if not value.startswith("private://") and privacy is not PrivacyLevel.PUBLIC:
+        raise ValueError("non-public source objects must use a private:// object URI")
 
 
 class PrivacyLevel(StrEnum):
@@ -96,17 +120,8 @@ class SourceObject:
     def __post_init__(self) -> None:
         _validate_id(self.id, "id")
         _validate_aware(self.recorded_at, "recorded_at")
-        if (
-            not self.object_uri.startswith("private://")
-            and self.privacy is not PrivacyLevel.PUBLIC
-        ):
-            raise ValueError(
-                "non-public source objects must use a private:// object URI"
-            )
-        if len(self.sha256) != 64 or any(
-            ch not in "0123456789abcdef" for ch in self.sha256.lower()
-        ):
-            raise ValueError("sha256 must be a 64-character hexadecimal digest")
+        _validate_object_uri(self.object_uri, self.privacy)
+        _validate_sha256(self.sha256, "sha256")
         if self.size_bytes < 0:
             raise ValueError("size_bytes must not be negative")
 
@@ -281,8 +296,9 @@ class IngestionRun:
             _validate_aware(self.completed_at, "completed_at")
             if self.completed_at < self.started_at:
                 raise ValueError("completed_at must not precede started_at")
-        if not self.source_hash.strip() or not self.pipeline_version.strip():
-            raise ValueError("source_hash and pipeline_version are required")
+        _validate_sha256(self.source_hash, "source_hash")
+        if not self.pipeline_version.strip():
+            raise ValueError("pipeline_version is required")
         if self.status is IngestionStatus.FAILED and not self.error:
             raise ValueError("failed ingestion runs require an error")
 

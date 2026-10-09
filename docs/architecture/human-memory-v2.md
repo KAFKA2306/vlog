@@ -5,7 +5,7 @@ Tracking issue: [#14](https://github.com/KAFKA2306/vlog/issues/14)
 
 ## Status summary
 
-The public repository foundation and behavior-preserving runtime relocation are implemented. The production data inventory, environment cutover, private memory repository, canonical persistence, storage migration, retrieval, and legacy removal remain incomplete.
+The public repository foundation and behavior-preserving runtime relocation are implemented. The production data inventory, environment cutover, private memory repository, canonical persistence, storage migration, retrieval, and retired removal remain incomplete.
 
 | Phase | Repository status | Environment status |
 |---|---|---|
@@ -15,7 +15,7 @@ The public repository foundation and behavior-preserving runtime relocation are 
 | 3. Canonical memory model | domain models and provenance invariant implemented | migrations, UUID migration, outbox, and canonical persistence pending |
 | 4. Storage migration | not implemented | not started |
 | 5. Retrieval and MCP | application boundaries reserved | not started |
-| 6. Legacy removal | not implemented | blocked on full reconciliation |
+| 6. Retired removal | not implemented | blocked on full reconciliation |
 
 “Implemented in repository” means code, schemas, tests, or templates exist. It does not mean the change has run successfully against the production host, scheduler, database, storage, deployment provider, or GPU.
 
@@ -39,7 +39,7 @@ Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections. They are not
 
 ## Public repository boundaries
 
-- `apps/capture-vrchat/`: current Python capture and processing application. The package remains named `src` during the behavior-preserving migration.
+- `apps/capture-vrchat/`: current Python capture and processing application. The installable runtime package is `vlog_capture`.
 - `apps/reader/`: current Next.js reader and future review/publication surface.
 - `apps/api/` and `apps/mcp/`: reserved deployable boundaries.
 - `packages/`: storage-agnostic domain and reusable business capabilities.
@@ -141,7 +141,7 @@ Not implemented:
 - move raw audio, photos, video, transcripts, and documents to private object storage;
 - retain complete manifests and hashes;
 - separate private evidence buckets from public projection buckets;
-- reconcile every source before deleting legacy copies.
+- reconcile every source before deleting retired copies.
 
 ### Phase 5: retrieval and MCP
 
@@ -152,7 +152,7 @@ Not implemented beyond reserved boundaries:
 - approval surfaces for write, correct, forget, and publish actions;
 - optional Graphiti, Cognee, or Qdrant projections rebuilt from canonical stores.
 
-### Phase 6: legacy removal
+### Phase 6: retired removal
 
 Not implemented:
 
@@ -182,7 +182,7 @@ Not yet accepted:
 - public/private policy is enforced by live database and Storage policy;
 - the private memory repository exists and is used;
 - narrative artifacts can be deleted and regenerated from canonical memory;
-- legacy files and schemas can be removed without loss.
+- retired files and schemas can be removed without loss.
 
 ## Rollback
 

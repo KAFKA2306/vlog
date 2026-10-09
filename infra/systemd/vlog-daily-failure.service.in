@@ -4,14 +4,18 @@ Description=Capture VRChat Vlog daily processing failure
 [Service]
 Type=oneshot
 WorkingDirectory=@VLOG_ROOT@
-EnvironmentFile=-@VLOG_ROOT@/.env
-Environment=PYTHONPATH=@VLOG_PYTHONPATH@
-ExecStart=@VLOG_UV@ run python -m src.operations service-failure --unit vlog-daily.service --root @VLOG_ROOT@
-ExecStart=@VLOG_UV@ run python -m src.cli notify --message "❌ VLog日次処理が失敗しました。詳細はローカルOperationsレポートを確認してください。"
+@VLOG_ENV_FILE_DIRECTIVE@
+Environment=VLOG_PROJECT_ROOT=@VLOG_ROOT@
+Environment=VLOG_CONFIG_HOME=@VLOG_CONFIG_HOME@
+Environment=VLOG_DATA_HOME=@VLOG_DATA_HOME@
+Environment=VLOG_STATE_HOME=@VLOG_STATE_HOME@
+Environment=VLOG_CACHE_HOME=@VLOG_CACHE_HOME@
+ExecStart=@VLOG_UV@ run --frozen vlog-operations service-failure --unit vlog-daily.service --root @VLOG_ROOT@
+ExecStart=@VLOG_UV@ run --frozen vlog notify --message "❌ VLog日次処理が失敗しました。詳細はローカルOperationsレポートを確認してください。"
 
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=@VLOG_ROOT@/data
-ReadOnlyPaths=@VLOG_ROOT@/apps/capture-vrchat @VLOG_ROOT@/packages @VLOG_ROOT@/pyproject.toml @VLOG_ROOT@/uv.lock
+ReadWritePaths=-@VLOG_CONFIG_HOME@ -@VLOG_DATA_HOME@ -@VLOG_STATE_HOME@ -@VLOG_CACHE_HOME@
+ReadOnlyPaths=@VLOG_ROOT@

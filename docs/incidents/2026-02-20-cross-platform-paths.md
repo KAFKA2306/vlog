@@ -12,12 +12,16 @@ The command path and working directory were treated as fixed machine facts rathe
 
 ## Corrective direction
 
-- Resolve the repository root at runtime.
-- Keep systemd units as rendered templates under `infra/systemd/`.
-- Keep Windows and WSL launch logic under `infra/windows/`.
-- Do not commit personal home paths or links to machine-local data.
-- Verify Windows Task Scheduler and WSL behavior on the actual host.
+The accepted successor decision is [ADR-0012](../adr/0012-cross-platform-portability.md): **physical path is not authority**.
+
+- Windows and WSL/Linux use separate native production code checkouts.
+- Git commit SHA identifies the code version across checkouts.
+- Local paths are runtime locators, not Evidence/release identity.
+- systemd and Task Scheduler use explicit working directories and resolved executables.
+- cross-filesystem path conversion is limited to explicit boundary/migration adapters.
+- repository CI checks portable filenames before Windows checkout/runtime use.
+- actual Task Scheduler/WSL/audio/GPU behavior is still verified on the target host.
 
 ## Current relevance
 
-The repository relocation and portable path work supersede the original path examples. This incident remains as rationale for portability checks; it is not evidence that the current host is configured or healthy.
+The original machine paths are obsolete. This record is retained as rationale only; current normative behavior is defined by [`../architecture/portability.md`](../architecture/portability.md).

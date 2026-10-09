@@ -1,0 +1,96 @@
+name: Branch Lifecycle
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branch-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Delete branches without an open PR
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconcile branch set with open pull requests
+        uses: actions/github-script@v9
+        with:
+          script: |
+            // Contract: only the default branch and same-repository open-PR heads may persist.
+            // Contract: closed PR heads and orphan branches are deleted.
+            const { owner, repo } = context.repo
+            const fullName = `${owner}/${repo}`
+
+            const repository = await github.rest.repos.get({ owner, repo })
+            const defaultBranch = repository.data.default_branch
+
+            const openPullRequests = await github.paginate(
+              github.rest.pulls.list,
+              { owner, repo, state: 'open', per_page: 100 },
+            )
+
+            const allowedBranches = new Set([defaultBranch])
+            for (const pullRequest of openPullRequests) {
+              if (pullRequest.head.repo?.full_name === fullName) {
+                allowedBranches.add(pullRequest.head.ref)
+              }
+            }
+
+            const branches = await github.paginate(
+              github.rest.repos.listBranches,
+              { owner, repo, per_page: 100 },
+            )
+            const orphanBranches = branches
+              .map(branch => branch.name)
+              .filter(branch => !allowedBranches.has(branch))
+
+            core.info(`Default branch: ${defaultBranch}`)
+            core.info(`Allowed branches: ${[...allowedBranches].sort().join(', ')}`)
+            core.info(`Orphan branches: ${orphanBranches.sort().join(', ') || '(none)'}`)
+
+            for (const branch of orphanBranches) {
+              if (branch === defaultBranch) {
+                throw new Error(`Refusing to delete default branch: ${defaultBranch}`)
+              }
+
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${branch}`,
+                })
+                core.notice(`Deleted orphan branch: ${branch}`)
+              } catch (error) {
+                if (error.status === 404) {
+                  core.info(`Branch already absent: ${branch}`)
+                  continue
+                }
+                throw error
+              }
+            }
+
+            const remainingBranches = await github.paginate(
+              github.rest.repos.listBranches,
+              { owner, repo, per_page: 100 },
+            )
+            const remainingOrphans = remainingBranches
+              .map(branch => branch.name)
+              .filter(branch => !allowedBranches.has(branch))
+
+            if (remainingOrphans.length > 0) {
+              core.setFailed(
+                `Branch lifecycle violation remains: ${remainingOrphans.sort().join(', ')}`,
+              )
+              return
+            }
+
+            core.info('Branch lifecycle is clean: no orphan branches remain.')

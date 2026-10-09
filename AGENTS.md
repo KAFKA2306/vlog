@@ -1,57 +1,33 @@
 # AGENTS.md
 
-VLog is a public OSS engine for capturing VRChat evidence, deriving reviewable memory claims, generating narrative artifacts, and publishing only explicitly approved projections.
+VLog is a public OSS engine: Evidence -> reviewable memory -> narrative artifacts -> explicitly approved public projections.
 
 ## Authority
 
-Use these sources in order:
+Use, in order:
 
-1. executable schemas, tests, and implementation;
-2. [Human Memory v2 architecture](docs/architecture/human-memory-v2.md) for the target state;
-3. [current runtime architecture](docs/architecture.md) and component runbooks for existing behavior;
-4. [ADR index](docs/adr/README.md) for historical decisions.
+1. implementation, tests, schemas, package manifests, and `Taskfile.yaml`;
+2. [product specification](docs/SPEC.md);
+3. [Human Memory v2 target](docs/architecture/human-memory-v2.md);
+4. [current runtime](docs/architecture.md) and runbooks;
+5. [ADRs](docs/adr/README.md).
 
-The complete documentation map is [docs/README.md](docs/README.md). Agent-specific files must remain short routers and must not duplicate system specifications.
+Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific files are routers only.
 
-## Repository boundaries
+## Invariants
 
-- `apps/`: deployable capture, reader, API, and MCP entry points.
-- `packages/`: storage-agnostic domain capabilities.
-- `adapters/`: persistence, storage, graph, and vector integrations.
-- `infra/`: Supabase, systemd, and Windows assets.
-- `schemas/`: versioned interchange contracts.
-- `docs/`: architecture, ADRs, operations, and historical incidents.
+- Public repository contains no raw Evidence, private memory, credentials, or unapproved publication state.
+- AI output is derived/candidate data. Accepted claims require source provenance.
+- Graph/vector systems are rebuildable projections, not canonical memory.
+- Do not move or delete Evidence during structural migration until inventory, backup, and reconciliation complete.
+- Runtime is the installable `vlog_capture` package; do not restore `PYTHONPATH`, `python -m src...`, or retired top-level runtime trees.
+- Prefer existing authorities over new aliases/specs; do not duplicate versions, commands, model IDs, requirements, or volatile status.
+- Entry points: `vlog` for product operations, `vlog-operations` for diagnosis, `task` for repository orchestration.
+- Preserve useful tests, timeouts, error context, and boundary-specific exception handling.
+- Repository/CI verification does not prove live host or service state.
 
-The runtime is under `apps/capture-vrchat/`; the reader is under `apps/reader/`; operational assets are under `infra/`. Do not recreate retired top-level runtime or infrastructure directories. Do not add private journals, people data, raw evidence, or personal memory to this public repository.
+## Change workflow
 
-## Data and privacy
-
-- Raw audio, photos, video, full transcripts, and source documents belong in private object storage.
-- Reviewed journals, corrections, relationships, preferences, and long-lived memory views belong in the private `kafka-memory` repository.
-- AI output is a candidate derived view, not accepted memory or a publication decision.
-- Accepted memory claims require provenance to source evidence.
-- Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections.
-- Structural migrations must not delete or move evidence before Phase 0 inventory and remote exports are complete.
-
-## Change discipline
-
-- Inspect `git status` and the intended diff before staging.
-- Never stage unrelated changes with `git add .`.
-- Preserve useful comments, docstrings, tests, error context, timeouts, and boundary-specific exception handling.
-- Do not change model identifiers without explicit user instruction; read `data/config.yaml` and the implementation first.
-- Use repository-relative Markdown links. Do not add user-specific home paths or file-scheme links.
-- State separately what is implemented in Git, verified in CI, and verified in the operating environment.
-
-## Verification
-
-Run the checks relevant to the changed boundaries:
-
-```bash
-task lint
-task test
-task doc:check
-task systemd:verify
-task web:build
-```
-
-`task lint` may modify files. Review the resulting diff. GitHub CI does not prove live systemd, Windows Task Scheduler, Vercel, Supabase, private storage, or GPU behavior.
+- Inspect current implementation before changing a contract.
+- Keep remote branches to `main` and same-repository open-PR heads; `.github/workflows/branch-lifecycle.yml` enforces cleanup.
+- Run `task verify`. Use focused tasks while iterating; `task lint` is read-only and `task format` mutates Python.

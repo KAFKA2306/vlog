@@ -13,5 +13,3 @@ whisper:
 process:
   names: "VRChat,VRChat.exe,VRChatClient.exe"
   check_interval: 10
-paths:
-  error_log_file: "data/error_events.jsonl"

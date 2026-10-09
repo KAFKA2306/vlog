@@ -36,6 +36,10 @@ PRIVATE_ROOTS = (
     "feedback/",
     "sources/",
 )
+PUBLIC_DATA_FILES = {
+    "data/config.yaml",
+    "data/prompts.yaml",
+}
 RAW_MEDIA_SUFFIXES = {
     ".wav",
     ".flac",
@@ -48,16 +52,24 @@ RAW_MEDIA_SUFFIXES = {
     ".avi",
     ".mkv",
 }
-LEGACY_PATHS = (
+RETIRED_PATHS = (
+    ".codd",
+    ".codd_version",
     "src",
     "frontend",
     "windows",
     "supabase",
+    "codd",
+    "bootstrap.bat",
+    "run.bat",
     "vlog.service",
     "vlog-monitor-failure.service",
     "vlog-daily.service",
     "vlog-daily.timer",
     "vlog-daily-failure.service",
+    "apps/capture-vrchat/src/vlog_capture/infrastructure/audit.py",
+    "scripts/migrate_runtime_state.py",
+    "docs/daily_pipeline_contract.md",
 )
 RETIRED_MARKDOWN = {
     "docs/DAILY_MONITORING.md",
@@ -71,6 +83,9 @@ NON_PORTABLE_TEXT = (
 )
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 H1 = re.compile(r"^#\s+\S", re.MULTILINE)
+CODD_FRONTMATTER = re.compile(
+    r"\A---\s*\n.*?^codd:\s*$.*?^---\s*$", re.MULTILINE | re.DOTALL
+)
 MAX_GIT_FILE_BYTES = 100 * 1024 * 1024
 MAX_AGENT_MARKDOWN_LINES = 180
 
@@ -133,6 +148,14 @@ def check_markdown(root: Path, tracked: list[str]) -> list[Violation]:
                     "retained Markdown requires an H1 heading",
                 )
             )
+        if CODD_FRONTMATTER.search(text):
+            violations.append(
+                Violation(
+                    "retired-codd-metadata",
+                    relative,
+                    "CoDD front matter must remain removed",
+                )
+            )
         for pattern in NON_PORTABLE_TEXT:
             match = pattern.search(text)
             if match:
@@ -171,11 +194,21 @@ def check(root: Path) -> list[Violation]:
     violations: list[Violation] = []
     tracked = tracked_files(root)
 
-    for legacy in LEGACY_PATHS:
-        if (root / legacy).exists():
+    for retired in RETIRED_PATHS:
+        if (root / retired).exists():
             violations.append(
-                Violation("legacy-boundary", legacy, "legacy root must remain removed")
+                Violation(
+                    "retired-boundary", retired, "retired path must remain removed"
+                )
             )
+    if "codd-dev" in (root / "pyproject.toml").read_text(encoding="utf-8"):
+        violations.append(
+            Violation(
+                "retired-codd-dependency",
+                "pyproject.toml",
+                "CoDD is not part of the repository verification toolchain",
+            )
+        )
     for required in REQUIRED_PATHS:
         if not (root / required).exists():
             violations.append(
@@ -195,6 +228,14 @@ def check(root: Path) -> list[Violation]:
                     "private-memory-in-public-repo",
                     relative,
                     "private memory belongs in kafka-memory, not vlog",
+                )
+            )
+        if normalized.startswith("data/") and normalized not in PUBLIC_DATA_FILES:
+            violations.append(
+                Violation(
+                    "noncanonical-data-file",
+                    relative,
+                    "public repository data/ is limited to versioned config and prompts",
                 )
             )
         if path.suffix.lower() in RAW_MEDIA_SUFFIXES:

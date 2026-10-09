@@ -1,29 +1,53 @@
+from __future__ import annotations
+
 import asyncio
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.append(str(PROJECT_ROOT))
-
-import yaml  # noqa: E402
-from src.infrastructure.cognee import cognee_memory  # noqa: E402
-
-QUEUE_PATH = PROJECT_ROOT / "data" / "cognee_queue.yaml"
-SUMMARY_DIR = PROJECT_ROOT / "data" / "summaries"
+import yaml
+from vlog_capture.portability import runtime_directories
 
 
-def load_queue() -> dict:
-    with open(QUEUE_PATH, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+def runtime_paths() -> tuple[Path, Path]:
+    directories = runtime_directories()
+    return directories.data / "summaries", directories.state / "cognee_queue.yaml"
 
 
-def save_queue(queue: dict) -> None:
+def load_queue(queue_path: Path) -> dict:
+    if not queue_path.exists():
+        return {}
+    with queue_path.open("r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle) or {}
+
+
+def refresh_queue(summary_dir: Path, queue_path: Path) -> dict:
+    existing = load_queue(queue_path)
+    existing_by_name = {
+        item["name"]: item
+        for item in existing.get("files", [])
+        if isinstance(item, dict) and "name" in item
+    }
+    files = [
+        existing_by_name.get(
+            path.name,
+            {"name": path.name, "status": "pending", "error": None},
+        )
+        for path in sorted(summary_dir.glob("*.txt"))
+    ]
+    return {
+        "batch_size": existing.get("batch_size", 5),
+        "last_run": existing.get("last_run"),
+        "files": files,
+    }
+
+
+def save_queue(queue_path: Path, queue: dict) -> None:
     queue["last_run"] = datetime.now(timezone.utc).isoformat()
-    with open(QUEUE_PATH, "w", encoding="utf-8") as f:
+    queue_path.parent.mkdir(parents=True, exist_ok=True)
+    with queue_path.open("w", encoding="utf-8") as handle:
         yaml.dump(
             queue,
-            f,
+            handle,
             allow_unicode=True,
             default_flow_style=False,
             sort_keys=False,
@@ -32,16 +56,20 @@ def save_queue(queue: dict) -> None:
 
 def get_pending(queue: dict) -> list[dict]:
     batch_size = queue.get("batch_size", 5)
-    return [f for f in queue["files"] if f["status"] == "pending"][:batch_size]
+    return [item for item in queue.get("files", []) if item.get("status") == "pending"][
+        :batch_size
+    ]
 
 
-async def ingest_file(file_entry: dict) -> None:
-    file_path = SUMMARY_DIR / file_entry["name"]
+async def ingest_file(summary_dir: Path, file_entry: dict) -> None:
+    from vlog_capture.infrastructure.cognee import cognee_memory
+
+    file_path = summary_dir / file_entry["name"]
     content = file_path.read_text(encoding="utf-8")
 
     name_parts = file_path.stem.split("_")
     metadata = {"source_file": file_path.name}
-    if len(name_parts) >= 1:
+    if name_parts:
         metadata["date_raw"] = name_parts[0]
 
     await cognee_memory.add(content, metadata)
@@ -49,7 +77,9 @@ async def ingest_file(file_entry: dict) -> None:
 
 
 async def main() -> None:
-    queue = load_queue()
+    summary_dir, queue_path = runtime_paths()
+    queue = refresh_queue(summary_dir, queue_path)
+    save_queue(queue_path, queue)
     pending = get_pending(queue)
 
     if not pending:
@@ -57,27 +87,26 @@ async def main() -> None:
         return
 
     print(f"Processing {len(pending)} files...")
-
-    for i, entry in enumerate(pending):
-        print(f"[{i + 1}/{len(pending)}] {entry['name']}")
+    for index, entry in enumerate(pending):
+        print(f"[{index + 1}/{len(pending)}] {entry['name']}")
         entry["status"] = "processing"
-        save_queue(queue)
+        save_queue(queue_path, queue)
 
         try:
-            await ingest_file(entry)
+            await ingest_file(summary_dir, entry)
             entry["status"] = "completed"
             entry["error"] = None
             print("  -> completed")
-        except Exception as e:
+        except Exception as exc:
             entry["status"] = "failed"
-            entry["error"] = str(e)[:200]
+            entry["error"] = str(exc)[:200]
             print(f"  -> failed: {entry['error']}")
 
-        save_queue(queue)
+        save_queue(queue_path, queue)
 
-    stats = {}
-    for f in queue["files"]:
-        stats[f["status"]] = stats.get(f["status"], 0) + 1
+    stats: dict[str, int] = {}
+    for item in queue["files"]:
+        stats[item["status"]] = stats.get(item["status"], 0) + 1
     print(f"\nQueue status: {stats}")
 
 

@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
-import { formatDateOnly, getPublishedEntries } from '@/lib/entries'
+import { formatDateOnly, getLatestSummaries } from '@/lib/entries'
+import { HOME_COPY } from '@/lib/site-copy'
 
 export default async function Page() {
   const entries = await getPublishedEntries()
@@ -10,24 +11,9 @@ export default async function Page() {
     <main className="page home-page">
       <div className="wrap home-wrap">
         <header className="site-header">
-          <div className="topline">
-            <span className="wordmark">VLOG / READER</span>
-            <span className="status-chip"><span aria-hidden="true" /> PUBLIC PROJECTION</span>
-          </div>
-          <div className="hero-grid">
-            <div>
-              <p className="eyebrow">MEMORY FIELD NOTES</p>
-              <h1 className="site-title">The days that stayed with you.</h1>
-              <p className="site-intro">
-                VRChatで過ごした時間を、日付ごとの記録として読み返せます。
-              </p>
-            </div>
-            <aside className="archive-card" aria-label="公開記録の件数">
-              <span className="archive-label">ARCHIVE / 2026</span>
-              <strong>{String(entries.length).padStart(2, '0')}</strong>
-              <span className="archive-caption">published fragments</span>
-            </aside>
-          </div>
+          <p className="eyebrow">{HOME_COPY.eyebrow}</p>
+          <h1 className="site-title">{HOME_COPY.title}</h1>
+          <p className="site-intro">{HOME_COPY.intro}</p>
         </header>
 
         {entries.length === 0 ? (

@@ -1,3 +1,3 @@
 import os
 
-os.environ.setdefault("GOOGLE_API_KEY", "test-key")
+os.environ.setdefault("VLOG_GEMINI_API_KEY", "test-key")

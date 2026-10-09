@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
+import { ARTIFACT_SEMANTICS } from '@/lib/artifact-semantics'
 import {
   formatDateOnly,
   getLatestSummaries,
@@ -17,7 +18,7 @@ export async function generateStaticParams() {
   return (await getLatestSummaries()).map(entry => ({ date: entry.date }))
 }
 
-export const dynamicParams = false
+export const dynamicParams = true
 
 export default async function DayPage({ params }: Props) {
   const { date } = await params
@@ -33,16 +34,19 @@ export default async function DayPage({ params }: Props) {
         {entry === null ? (
           <div className="empty-state">
             <h1>日記が見つかりません</h1>
-            <p>{formatDateOnly(date)} のローカルデータはありません。</p>
+            <p>{formatDateOnly(date)} の公開日記はありません。</p>
           </div>
         ) : (
           <>
             <header className="day-header">
-              <p className="eyebrow">VRCHAT DIARY</p>
+              <p className="eyebrow">{ARTIFACT_SEMANTICS.diary.label}</p>
               <h1 className="day-title">{entry.title}</h1>
               <time className="day-date" dateTime={date}>
                 {formatDateOnly(date)}
               </time>
+              <p className="artifact-note">
+                {ARTIFACT_SEMANTICS.diary.description}
+              </p>
             </header>
             {entry.imageUrl ? (
               <div className="day-image-frame">

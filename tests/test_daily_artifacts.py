@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from src.infrastructure.daily_state import DailyStateStore
-from src.infrastructure.repositories import FileRepository
-from src.infrastructure.settings import settings
-from src.use_cases.daily_artifacts import DailyArtifactManager
+from vlog_capture.infrastructure.daily_state import DailyStateStore
+from vlog_capture.infrastructure.repositories import FileRepository
+from vlog_capture.infrastructure.settings import settings
+from vlog_capture.use_cases.daily_artifacts import DailyArtifactManager
 
 
 class StubSummarizer:

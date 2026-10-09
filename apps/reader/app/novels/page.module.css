@@ -1,0 +1,10 @@
+.novelCard {
+  border-left: 4px solid var(--color-novel);
+}
+
+.kind {
+  margin-bottom: 8px;
+  color: var(--color-novel);
+  font-size: 0.75rem;
+  font-weight: 800;
+}

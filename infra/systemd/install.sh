@@ -1,44 +1,80 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "${BASH_SOURCE[0]%/*}/../.." && pwd)"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 cd "$ROOT"
 export VLOG_PROJECT_ROOT="$ROOT"
-export PYTHONPATH="$ROOT/apps/capture-vrchat:$ROOT/packages/memory-domain/src:$ROOT/packages/ingestion/src${PYTHONPATH:+:$PYTHONPATH}"
 
-if [[ -f .env ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env
-  set +a
+resolve_executable() {
+  local env_name="$1"
+  local command_name="$2"
+  local candidate="${!env_name:-}"
+
+  if [[ -z "$candidate" ]]; then
+    candidate="$(type -P "$command_name" || true)"
+  fi
+  if [[ -z "$candidate" ]]; then
+    echo "$command_name executable was not found; set $env_name to an absolute executable path" >&2
+    return 127
+  fi
+  if [[ "$candidate" != /* ]]; then
+    echo "$env_name must resolve to an absolute path: $candidate" >&2
+    return 2
+  fi
+  if [[ ! -x "$candidate" ]]; then
+    echo "$command_name executable is not executable: $candidate" >&2
+    return 126
+  fi
+  printf '%s\n' "$candidate"
+}
+
+UV_EXE="$(resolve_executable VLOG_UV_EXE uv)"
+SYSTEMCTL_EXE="$(resolve_executable VLOG_SYSTEMCTL_EXE systemctl)"
+UV_VERSION="$("$UV_EXE" --version 2>&1 || true)"
+SYSTEMCTL_VERSION="$("$SYSTEMCTL_EXE" --version 2>&1 || true)"
+SYSTEMCTL_VERSION="${SYSTEMCTL_VERSION%%$'\n'*}"
+
+printf 'resolved uv: %s (%s)\n' "$UV_EXE" "$UV_VERSION"
+printf 'resolved systemctl: %s (%s)\n' "$SYSTEMCTL_EXE" "$SYSTEMCTL_VERSION"
+
+if [[ "${1:-}" == "--diagnose" ]]; then
+  exit 0
+fi
+if [[ $# -gt 0 ]]; then
+  echo "unknown argument: $1" >&2
+  exit 2
 fi
 
-# Older installs may have linked generated units back into the checkout. Remove
-# only those links so rendering cannot write machine-local units into Git.
-for unit in vlog.service vlog-monitor-failure.service vlog-daily.service vlog-daily-failure.service vlog-daily.timer; do
-  destination="$UNIT_DIR/$unit"
-  if [[ -L "$destination" ]]; then
-    unlink "$destination"
-  fi
-done
+"$UV_EXE" sync --locked
+"$UV_EXE" run --frozen python - <<'PY'
+from vlog_capture.portability import runtime_directories
 
-python3 infra/systemd/render.py --root "$ROOT" --output "$UNIT_DIR"
-systemctl --user daemon-reload
-systemctl --user enable --now vlog-daily.timer
-systemctl --user enable vlog.service
-systemctl --user restart vlog.service
+dirs = runtime_directories()
+for path in (dirs.config, dirs.data, dirs.state, dirs.cache):
+    path.mkdir(parents=True, exist_ok=True)
+print(f"config={dirs.config}")
+print(f"data={dirs.data}")
+print(f"state={dirs.state}")
+print(f"cache={dirs.cache}")
+PY
 
-uv run python -m src.operations doctor --root "$ROOT"
-uv run python -m src.operations recover-latest \
+"$UV_EXE" run --frozen python infra/systemd/render.py --root "$ROOT" --output "$UNIT_DIR" --uv "$UV_EXE"
+"$SYSTEMCTL_EXE" --user daemon-reload
+"$SYSTEMCTL_EXE" --user enable --now vlog-daily.timer
+"$SYSTEMCTL_EXE" --user enable vlog.service
+"$SYSTEMCTL_EXE" --user restart vlog.service
+
+"$UV_EXE" run --frozen vlog-operations doctor --root "$ROOT"
+"$UV_EXE" run --frozen vlog-operations recover-latest \
   --category scheduler \
   --component systemd \
   --operation launch \
   --code scheduler_binary_recovered \
   --message "Rendered repository systemd templates and verified the runtime" || true
-uv run python -m src.operations report --days 90 || true
+"$UV_EXE" run --frozen vlog-operations report --days 90 || true
 
-systemctl --user --no-pager status vlog.service || true
+"$SYSTEMCTL_EXE" --user --no-pager status vlog.service || true
 echo "Rendered units: $UNIT_DIR"
-echo "Operations report: $ROOT/data/reports/operations.html"
+echo "Operations report is stored under VLOG_STATE_HOME/reports (or the platform default)."
 echo "Optional Windows watchdog: powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1"

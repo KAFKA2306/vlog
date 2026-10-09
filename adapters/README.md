@@ -1,5 +1,5 @@
 # Adapters
 
-Adapters connect canonical protocols to persistence, private storage, graph, and vector technologies. They are replaceable and must not become the only copy of evidence, memory claims, revisions, or publication decisions.
+Adapters connect canonical protocols to external systems without becoming the only copy of evidence, memory claims, revisions, or publication decisions.
 
-Current subdirectories are scaffolding unless their README states otherwise. See [Human Memory v2](../docs/architecture/human-memory-v2.md).
+Only implemented adapters are materialized here. `vrchat-osc/` is the current adapter; planned persistence, storage, graph, and vector adapters remain in [Human Memory v2](../docs/architecture/human-memory-v2.md) until executable.

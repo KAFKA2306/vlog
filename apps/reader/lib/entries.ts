@@ -1,13 +1,15 @@
 import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
-export type EntrySource = 'summary' | 'novel'
+import {
+  PUBLICATION_START_DATE,
+  getRemotePublicArchiveEntries,
+} from './public-archive'
 
 export type Entry = {
   id: string
   date: string
   imageUrl: string | null
-  source: EntrySource
   title: string
   content: string
 }
@@ -86,16 +88,16 @@ const cleanContent = (content: string) => {
 const readSummary = async (fileName: string): Promise<Entry | null> => {
   const match = fileName.match(SUMMARY_FILE)
   if (!match) return null
-  if (!(await isPublishableSummary(match[1]))) return null
 
   const date = toDate(match[1])
   if (date < PUBLICATION_START_DATE) return null
+  if (!(await isPublishableSummary(match[1]))) return null
+
   const content = await readText(path.join(SUMMARY_DIR, fileName))
   return {
     id: `summary:${date}`,
     date,
     imageUrl: null,
-    source: 'summary',
     title: parseTitle(content),
     content: cleanContent(content),
   }
@@ -180,11 +182,11 @@ export const formatDateOnly = (value: string) => {
   }).format(new Date(`${value}T00:00:00`))
 }
 
-export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
-  const remoteSummaries = await getRemoteSummaries()
-  if (remoteSummaries !== null) {
-    return limit === undefined ? remoteSummaries : remoteSummaries.slice(0, limit)
-  }
+export const diaryPermalink = (date: string) => `/day/${encodeURIComponent(date)}`
+
+export const getLatestSummaries = async (_limit?: number): Promise<Entry[]> => {
+  const remoteEntries = await getRemotePublicArchiveEntries('diary')
+  if (remoteEntries !== null) return remoteEntries
 
   try {
     const files = await readdir(SUMMARY_DIR)
@@ -194,12 +196,7 @@ export const getLatestSummaries = async (limit?: number): Promise<Entry[]> => {
         .sort((a, b) => b.localeCompare(a))
         .map(readSummary),
     )
-
-    const published = summaries.filter(
-      (entry): entry is Entry => entry !== null,
-    )
-
-    return limit === undefined ? published : published.slice(0, limit)
+    return summaries.filter((entry): entry is Entry => entry !== null)
   } catch {
     return []
   }
@@ -220,24 +217,11 @@ export const getPublishedEntries = async (): Promise<Entry[]> => {
 }
 
 export const getSummaryByDate = async (date: string): Promise<Entry | null> => {
-  const remoteSummaries = await fetchSupabase('daily_entries', {
-    select: 'id,date,title,content,image_url',
-    is_public: 'eq.true',
-    date: `eq.${date}`,
-    limit: '1',
-  })
-  if (remoteSummaries !== null) {
-    const row = remoteSummaries[0]
-    return row
-      ? {
-          id: row.id,
-          date: row.date,
-          imageUrl: row.image_url,
-          source: 'summary',
-          title: row.title,
-          content: row.content,
-        }
-      : null
+  if (date < PUBLICATION_START_DATE) return null
+
+  const remoteEntries = await getRemotePublicArchiveEntries('diary')
+  if (remoteEntries !== null) {
+    return remoteEntries.find(entry => entry.date === date) ?? null
   }
 
   try {

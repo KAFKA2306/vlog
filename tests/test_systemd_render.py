@@ -11,12 +11,13 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def test_render_units_uses_supplied_repository_root(tmp_path: Path) -> None:
+def test_render_units_uses_supplied_repository_root(tmp_path: Path, monkeypatch) -> None:
     repo = tmp_path / "checkout with space"
     repo.mkdir()
     (repo / "pyproject.toml").write_text("[project]\nname='vlog'\n", encoding="utf-8")
     output = tmp_path / "units"
 
+    monkeypatch.setenv("HOME", str(tmp_path))
     mock_uv = tmp_path / "uv"
     mock_uv.touch()
     paths = MODULE.render_units(repo, output, uv_path=mock_uv)
@@ -32,6 +33,10 @@ def test_render_units_uses_supplied_repository_root(tmp_path: Path) -> None:
     assert "@VLOG_" not in monitor
     assert "checkout\\x20with\\x20space" in monitor
     assert "/home/kafka/" not in monitor
+
+    daily = (output / "vlog-daily.service").read_text(encoding="utf-8")
+    assert " run --frozen vlog daily" in daily
+    assert " run --frozen vlog-daily" not in daily
 
 
 def test_templates_do_not_commit_checkout_path() -> None:

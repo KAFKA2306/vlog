@@ -1,0 +1,16 @@
+{
+  "name": "VLog Linux Tooling",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "uv sync --locked && cd apps/reader && bun install --frozen-lockfile",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}

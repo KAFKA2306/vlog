@@ -4,18 +4,16 @@ from __future__ import annotations
 import argparse
 import shutil
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT / "apps/capture-vrchat"))
-
-from src.infrastructure.observability import (  # noqa: E402
+from vlog_capture.infrastructure.observability import (
     EventStatus,
     OperationalEventLog,
     Severity,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 AUDIO_SUFFIXES = {".aac", ".flac", ".m4a", ".mp3", ".ogg", ".wav"}
 DEFAULT_MIN_BYTES = 100

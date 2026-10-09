@@ -4,7 +4,7 @@ import os
 import socket
 from pathlib import Path
 
-from src.infrastructure.observability import (
+from vlog_capture.infrastructure.observability import (
     EventStatus,
     OperationalEventLog,
     Severity,

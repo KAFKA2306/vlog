@@ -2,7 +2,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from src.daily import DailyPipeline
+from vlog_capture.daily import DailyPipeline
 
 
 def test_failure_prevents_success_notification(tmp_path: Path) -> None:
@@ -10,6 +10,11 @@ def test_failure_prevents_success_notification(tmp_path: Path) -> None:
 
     def runner(command, env, cwd):
         calls.append((list(command), dict(env), cwd))
+        if "vrcpet-ingest" in command:
+            run_id = env["VLOG_RUN_ID"]
+            artifact = tmp_path / "data/vrcpet/runs" / f"{run_id}.json"
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_text("{}", encoding="utf-8")
         if "sync" in command:
             raise RuntimeError("sync failed")
 
@@ -28,6 +33,11 @@ def test_success_notification_runs_after_audit(tmp_path: Path) -> None:
 
     def runner(command, env, cwd):
         calls.append((list(command), dict(env), cwd))
+        if "vrcpet-ingest" in command:
+            run_id = env["VLOG_RUN_ID"]
+            artifact = tmp_path / "data/vrcpet/runs" / f"{run_id}.json"
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_text("{}", encoding="utf-8")
         if "sync" in command:
             run_id = env["VLOG_RUN_ID"]
             report = tmp_path / "data/sync_reports" / f"{run_id}.json"
@@ -52,10 +62,14 @@ def test_daily_run_quarantines_unusable_recordings(tmp_path: Path) -> None:
     bad_recording.write_bytes(b"")
 
     def runner(command, env, cwd):
+        run_id = env["VLOG_RUN_ID"]
         if "sync" in command:
-            report = tmp_path / "data/sync_reports" / f"{env['VLOG_RUN_ID']}.json"
+            report = tmp_path / "data/sync_reports" / f"{run_id}.json"
             report.parent.mkdir(parents=True, exist_ok=True)
             report.write_text("{}", encoding="utf-8")
+        vrcpet = tmp_path / "data/vrcpet/runs" / f"{run_id}.json"
+        vrcpet.parent.mkdir(parents=True, exist_ok=True)
+        vrcpet.write_text("{}", encoding="utf-8")
 
     DailyPipeline(runner=runner, monitor=lambda: False, project_root=tmp_path).run()
 

@@ -1,9 +1,13 @@
 import './globals.css'
 import type { Metadata } from 'next'
 
+import { SITE_METADATA } from '@/lib/site-copy'
+
+import SiteNav from './site-nav'
+
 export const metadata: Metadata = {
-  title: 'VLog / Reader',
-  description: 'VRChatで過ごした時間を読み返す公開記録',
+  title: SITE_METADATA.title,
+  description: SITE_METADATA.description,
 }
 
 export default function RootLayout({
@@ -13,7 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <SiteNav />
+        {children}
+      </body>
     </html>
   )
 }

@@ -2,8 +2,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.domain.audit import AuditState
-from src.infrastructure.audit_v2 import StrictRunAuditor
+from vlog_capture.domain.audit import AuditState
+from vlog_capture.infrastructure.audit_v2 import StrictRunAuditor
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:

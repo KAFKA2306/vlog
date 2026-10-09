@@ -1,6 +1,6 @@
 # Phase 0 Inventory Runbook
 
-This procedure freezes the legacy evidence layout before relocation. It does not delete, move, upload, or rewrite source files.
+This procedure freezes the source evidence layout before relocation. It does not delete, move, upload, or rewrite source files.
 
 ## Local inventory
 
@@ -30,7 +30,7 @@ Each record contains:
 
 The summary includes category totals, tracked evidence count, and duplicate hash groups.
 
-Use the stricter mode after legacy private files have been removed from Git:
+Use the stricter mode after private source files have been removed from Git:
 
 ```bash
 uv run --no-sync python scripts/phase0_inventory.py --fail-on-tracked-evidence

@@ -1,17 +1,3 @@
----
-codd:
-  node_id: "req:adr-0002"
-  type: adr
-  status: approved
-  links:
-    - to: Taskfile.yaml
-      type: implementation
-    - to: apps/capture-vrchat/src/cli.py
-      type: implementation
-    - evidence: "task maintenance PASS (Deterministic garbage collection executed)"
-      type: verification
----
-
 # ADR 2: Principles of Autonomous Maintenance
 
 ## Audit note (2026-08-04)

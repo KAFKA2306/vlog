@@ -22,6 +22,13 @@ from .models import (
     SourceObject,
     Utterance,
 )
+from .social_mirror import (
+    SOCIAL_MIRROR_CLAIM_TYPE,
+    UNKNOWN_SPEAKER,
+    SocialMirrorEvidenceLevel,
+    SocialMirrorValue,
+    validate_social_mirror_claim,
+)
 
 __all__ = [
     "Artifact",
@@ -37,7 +44,12 @@ __all__ = [
     "Moment",
     "PrivacyLevel",
     "PublicationDecision",
+    "SOCIAL_MIRROR_CLAIM_TYPE",
     "SourceKind",
     "SourceObject",
+    "SocialMirrorEvidenceLevel",
+    "SocialMirrorValue",
+    "UNKNOWN_SPEAKER",
     "Utterance",
+    "validate_social_mirror_claim",
 ]

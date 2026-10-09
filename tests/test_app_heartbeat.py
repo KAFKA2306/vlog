@@ -1,7 +1,7 @@
 import logging
 from unittest.mock import Mock
 
-from src.app import Application
+from vlog_capture.app import Application
 
 
 def _heartbeat_app() -> Application:
@@ -22,9 +22,9 @@ def test_waiting_heartbeat_is_logged_immediately_and_periodically(
 ) -> None:
     app = _heartbeat_app()
     current_time = 1.0
-    monkeypatch.setattr("src.app.time.monotonic", lambda: current_time)
+    monkeypatch.setattr("vlog_capture.app.time.monotonic", lambda: current_time)
 
-    with caplog.at_level(logging.INFO, logger="src.app"):
+    with caplog.at_level(logging.INFO, logger="vlog_capture.app"):
         app._heartbeat("healthy", vrchat_running=False)
         current_time = 20.0
         app._heartbeat("healthy", vrchat_running=False)
@@ -43,9 +43,9 @@ def test_heartbeat_logs_immediately_when_vrchat_state_changes(
 ) -> None:
     app = _heartbeat_app()
     current_time = 1.0
-    monkeypatch.setattr("src.app.time.monotonic", lambda: current_time)
+    monkeypatch.setattr("vlog_capture.app.time.monotonic", lambda: current_time)
 
-    with caplog.at_level(logging.INFO, logger="src.app"):
+    with caplog.at_level(logging.INFO, logger="vlog_capture.app"):
         app._heartbeat("healthy", vrchat_running=False)
         current_time = 31.0
         app._heartbeat("healthy", vrchat_running=True)
