@@ -62,3 +62,18 @@ def test_publish_refuses_changed_diary_before_network(tmp_path: Path) -> None:
     target.write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="differs"):
         muchio_diary.publish(tmp_path, day, sha)
+
+
+def test_review_seals_edited_body(tmp_path: Path) -> None:
+    day = "2026-10-09"
+    target = tmp_path / f"{day}.md"
+    target.write_text("edited private draft", encoding="utf-8")
+    (tmp_path / f"{day}.json").write_text(
+        json.dumps({"date": day, "diary_sha256": "old", "published": False}),
+        encoding="utf-8",
+    )
+    reviewed = muchio_diary.review(tmp_path, day)
+    assert reviewed == hashlib.sha256(target.read_bytes()).hexdigest()
+    meta = json.loads((tmp_path / f"{day}.json").read_text(encoding="utf-8"))
+    assert meta["reviewed_sha256"] == reviewed
+    assert meta["published"] is False
