@@ -82,3 +82,11 @@ yarn.lock
 *.temp
 *.bak
 *copy*
+# Large generated and vendored artifacts
+**/node_modules/
+**/.next/
+*.node
+*.sst
+*.so.*
+# Nested repository (own .git); tracked separately
+colleague-skill/
