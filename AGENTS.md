@@ -31,4 +31,5 @@ Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific fi
 - Inspect current implementation before changing a contract.
 - Keep remote branches to `main` and same-repository open-PR heads; `.github/workflows/branch-lifecycle.yml` enforces cleanup.
 - Run `task verify`. Use focused tasks while iterating; `task lint` is read-only and `task format` mutates Python.
+- When the user establishes a durable working rule (a standing policy, not a one-off instruction), update this file in the same turn and commit it. Keep the rule short and state its reason.
 - Track unresolved questions, deferred work, and external prerequisites as GitHub issues in `KAFKA2306/vlog`. Do not leave them only in chat or temporary files. Issue bodies state background, current state, decisions needed, and completion criteria, and must exclude private content (diary text, conversation logs, credentials, personal data). Check open issues for duplicates before creating one.
