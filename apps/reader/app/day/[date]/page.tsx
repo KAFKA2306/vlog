@@ -4,7 +4,6 @@ import Image from 'next/image'
 import { ARTIFACT_SEMANTICS } from '@/lib/artifact-semantics'
 import {
   formatDateOnly,
-  getLatestSummaries,
   getSummaryByDate,
 } from '@/lib/entries'
 
@@ -15,10 +14,11 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  return (await getLatestSummaries()).map(entry => ({ date: entry.date }))
+  return []
 }
 
 export const dynamicParams = true
+export const revalidate = 300
 
 export default async function DayPage({ params }: Props) {
   const { date } = await params
