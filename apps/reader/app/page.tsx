@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
-import { formatDateOnly, getLatestSummaries } from '@/lib/entries'
+import { formatDateOnly, getPublishedEntries } from '@/lib/entries'
 import { HOME_COPY } from '@/lib/site-copy'
 
 export default async function Page() {
