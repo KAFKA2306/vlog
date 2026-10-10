@@ -31,7 +31,7 @@ def test_windows_launcher_uses_resolved_uv_and_dynamic_nvidia_paths() -> None:
     assert "where uv.exe" in script
     assert "import pathlib,nvidia.cudnn" in script
     assert "import pathlib,nvidia.cublas" in script
-    assert "python3.12\\site-packages\\nvidia" not in script
+    assert "site-packages" not in script
 
 
 def test_task_registration_sets_absolute_action_and_working_directory() -> None:

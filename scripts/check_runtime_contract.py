@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -19,7 +20,6 @@ FORBIDDEN = {
     "PYTHONPATH": "runtime must use installed workspace packages",
     "sys.path.insert": "scripts must use installed workspace packages",
     "USER_WORKING_DIR": "tasks must resolve from the root Taskfile",
-    "python3.12/site-packages/nvidia": "GPU libraries must be discovered at runtime",
     "python -m src": "retired src package entrypoints are forbidden",
     "from src": "retired src imports are forbidden",
     "import src": "retired src imports are forbidden",
@@ -45,6 +45,10 @@ FORBIDDEN = {
     'Path("data/logs")': "service logs must live under VLOG_STATE_HOME",
     "data\\logs\\windows-bootstrap.log": "Windows bootstrap logs must live under VLOG_STATE_HOME",
     "/tmp/vlog-daily.log": "daily logs must live under VLOG_STATE_HOME",
+}
+
+FORBIDDEN_PATTERNS = {
+    r"python3\.\d+[/\\]site-packages[/\\]nvidia": "GPU libraries must be discovered at runtime",
 }
 
 
@@ -93,6 +97,9 @@ def violations(paths: list[str] | None = None) -> list[str]:
         for token, reason in FORBIDDEN.items():
             if token in text:
                 failures.append(f"{relative}: contains {token!r}: {reason}")
+        for pattern, reason in FORBIDDEN_PATTERNS.items():
+            if re.search(pattern, text):
+                failures.append(f"{relative}: matches {pattern!r}: {reason}")
     return failures
 
 
