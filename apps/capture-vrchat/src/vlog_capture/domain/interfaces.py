@@ -50,5 +50,11 @@ class NovelizerProtocol(Protocol):
     ) -> str: ...
 
 
+class ComedyWriterProtocol(Protocol):
+    def generate_script(
+        self, today_summary: str, script_so_far: str = "", context: str = ""
+    ) -> str: ...
+
+
 class ImageGeneratorProtocol(Protocol):
     def generate_from_novel(self, chapter_text: str, output_path: Path) -> None: ...

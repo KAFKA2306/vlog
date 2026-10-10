@@ -15,7 +15,13 @@ from vlog_capture.cli_handlers import (
     cmd_transcribe,
     cmd_vrcpet_ingest,
 )
-from vlog_capture.secure_handlers import cmd_audit, cmd_notify, cmd_novel, cmd_sync
+from vlog_capture.secure_handlers import (
+    cmd_audit,
+    cmd_comedy,
+    cmd_notify,
+    cmd_novel,
+    cmd_sync,
+)
 
 Handler = Callable[[argparse.Namespace], None]
 
@@ -45,6 +51,9 @@ def main() -> None:
     p_novel = _command(subparsers, "novel", "Generate novel chapter", cmd_novel)
     p_novel.add_argument("--date", help="Target date (YYYYMMDD); defaults to today")
     p_novel.add_argument("--out", help="Output filename")
+
+    p_comedy = _command(subparsers, "comedy", "Generate comedy script", cmd_comedy)
+    p_comedy.add_argument("--date", help="Target date (YYYYMMDD); defaults to today")
 
     _command(subparsers, "sync", "Strictly sync data to Supabase", cmd_sync)
 

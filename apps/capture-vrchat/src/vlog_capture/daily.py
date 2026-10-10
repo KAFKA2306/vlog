@@ -147,6 +147,16 @@ class DailyPipeline:
                         "--date",
                         date_str,
                     )
+                    self._stage(
+                        run_id,
+                        f"comedy:{date_str}",
+                        ["comedy_writer"],
+                        [self.data_root / "comedy" / f"{date_str}.md"],
+                        env,
+                        "comedy",
+                        "--date",
+                        date_str,
+                    )
 
             self._stage(
                 run_id,
@@ -388,6 +398,7 @@ class DailyPipeline:
             "transcribe": "transcription",
             "summarize": "generation",
             "novel": "generation",
+            "comedy": "generation",
             "sync": "sync",
         }.get(prefix, "processing")
 

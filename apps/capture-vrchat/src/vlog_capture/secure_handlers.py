@@ -37,6 +37,20 @@ def cmd_novel(args: argparse.Namespace) -> None:
         raise RuntimeError("Novel stage artifacts are missing: " + ", ".join(missing))
 
 
+def cmd_comedy(args: argparse.Namespace) -> None:
+    from vlog_capture.infrastructure.ai import ComedyWriter
+    from vlog_capture.infrastructure.graph_storage import GraphStorage
+    from vlog_capture.infrastructure.settings import settings
+    from vlog_capture.use_cases.build_comedy import BuildComedyUseCase
+
+    target_date = args.date or datetime.now().strftime("%Y%m%d")
+    graph_storage = GraphStorage(runtime_directories().cache / "graph" / "graph.jsonl")
+    BuildComedyUseCase(ComedyWriter(), graph_storage).execute(target_date)
+    artifact = Path(settings.comedy_out_dir) / f"{target_date}.md"
+    if not _nonempty(artifact):
+        raise RuntimeError(f"Comedy stage artifact is missing: {artifact}")
+
+
 def cmd_audit(args: argparse.Namespace) -> None:
     report = StrictRunAuditor(run_id=getattr(args, "run_id", None)).run()
     if args.json:

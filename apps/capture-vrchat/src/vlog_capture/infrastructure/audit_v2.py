@@ -155,7 +155,12 @@ class StrictRunAuditor:
                 source=str(self.run_log),
             )
 
-        ai_components = expected & {"summarizer", "novelizer", "image_generator"}
+        ai_components = expected & {
+            "summarizer",
+            "novelizer",
+            "comedy_writer",
+            "image_generator",
+        }
         if ai_components:
             actual_traces = self._correlated_trace_components(
                 run_id, task_name, started, terminal, traces
