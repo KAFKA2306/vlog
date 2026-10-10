@@ -96,6 +96,12 @@ Current runtimeはlocal Evidence / artifact stateとexisting Supabase projection
 
 生成summary、novel、image、graph、vector indexは、それだけではauthoritative memoryではありません。
 
+### Graphiti temporal projection
+
+[`adapters/graphiti/`](../adapters/graphiti/README.md) は、canonical Episode / accepted Claim / EvidenceRefからGraphitiへ1 session = 1 temporal episodeを投入するrebuildable projection adapterです。payload・idempotency key・audit・failure isolationはvendor-neutralな`vlog_memory_domain.projection`が持ち、Graphiti SDKはadapterだけがimportします。
+
+既存の`graph.jsonl`（summary -> Gemini -> triples、`ExtractGraphUseCase`）は小説生成用の非正準contextであり、fact sourceではありません。Graphiti projectionはsummary / novel / MBTIを入力にしません。canonical persistence（Human Memory v2 Phase 3）が未実装のため、日次pipelineへの自動接続は未配線で、canonical storeが`EpisodeCandidate`を供給できる時点で`run_projection`を呼ぶoptional stepとして接続します。
+
 ## Related documents
 
 - [Product specification and guarantees](SPEC.md)

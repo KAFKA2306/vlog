@@ -152,6 +152,8 @@ Not implemented beyond reserved boundaries:
 - approval surfaces for write, correct, forget, and publish actions;
 - optional Graphiti, Cognee, or Qdrant projections rebuilt from canonical stores.
 
+Implemented in repository: the Graphiti projection adapter (`adapters/graphiti/`) and vendor-neutral projection contract (`vlog_memory_domain.projection`), verified with fakes only. Wiring to the daily pipeline waits for Phase 3 canonical persistence; live Graphiti behavior is UNVERIFIED.
+
 ### Phase 6: retired removal
 
 Not implemented:

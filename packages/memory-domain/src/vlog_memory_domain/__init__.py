@@ -22,6 +22,18 @@ from .models import (
     SourceObject,
     Utterance,
 )
+from .projection import (
+    EpisodeCandidate,
+    EpisodeProjectionPayload,
+    ProjectionAudit,
+    ProjectionFact,
+    ProjectionLedger,
+    ProjectionSink,
+    ProjectionSkip,
+    ProjectionStatus,
+    build_episode_payload,
+    run_projection,
+)
 from .social_mirror import (
     SOCIAL_MIRROR_CLAIM_TYPE,
     UNKNOWN_SPEAKER,
@@ -35,6 +47,8 @@ __all__ = [
     "ArtifactKind",
     "Entity",
     "Episode",
+    "EpisodeCandidate",
+    "EpisodeProjectionPayload",
     "EvidenceRef",
     "IngestionRun",
     "IngestionStatus",
@@ -43,6 +57,12 @@ __all__ = [
     "MemoryStatus",
     "Moment",
     "PrivacyLevel",
+    "ProjectionAudit",
+    "ProjectionFact",
+    "ProjectionLedger",
+    "ProjectionSink",
+    "ProjectionSkip",
+    "ProjectionStatus",
     "PublicationDecision",
     "SOCIAL_MIRROR_CLAIM_TYPE",
     "SourceKind",
@@ -51,5 +71,7 @@ __all__ = [
     "SocialMirrorValue",
     "UNKNOWN_SPEAKER",
     "Utterance",
+    "build_episode_payload",
+    "run_projection",
     "validate_social_mirror_claim",
 ]
