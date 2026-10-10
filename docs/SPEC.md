@@ -109,12 +109,12 @@ file existenceやdirectory scanによる処理状態はtemporary mechanismです
 - `/novels`
 - `/people-said`
 
-Git provenanceが取得できるdeploymentでは、さらに次を要求します。
+release identityとして次も必須です。欠落・空値・不一致はFAILです(`scripts/reader_identity.py`)。
 
 - `gitCommitRef = main`
-- commit SHAが取得できる
+- `gitCommitSha` が40桁hexで、`KAFKA2306/vlog` の実在commitに解決できる
 
-Git provenanceが取得できないdeploymentはpublic availabilityのsmoke testを続行しますが、release provenanceは未確認としてwarningにします。availabilityとrelease provenanceを同じ保証として扱いません。
+Vercel Root Directory、environment分離、deploy起点、metadata照合のcontractは[`operations/reader-deploy-contract.md`](operations/reader-deploy-contract.md)を正準とします。Vercel dashboard / 実deployの観測は、repository checkだけからPASSへ昇格しません。
 
 主要routeのいずれかがHTTP成功を返さない場合、その時点のpublic productionは動作確認済みとは扱いません。
 

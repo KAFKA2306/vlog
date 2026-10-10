@@ -12,6 +12,8 @@ import time
 import urllib.request
 from pathlib import Path
 
+from reader_identity import identity_failures
+
 ROOT = Path(__file__).resolve().parents[1]
 READER = ROOT / "apps" / "reader"
 DEFAULT_PROJECT_ID = "prj_t52LlD6qx3zdzdgOqBomZBfzzwb6"
@@ -124,14 +126,7 @@ def verify_production(sha: str, ref: str, url: str, attempts: int = 24) -> None:
             last = health(url)
         except (OSError, ValueError, json.JSONDecodeError):
             last = None
-        if (
-            last
-            and last.get("status") == "ok"
-            and last.get("environment") == "production"
-            and last.get("gitCommitSha") == sha
-            and last.get("gitCommitRef") == ref
-            and str(last.get("deploymentId") or "").startswith("dpl_")
-        ):
+        if last and not identity_failures(last, expected_sha=sha, expected_ref=ref):
             print(json.dumps(last, ensure_ascii=False, indent=2))
             return
         time.sleep(5)
