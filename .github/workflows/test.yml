@@ -31,6 +31,8 @@ jobs:
         run: uv sync --locked
       - name: Reject non-portable tracked paths
         run: uv run --no-sync python scripts/check_portable_paths.py
+      - name: Verify Python support contract
+        run: uv run --no-sync python scripts/check_python_contract.py
       - name: Reject checkout-layout runtime coupling
         run: uv run --no-sync python scripts/check_runtime_contract.py
       - name: Compile portability tools

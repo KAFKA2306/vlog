@@ -37,7 +37,7 @@ Python runtimeはuv workspace上の`vlog_capture` packageです。製品操作�
 
 ## Setup
 
-必要環境はPython `>=3.12,<3.13`、`uv`、Task、Readerを扱う場合はBunです。
+必要環境はPython `>=3.12,<3.13`、`uv`、Task、Readerを扱う場合はBunです。`requires-python`が正式support範囲、`.python-version`が既定の開発interpreter、CI/`UV_PYTHON`は範囲内の実証pinで、`task python:contract`が一致を検証します。範囲外のinterpreterは`uv sync`が失敗します。
 
 ```bash
 git clone https://github.com/KAFKA2306/vlog.git
