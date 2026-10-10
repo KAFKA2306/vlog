@@ -4,6 +4,23 @@ This package contains storage-agnostic entities only. Persistence, retrieval,
 AI extraction, and publication are adapter concerns.
 """
 
+from .interaction import (
+    INTERACTION_CLAIM_TYPES,
+    EmotionOrigin,
+    IdentityState,
+    InteractionUtteranceValue,
+    RelationshipValue,
+    ResponseKind,
+    ResponseValue,
+    SelfEmotionValue,
+    TimelineEntry,
+    TimelineEntryKind,
+    deterministic_claim_id,
+    ingest_claims,
+    retrieve_person_timeline,
+    revise_relationship,
+    validate_interaction_claim,
+)
 from .models import (
     Artifact,
     ArtifactKind,
@@ -31,6 +48,21 @@ from .social_mirror import (
 )
 
 __all__ = [
+    "EmotionOrigin",
+    "IdentityState",
+    "INTERACTION_CLAIM_TYPES",
+    "InteractionUtteranceValue",
+    "RelationshipValue",
+    "ResponseKind",
+    "ResponseValue",
+    "SelfEmotionValue",
+    "TimelineEntry",
+    "TimelineEntryKind",
+    "deterministic_claim_id",
+    "ingest_claims",
+    "retrieve_person_timeline",
+    "revise_relationship",
+    "validate_interaction_claim",
     "Artifact",
     "ArtifactKind",
     "Entity",
