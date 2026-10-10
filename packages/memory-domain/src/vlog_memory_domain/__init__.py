@@ -4,6 +4,7 @@ This package contains storage-agnostic entities only. Persistence, retrieval,
 AI extraction, and publication are adapter concerns.
 """
 
+from .identity import validate_source_manifest, verify_source_hash
 from .models import (
     Artifact,
     ArtifactKind,
@@ -52,4 +53,6 @@ __all__ = [
     "UNKNOWN_SPEAKER",
     "Utterance",
     "validate_social_mirror_claim",
+    "validate_source_manifest",
+    "verify_source_hash",
 ]

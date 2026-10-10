@@ -13,6 +13,7 @@ from vlog_memory_domain import (
     PrivacyLevel,
     SourceKind,
     SourceObject,
+    validate_source_manifest,
 )
 
 from .parser import ParsedObservation
@@ -75,6 +76,7 @@ def normalize_source(
             "parse_issue_count": len(parsed.issues),
         },
     }
+    validate_source_manifest(manifest)
     return NormalizedObservation(
         source_object=source_object,
         manifest=manifest,

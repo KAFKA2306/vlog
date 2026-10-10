@@ -28,7 +28,7 @@
       "enum": ["private", "sensitive", "internal", "public"]
     },
     "media_type": {"type": ["string", "null"]},
-    "original_filename": {"type": ["string", "null"]},
+    "original_filename": {"type": ["string", "null"], "pattern": "^[^/\\\\]+$"},
     "metadata": {"type": "object"}
   }
 }
