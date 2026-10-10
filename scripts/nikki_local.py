@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 ENDPOINT = "http://127.0.0.1:11434/api/generate"
-MODEL = "qwen2.5:7b"
+MODEL = "gemma4:12b"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PROMPTS_PATH = PROJECT_ROOT / "data/prompts.yaml"
 MAX_CHARS = 12000
@@ -69,6 +69,7 @@ def ollama_generate(prompt: str) -> str:
             "model": MODEL,
             "prompt": prompt,
             "stream": False,
+            "think": False,
             "options": {"temperature": 0.3, "num_ctx": 8192},
         }
     ).encode("utf-8")
