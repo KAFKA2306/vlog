@@ -1,9 +1,11 @@
 import argparse
+import hashlib
 import json
 import os
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -56,6 +58,10 @@ def build_transcript_capped(
     return text[:limit], True
 
 
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
 def ollama_generate(prompt: str) -> str:
     require_local_endpoint(ENDPOINT)
     body = json.dumps(
@@ -73,12 +79,8 @@ def ollama_generate(prompt: str) -> str:
         return json.loads(response.read().decode("utf-8"))["response"].strip()
 
 
-def _load_records(path: Path) -> list[dict]:
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line
-    ]
+def _load_records(source: bytes) -> list[dict]:
+    return [json.loads(line) for line in source.decode("utf-8").splitlines() if line]
 
 
 def generate_days(
@@ -97,16 +99,37 @@ def generate_days(
         target = out_dir / f"{day}.md"
         if target.exists():
             continue
-        transcript, truncated = build_transcript_capped(_load_records(path))
+        source = path.read_bytes()
+        transcript, truncated = build_transcript_capped(_load_records(source))
         if not transcript:
             continue
         prompt = template.format(date=day, transcript=transcript)
+        generated_at = datetime.now(timezone.utc).isoformat()
         summary = generate(prompt)
         note = "\n> 入力は上限で切り詰めました。" if truncated else ""
         target.write_text(
             f"# {day}\n\n{DRAFT_HEADER}{note}\n\n{summary}\n", encoding="utf-8"
         )
         os.chmod(target, 0o600)
+        manifest = out_dir / f"{day}.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "date": day,
+                    "model": MODEL,
+                    "source_sha256": sha256_bytes(source),
+                    "prompt_sha256": sha256_bytes(prompt.encode("utf-8")),
+                    "diary_sha256": sha256_bytes(target.read_bytes()),
+                    "generated_at": generated_at,
+                    "published": False,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        os.chmod(manifest, 0o600)
         written.append(day)
     return written
 

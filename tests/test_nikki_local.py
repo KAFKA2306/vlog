@@ -1,9 +1,11 @@
+import hashlib
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from scripts import nikki_local
+from scripts import muchio_diary, nikki_local
 
 
 def _write_day(logs: Path, day: str, records: list[dict]) -> None:
@@ -65,6 +67,27 @@ def test_generation_is_idempotent_and_marks_drafts(tmp_path: Path, monkeypatch) 
     body = (out_dir / "2026-08-11.md").read_text(encoding="utf-8")
     assert "非公開の下書き" in body
     assert "今日は挨拶から始まった。" in body
+    manifest_path = out_dir / "2026-08-11.json"
+    metadata = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert metadata == {
+        "date": "2026-08-11",
+        "model": nikki_local.MODEL,
+        "source_sha256": hashlib.sha256(
+            (logs / "2026-08-11.jsonl").read_bytes()
+        ).hexdigest(),
+        "prompt_sha256": hashlib.sha256(calls[0].encode("utf-8")).hexdigest(),
+        "diary_sha256": hashlib.sha256(
+            (out_dir / "2026-08-11.md").read_bytes()
+        ).hexdigest(),
+        "generated_at": metadata["generated_at"],
+        "published": False,
+    }
+    datetime.fromisoformat(metadata["generated_at"])
+    assert "こんにちは" not in manifest_path.read_text(encoding="utf-8")
+    reviewed = muchio_diary.review(out_dir, "2026-08-11")
+    assert reviewed == metadata["diary_sha256"]
+    reviewed_metadata = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert reviewed_metadata["reviewed_sha256"] == reviewed
 
 
 def test_template_is_the_project_summarizer_prompt() -> None:
