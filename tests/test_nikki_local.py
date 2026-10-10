@@ -90,6 +90,49 @@ def test_generation_is_idempotent_and_marks_drafts(tmp_path: Path, monkeypatch) 
     assert reviewed_metadata["reviewed_sha256"] == reviewed
 
 
+def _draft(tmp_path: Path, truncated: bool = False) -> tuple[Path, Path]:
+    logs = tmp_path / "logs"
+    _write_day(
+        logs,
+        "2026-08-11",
+        [{"t": "heard", "text": "x" * (13000 if truncated else 5), "ts": 1.0}],
+    )
+    private = tmp_path / "private"
+    nikki_local.generate_days(
+        logs, private, generate=lambda _: "【2026-08-11 日記】\n本文です。"
+    )
+    return private, tmp_path / "muchio_diaries"
+
+
+@pytest.mark.parametrize("truncated", [False, True])
+def test_export_writes_review_layout_without_draft_banner(
+    tmp_path: Path, truncated: bool
+) -> None:
+    private, out = _draft(tmp_path, truncated)
+    nikki_local.export_for_review(private, out, "2026-08-11")
+    body = (out / "2026-08-11.md").read_text(encoding="utf-8")
+    assert body == "【2026-08-11 日記】\n本文です。\n"
+    metadata = json.loads((out / "2026-08-11.json").read_text(encoding="utf-8"))
+    draft = json.loads((private / "2026-08-11.json").read_text(encoding="utf-8"))
+    assert metadata["diary_sha256"] == hashlib.sha256(body.encode()).hexdigest()
+    assert metadata["source_sha256"] == draft["source_sha256"]
+    assert metadata["prompt_sha256"] == draft["prompt_sha256"]
+    assert metadata["published"] is False
+    assert "reviewed_sha256" not in metadata
+    assert muchio_diary.review(out, "2026-08-11") == metadata["diary_sha256"]
+
+
+def test_export_refuses_overwrite_and_missing_banner(tmp_path: Path) -> None:
+    private, out = _draft(tmp_path)
+    nikki_local.export_for_review(private, out, "2026-08-11")
+    with pytest.raises(FileExistsError):
+        nikki_local.export_for_review(private, out, "2026-08-11")
+    (private / "2026-08-12.md").write_text("no banner\n", encoding="utf-8")
+    (private / "2026-08-12.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="banner"):
+        nikki_local.export_for_review(private, out, "2026-08-12")
+
+
 def test_template_is_the_project_summarizer_prompt() -> None:
     template = nikki_local.load_template()
     assert "【YYYY-MM-DD 日記】" in template

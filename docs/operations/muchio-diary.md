@@ -17,6 +17,12 @@ Windows ログを WSL から読む場合は --logs-dir に /mnt/c/Users/front/Ap
 
 生成物は YYYY-MM-DD.md と YYYY-MM-DD.json です。後者には元ログ、プロンプト、日記本文の SHA-256 と件数、公開状態が含まれます。同じ入力とプロンプトは再生成しません。会話テキストを抽出できない日はスキップします。
 
+ローカル LLM の下書き（data/private/nikki）を同じ形式へ移す場合は、1日ずつ次を実行します。下書きの注意書きと見出しを除き、本文とマニフェストを data/muchio_diaries に書きます。既存ファイルは上書きしません。
+
+~~~bash
+uv run --frozen python scripts/nikki_local.py --export --date 2026-10-09
+~~~
+
 ## 2. 出力日記をレビュー
 
 ~~~bash

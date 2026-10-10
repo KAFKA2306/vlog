@@ -5,7 +5,7 @@ import os
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -19,6 +19,7 @@ LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 DRAFT_HEADER = (
     "> 非公開の下書きです。ローカル生成（外部送信なし）。公開前に人の確認が必要です。"
 )
+TRUNCATION_NOTE = "> 入力は上限で切り詰めました。"
 
 
 def require_local_endpoint(url: str) -> None:
@@ -106,7 +107,7 @@ def generate_days(
         prompt = template.format(date=day, transcript=transcript)
         generated_at = datetime.now(timezone.utc).isoformat()
         summary = generate(prompt)
-        note = "\n> 入力は上限で切り詰めました。" if truncated else ""
+        note = f"\n{TRUNCATION_NOTE}" if truncated else ""
         target.write_text(
             f"# {day}\n\n{DRAFT_HEADER}{note}\n\n{summary}\n", encoding="utf-8"
         )
@@ -134,13 +135,53 @@ def generate_days(
     return written
 
 
+def export_for_review(private_dir: Path, out_dir: Path, day: str) -> None:
+    date.fromisoformat(day)
+    target = out_dir / f"{day}.md"
+    if target.exists():
+        raise FileExistsError(target)
+    draft = (private_dir / f"{day}.md").read_text(encoding="utf-8")
+    if DRAFT_HEADER not in draft:
+        raise ValueError(f"draft banner missing: {day}")
+    body = draft.split(DRAFT_HEADER, 1)[1].lstrip("\n")
+    if body.startswith(TRUNCATION_NOTE):
+        body = body[len(TRUNCATION_NOTE) :].lstrip("\n")
+    body = body.strip() + "\n"
+    metadata = json.loads((private_dir / f"{day}.json").read_text(encoding="utf-8"))
+    metadata["diary_sha256"] = sha256_bytes(body.encode("utf-8"))
+    metadata["published"] = False
+    out_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    target.write_text(body, encoding="utf-8")
+    os.chmod(target, 0o600)
+    manifest = out_dir / f"{day}.json"
+    manifest.write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    os.chmod(manifest, 0o600)
+
+
 def _main() -> None:
     parser = argparse.ArgumentParser(
         description="Local-only nikki drafts from VRCPet logs"
     )
-    parser.add_argument("--logs", type=Path, required=True)
+    parser.add_argument("--logs", type=Path)
     parser.add_argument("--date", default=None)
+    parser.add_argument(
+        "--export",
+        action="store_true",
+        help="Copy one draft into data/muchio_diaries for review (needs --date)",
+    )
     args = parser.parse_args()
+    if args.export:
+        if not args.date:
+            parser.error("--export requires --date")
+        export_for_review(
+            private_output_dir(), PROJECT_ROOT / "data/muchio_diaries", args.date
+        )
+        print(f"exported={args.date}")
+        return
+    if args.logs is None:
+        parser.error("--logs is required")
     written = generate_days(args.logs, private_output_dir(), only=args.date)
     print(f"drafts_written={len(written)} out={private_output_dir()}")
 
