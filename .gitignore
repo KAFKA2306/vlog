@@ -91,3 +91,4 @@ frontend/reader/next-env.d.ts
 
 # Private diary drafts (never publish without review)
 nikki/
+.claude/worktrees/
