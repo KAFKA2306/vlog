@@ -5,6 +5,7 @@ from pathlib import Path
 
 from vlog_capture.domain.entities import RecordingSession
 from vlog_capture.domain.interfaces import (
+    ComedyWriterProtocol,
     DailySummarizerProtocol,
     FileRepositoryProtocol,
     GraphStorageProtocol,
@@ -163,6 +164,50 @@ class DailyArtifactManager:
             photo_path=photo_path,
         )
         return novel_path
+
+    def refresh_comedy(
+        self,
+        date_str: str,
+        comedy_writer: ComedyWriterProtocol,
+        graph_storage: GraphStorageProtocol | None = None,
+    ) -> Path | None:
+        summary_path = settings.summary_dir / f"{date_str}_summary.txt"
+        if not summary_path.exists():
+            return None
+
+        summary_text = summary_path.read_text(encoding="utf-8")
+        if not summary_text.strip():
+            self._state.record_empty(date_str, "empty summary content")
+            return None
+
+        summary_hash = fingerprint_text(summary_text)
+        state_entry = self._state.get(date_str)
+        comedy_path = settings.comedy_out_dir / f"{date_str}.md"
+        past_memories = (
+            self._fetch_memories(graph_storage, summary_text) if graph_storage else ""
+        )
+        context = f"Past Memories:\n{past_memories}\n\n" if past_memories else ""
+        context_hash = fingerprint_text(context)
+
+        if (
+            comedy_path.exists()
+            and comedy_path.read_text(encoding="utf-8").strip()
+            and state_entry.get("comedy_summary_hash") == summary_hash
+            and state_entry.get("comedy_context_hash") == context_hash
+        ):
+            return comedy_path
+
+        script = comedy_writer.generate_script(summary_text, "", context)
+        comedy_path.parent.mkdir(parents=True, exist_ok=True)
+        comedy_path.write_text(script, encoding="utf-8")
+        self._state.record_comedy(
+            date_str,
+            summary_hash=summary_hash,
+            context_hash=context_hash,
+            script_text=script,
+            comedy_path=comedy_path,
+        )
+        return comedy_path
 
     def _resolve_sources(
         self,

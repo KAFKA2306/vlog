@@ -38,6 +38,7 @@ FORBIDDEN = {
     "data/transcripts/": "transcripts must live under VLOG_DATA_HOME",
     "data/summaries/": "summaries must live under VLOG_DATA_HOME",
     "data/novels/": "novels must live under VLOG_DATA_HOME",
+    "data/comedy/": "comedy scripts must live under VLOG_DATA_HOME",
     "data/photos/": "photos must live under VLOG_DATA_HOME",
     "data/archives/": "archives must live under VLOG_DATA_HOME",
     "data/skills/": "generated skills must live under VLOG_DATA_HOME",

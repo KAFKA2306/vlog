@@ -193,6 +193,11 @@ class Settings(BaseSettings):
         validation_alias="VLOG_NOVEL_OUT_DIR",
     )
 
+    comedy_out_dir: Path = Field(
+        default_factory=lambda: _runtime_default("data", "comedy"),
+        validation_alias="VLOG_COMEDY_OUT_DIR",
+    )
+
     manga_model: str = _config.get("manga", {}).get("model", _DEFAULT_LLM_MODEL)
     manga_out_dir: Path = Field(
         default_factory=lambda: _runtime_default("data", "manga"),
@@ -254,6 +259,7 @@ class Settings(BaseSettings):
         "transcript_dir",
         "summary_dir",
         "novel_out_dir",
+        "comedy_out_dir",
         "manga_out_dir",
         "photo_prompt_dir",
         "photo_dir",

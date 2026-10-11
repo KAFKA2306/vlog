@@ -208,6 +208,43 @@ class Novelizer:
         return text
 
 
+class ComedyWriter:
+    def __init__(self) -> None:
+        self._model = None
+        self._prompt_template = settings.prompts["comedy_writer"]["template"]
+        self._tracer = TraceLogger()
+
+    def generate_script(
+        self,
+        today_summary: str,
+        script_so_far: str = "",
+        context: str = "",
+    ) -> str:
+        if not self._model:
+            sdk = _genai()
+            sdk.configure(api_key=settings.gemini_api_key)
+            self._model = sdk.GenerativeModel(settings.novel_model)
+        prompt = self._prompt_template.format(
+            script_so_far=script_so_far,
+            today_summary=today_summary,
+            context=context,
+        )
+        start_time = time.time()
+        response = self._model.generate_content(
+            prompt,
+            generation_config={"max_output_tokens": settings.novel_max_output_tokens},
+        )
+        text = response.text.strip()
+        self._tracer.log(
+            component="comedy_writer",
+            model=settings.novel_model,
+            start_time=start_time,
+            input_text=prompt,
+            output_text=text,
+        )
+        return text
+
+
 class Summarizer:
     def __init__(self) -> None:
         self._model = None

@@ -172,6 +172,7 @@ class OperationsLoader:
                 "transcribe": "transcription",
                 "summarize": "generation",
                 "novel": "generation",
+                "comedy": "generation",
                 "sync": "sync",
                 "audit": "processing",
             }.get(prefix, "scheduler")

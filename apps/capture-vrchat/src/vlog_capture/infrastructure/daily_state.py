@@ -131,6 +131,31 @@ class DailyStateStore:
         self.save(payload)
         return entry
 
+    def record_comedy(
+        self,
+        date_str: str,
+        *,
+        summary_hash: str,
+        context_hash: str,
+        script_text: str,
+        comedy_path: Path,
+    ) -> dict:
+        payload = self.load()
+        dates = payload.setdefault("dates", {})
+        entry = dates.setdefault(date_str, {})
+        entry.update(
+            {
+                "comedy_path": str(comedy_path),
+                "comedy_hash": fingerprint_text(script_text),
+                "comedy_summary_hash": summary_hash,
+                "comedy_context_hash": context_hash,
+                "comedy_updated_at": _utc_now(),
+            }
+        )
+        payload["dates"] = dates
+        self.save(payload)
+        return entry
+
     def record_empty(self, date_str: str, reason: str) -> dict:
         payload = self.load()
         dates = payload.setdefault("dates", {})

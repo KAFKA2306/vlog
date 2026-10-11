@@ -75,3 +75,33 @@ def test_daily_run_quarantines_unusable_recordings(tmp_path: Path) -> None:
 
     assert not bad_recording.exists()
     assert (tmp_path / "data/archives/quarantine" / bad_recording.name).exists()
+
+
+def test_comedy_stage_runs_independently_and_fails_on_missing_artifact(
+    tmp_path: Path,
+) -> None:
+    today = f"{date.today():%Y%m%d}"
+    summary = tmp_path / "data/summaries" / f"{today}_summary.txt"
+    summary.parent.mkdir(parents=True)
+    summary.write_text("summary", encoding="utf-8")
+    calls: list[list[str]] = []
+
+    def runner(command, env, cwd):
+        calls.append(list(command))
+        run_id = env["VLOG_RUN_ID"]
+        vrcpet = tmp_path / "data/vrcpet/runs" / f"{run_id}.json"
+        vrcpet.parent.mkdir(parents=True, exist_ok=True)
+        vrcpet.write_text("{}", encoding="utf-8")
+        if "novel" in command:
+            for rel in (f"novels/{today}.md", f"photos/{today}.png"):
+                path = tmp_path / "data" / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("x", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="Missing stage artifacts"):
+        DailyPipeline(runner=runner, monitor=lambda: False, project_root=tmp_path).run()
+
+    novel_index = next(i for i, c in enumerate(calls) if "novel" in c)
+    comedy_index = next(i for i, c in enumerate(calls) if "comedy" in c)
+    assert novel_index < comedy_index
+    assert ["--date", today] == calls[comedy_index][-2:]

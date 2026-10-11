@@ -33,6 +33,17 @@ class StubNovelizer:
         return f"chapter-{len(self.calls)}"
 
 
+class StubComedyWriter:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, str]] = []
+
+    def generate_script(
+        self, today_summary: str, script_so_far: str = "", context: str = ""
+    ) -> str:
+        self.calls.append((today_summary, script_so_far, context))
+        return f"script-{len(self.calls)}"
+
+
 class StubImageGenerator:
     def __init__(self) -> None:
         self.calls: list[Path] = []
@@ -56,6 +67,9 @@ def _patch_settings(monkeypatch, tmp_path):
     summary_dir = tmp_path / "summaries"
     novel_dir = tmp_path / "novels"
     photo_dir = tmp_path / "photos"
+    comedy_dir = tmp_path / "comedy"
+    comedy_dir.mkdir()
+    monkeypatch.setattr(settings, "comedy_out_dir", comedy_dir)
 
     transcript_dir.mkdir()
     summary_dir.mkdir()
@@ -177,3 +191,78 @@ def test_refresh_novel_skips_empty_summary(monkeypatch, tmp_path):
 
     assert result is None
     assert len(novelizer.calls) == 0
+
+
+def _comedy_manager(monkeypatch, tmp_path):
+    _patch_settings(monkeypatch, tmp_path)
+    state = DailyStateStore(tmp_path / "daily_state.json")
+    return DailyArtifactManager(state), state
+
+
+def test_refresh_comedy_generates_and_skips_when_unchanged(monkeypatch, tmp_path):
+    manager, state = _comedy_manager(monkeypatch, tmp_path)
+    writer = StubComedyWriter()
+    (settings.summary_dir / "20260620_summary.txt").write_text(
+        "summary body", encoding="utf-8"
+    )
+
+    first = manager.refresh_comedy("20260620", writer, StubGraphStorage())
+    second = manager.refresh_comedy("20260620", writer, StubGraphStorage())
+
+    assert first == settings.comedy_out_dir / "20260620.md"
+    assert second == first
+    assert first.read_text(encoding="utf-8") == "script-1"
+    assert len(writer.calls) == 1
+    entry = state.get("20260620")
+    assert entry["comedy_summary_hash"]
+    assert "comedy_context_hash" in entry
+    assert entry["comedy_path"] == str(first)
+
+
+def test_refresh_comedy_regenerates_only_comedy_when_summary_changes(
+    monkeypatch, tmp_path
+):
+    manager, state = _comedy_manager(monkeypatch, tmp_path)
+    writer = StubComedyWriter()
+    novelizer = StubNovelizer()
+    summary_path = settings.summary_dir / "20260620_summary.txt"
+    summary_path.write_text("summary one", encoding="utf-8")
+    manager.refresh_novel(
+        "20260620", novelizer, StubImageGenerator(), StubGraphStorage()
+    )
+    manager.refresh_comedy("20260620", writer, StubGraphStorage())
+    novel_hash = state.get("20260620")["novel_summary_hash"]
+
+    summary_path.write_text("summary two", encoding="utf-8")
+    manager.refresh_comedy("20260620", writer, StubGraphStorage())
+
+    assert len(writer.calls) == 2
+    assert writer.calls[1] == ("summary two", "", "")
+    assert (settings.comedy_out_dir / "20260620.md").read_text(
+        encoding="utf-8"
+    ) == "script-2"
+    assert len(novelizer.calls) == 1
+    assert state.get("20260620")["novel_summary_hash"] == novel_hash
+
+
+def test_refresh_comedy_does_not_read_novel_file(monkeypatch, tmp_path):
+    manager, _ = _comedy_manager(monkeypatch, tmp_path)
+    writer = StubComedyWriter()
+    (settings.summary_dir / "20260620_summary.txt").write_text(
+        "summary body", encoding="utf-8"
+    )
+    (settings.novel_out_dir / "20260620.md").write_text("NOVEL", encoding="utf-8")
+
+    manager.refresh_comedy("20260620", writer, StubGraphStorage())
+
+    assert "NOVEL" not in "".join(writer.calls[0])
+
+
+def test_refresh_comedy_skips_empty_or_missing_summary(monkeypatch, tmp_path):
+    manager, _ = _comedy_manager(monkeypatch, tmp_path)
+    writer = StubComedyWriter()
+
+    assert manager.refresh_comedy("20260620", writer, StubGraphStorage()) is None
+    (settings.summary_dir / "20260620_summary.txt").write_text("   ", encoding="utf-8")
+    assert manager.refresh_comedy("20260620", writer, StubGraphStorage()) is None
+    assert len(writer.calls) == 0
