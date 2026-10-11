@@ -12,6 +12,7 @@ dependencies = [
     "vlog-privacy",
     "vlog-vrchat-osc",
     "vlog-vrcpet",
+    "vlog-graphiti",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +27,7 @@ vlog-companion = { workspace = true }
 vlog-privacy = { workspace = true }
 vlog-vrchat-osc = { workspace = true }
 vlog-vrcpet = { workspace = true }
+vlog-graphiti = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -36,6 +38,7 @@ members = [
     "packages/privacy",
     "adapters/vrchat-osc",
     "adapters/vrcpet",
+    "adapters/graphiti",
 ]
 
 [tool.ruff]
