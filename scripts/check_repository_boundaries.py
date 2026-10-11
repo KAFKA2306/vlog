@@ -5,6 +5,7 @@ import argparse
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
@@ -190,6 +191,32 @@ def check_markdown(root: Path, tracked: list[str]) -> list[Violation]:
     return violations
 
 
+def check_generated_ledgers(root: Path) -> list[Violation]:
+    with tempfile.TemporaryDirectory() as scratch:
+        subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).with_name("generate_ledger.py")),
+                "--root",
+                str(root),
+                "--out",
+                scratch,
+            ],
+            check=True,
+        )
+        regenerated = Path(scratch)
+        return [
+            Violation(
+                "stale-generated-ledger",
+                path.relative_to(regenerated).as_posix(),
+                "differs from regenerated output; run `task ledger:generate`",
+            )
+            for path in sorted(regenerated.rglob("*.md"))
+            if not (root / path.relative_to(regenerated)).is_file()
+            or (root / path.relative_to(regenerated)).read_bytes() != path.read_bytes()
+        ]
+
+
 def check(root: Path) -> list[Violation]:
     violations: list[Violation] = []
     tracked = tracked_files(root)
@@ -218,6 +245,7 @@ def check(root: Path) -> list[Violation]:
             )
 
     violations.extend(check_markdown(root, tracked))
+    violations.extend(check_generated_ledgers(root))
 
     for relative in tracked:
         path = root / relative
