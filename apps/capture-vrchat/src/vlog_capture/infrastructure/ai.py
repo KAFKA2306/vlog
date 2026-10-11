@@ -248,7 +248,7 @@ class ComedyWriter:
 class Summarizer:
     def __init__(self) -> None:
         self._model = None
-        self._prompt_template = settings.prompts["muchio_diary"]["template"]
+        self._prompt_template = settings.prompts["summarizer"]["template"]
         self._tracer = TraceLogger()
 
     def summarize(

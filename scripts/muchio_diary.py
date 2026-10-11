@@ -149,7 +149,8 @@ def generate(
         date.fromisoformat(date_filter)
     model = None
     report = {"generated": 0, "unchanged": 0, "no_text": 0, "parse_issues": 0}
-    prompt_hash = digest(settings.prompts["muchio_diary"]["template"].encode())
+    template = settings.prompts["muchio_diary"]["template"]
+    prompt_hash = digest(template.encode())
     for path in sorted(logs.glob("*.jsonl")):
         day = path.stem
         if not DAY_PATTERN.fullmatch(day):
@@ -178,6 +179,7 @@ def generate(
             continue
         if model is None:
             model = Summarizer()
+            model._prompt_template = template
         content = make_diary(lines, day, model)
         output.mkdir(parents=True, exist_ok=True)
         target.write_text(content + "\n", encoding="utf-8")
