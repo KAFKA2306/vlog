@@ -63,6 +63,10 @@ tasks:
     desc: Python test
     cmd: $UV run --frozen pytest -q
 
+  python:contract:
+    desc: supported Python範囲とpin/CI/pathの一致を検証
+    cmd: $UV run --no-sync python scripts/check_python_contract.py
+
   doc:check:
     desc: repository/Markdown境界を検証
     cmd: $UV run --no-sync python scripts/check_repository_boundaries.py
@@ -129,6 +133,7 @@ tasks:
       - task lint
       - task typecheck
       - task test
+      - task python:contract
       - task doc:check
       - task systemd:verify
       - task web:build
