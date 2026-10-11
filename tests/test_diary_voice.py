@@ -48,3 +48,11 @@ def test_muchio_diary_keeps_safety_lines_and_output_contract() -> None:
     assert "{transcript}" in template
     assert 'tags: ["タグ1", "タグ2", ...]' in template
     assert template.format(date="2000-01-01", transcript="x")
+
+
+def test_summarizer_template_argument_defaults_to_summarizer() -> None:
+    from vlog_capture.infrastructure.ai import Summarizer
+    from vlog_capture.infrastructure.settings import settings
+
+    assert Summarizer()._prompt_template == settings.prompts["summarizer"]["template"]
+    assert Summarizer(template="custom {date}")._prompt_template == "custom {date}"

@@ -178,8 +178,7 @@ def generate(
             report["no_text"] += 1
             continue
         if model is None:
-            model = Summarizer()
-            model._prompt_template = template
+            model = Summarizer(template=template)
         content = make_diary(lines, day, model)
         output.mkdir(parents=True, exist_ok=True)
         target.write_text(content + "\n", encoding="utf-8")
