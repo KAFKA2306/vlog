@@ -1,0 +1,178 @@
+dim_date:
+  - date: 2026-08-04
+    label: "ADR audit"
+  - date: 2026-08-20
+    label: "portability decisions"
+dim_status:
+  - name: Implemented
+    meaning: "code、schema、tests、templateなどが対象commitに存在する。"
+  - name: CI-verified
+    meaning: "対象commitのrepository checksが成功した。"
+  - name: Environment-verified
+    meaning: "実host、deployment、database、storage、network、GPUなどを実測した。"
+  - name: Historical
+    meaning: "記録された日時・environmentにだけ成立する。"
+  - name: Planned
+    meaning: "採用済み方向性だがproduction implementationを意味しない。"
+dim_doc:
+  - path: docs/SPEC.md
+    authority_class: "product contract"
+    owner: "docs/SPEC.md"
+    authority: "製品不変条件、保存境界、動作保証、完了判定"
+  - path: README.md
+    authority_class: "repository entry"
+    owner: "README.md"
+    authority: "repository入口、最小setup、主要documentation route"
+  - path: docs/overview.md
+    authority_class: "orientation"
+    owner: "docs/overview.md"
+    authority: "非規範的な短いproduct orientation。仕様や進捗の正準ではない"
+  - path: docs/architecture/human-memory-v2.md
+    authority_class: "architecture / contracts"
+    owner: "docs/architecture*"
+    authority: "target architecture、canonical stores、migration phases"
+  - path: docs/architecture/portability.md
+    authority_class: "architecture / contracts"
+    owner: "docs/architecture*"
+    authority: "cross-platform path/env/filesystem/tool execution contract"
+  - path: docs/architecture.md
+    authority_class: "architecture / contracts"
+    owner: "docs/architecture*"
+    authority: "current executable runtimeとdeployable boundaries"
+  - path: docs/OPERATIONS.md
+    authority_class: "operations / maintenance"
+    owner: "docs/OPERATIONS.md"
+    authority: "diagnosis、supervision、incident evidence、recovery"
+  - path: docs/MAINTENANCE.md
+    authority_class: "operations / maintenance"
+    owner: "docs/MAINTENANCE.md"
+    authority: "repeatable repository / infrastructure maintenance"
+  - path: docs/operations/phase0-inventory.md
+    authority_class: "operations / maintenance"
+    owner: "docs/operations/"
+    authority: "destructive migration前のnon-destructive inventory"
+  - path: docs/operations/reader-deploy-contract.md
+    authority_class: "operations / maintenance"
+    owner: "docs/operations/"
+    authority: "Reader Vercel Root Directory、deploy起点、release identity照合"
+  - path: docs/image.md
+    authority_class: "architecture / contracts"
+    owner: "docs/architecture*"
+    authority: "current illustration-generation boundary"
+  - path: docs/adr/README.md
+    authority_class: "decisions"
+    owner: "docs/adr/"
+    authority: "architecture decision index and status"
+  - path: docs/references/portability-2026.md
+    authority_class: "decisions"
+    owner: "docs/adr/"
+    authority: "portability decisionの一次資料"
+  - path: docs/incidents/
+    authority_class: "incidents"
+    owner: "docs/incidents/"
+    authority: "dated historical incident records。current statusではない"
+  - path: docs/markdown-governance.md
+    authority_class: "documentation map"
+    owner: "docs/README.md"
+    authority: "Markdown ownership、retention、validation rules"
+fact_decision:
+  - adr: "0001"
+    file: 0001-introduce-harness-engineering.md
+    decision: "harness engineering"
+    status: accepted
+    audit_status: "accepted; implementation evolved"
+    audited_on: 2026-08-04
+  - adr: "0002"
+    file: 0002-autonomous-maintenance-principles.md
+    decision: "autonomous maintenance principles"
+    status: accepted
+    audit_status: "partially superseded by explicit safety gates"
+    audited_on: 2026-08-04
+  - adr: "0003"
+    file: 0003-transcription-as-thought-noise-compression.md
+    decision: "transcription as a derived cognitive aid"
+    status: accepted
+    audit_status: "accepted; not canonical evidence replacement"
+    audited_on: 2026-08-04
+  - adr: "0004"
+    file: 0004-resource-protection-for-gpu-stability.md
+    decision: "resource-aware heavy processing"
+    status: accepted
+    audit_status: "accepted; current schedule is separate"
+    audited_on: 2026-08-04
+  - adr: "0005"
+    file: 0005-prompt-vault-integration.md
+    decision: "external prompt asset integration"
+    status: accepted
+    audit_status: "accepted for prompts; not canonical memory"
+    audited_on: 2026-08-04
+  - adr: "0006"
+    file: 0006-automated-image-optimization.md
+    decision: "generated-image optimization"
+    status: accepted
+    audit_status: "accepted; old performance figures are historical"
+    audited_on: 2026-08-04
+  - adr: "0007"
+    file: 0007-zero-trust-harness.md
+    decision: "runtime incident evidence"
+    status: accepted
+    audit_status: "accepted"
+    audited_on: 2026-08-04
+  - adr: "0008"
+    file: 0008-systemd-security-and-observability.md
+    decision: "portable systemd supervision"
+    status: accepted
+    audit_status: "accepted; live installation requires host verification"
+    audited_on: 2026-08-04
+  - adr: "0009"
+    file: 0009-whisper-model-optimization.md
+    decision: "transcription model selection"
+    status: accepted
+    audit_status: "accepted; current config is authoritative"
+    audited_on: 2026-08-04
+  - adr: "0010"
+    file: 0010-external-reader-integration.md
+    decision: "external Reader integration"
+    status: accepted
+    audit_status: "accepted; current root is `apps/reader/`"
+    audited_on: 2026-08-04
+  - adr: "0011"
+    file: 0011-systemd-daily-timer-6am-jst.md
+    decision: "daily timer changed to 09:00"
+    status: accepted
+    audit_status: "accepted; host timezone must be verified"
+    audited_on: 2026-08-04
+  - adr: "0012"
+    file: 0012-cross-platform-portability.md
+    decision: "physical path is not authority; native Windows/WSL checkouts"
+    status: accepted
+    audit_status: "accepted; host cutover remains separately verified"
+    audited_on: 2026-08-20
+  - adr: "0013"
+    file: 0013-dev-container-is-linux-tooling-only.md
+    decision: "Dev Container reproduces Linux tooling, never Windows host E2E"
+    status: accepted
+    audit_status: "accepted"
+    audited_on: 2026-08-20
+fact_verification:
+  - task: lint
+    covers: "Python ruff check and format check"
+    evidence_level: CI-verified
+  - task: typecheck
+    covers: "Python type check"
+    evidence_level: CI-verified
+  - task: test
+    covers: "pytest suite"
+    evidence_level: CI-verified
+  - task: python:contract
+    covers: "supported Python range, pin, CI, and path agreement"
+    evidence_level: CI-verified
+  - task: doc:check
+    covers: "repository boundaries, Markdown links, generated ledger freshness"
+    evidence_level: CI-verified
+  - task: systemd:verify
+    covers: "systemd unit rendering and verification"
+    evidence_level: CI-verified
+  - task: web:build
+    covers: "Reader typecheck, lint, and build"
+    evidence_level: CI-verified

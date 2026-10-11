@@ -4,6 +4,7 @@
 
 ## Source-of-truth map
 
+<!-- GENERATED from schemas/ledger/star.yaml by scripts/generate_ledger.py. Do not edit. -->
 | Document | Authority |
 |---|---|
 | [`SPEC.md`](SPEC.md) | 製品不変条件、保存境界、動作保証、完了判定 |
@@ -21,6 +22,7 @@
 | [`references/portability-2026.md`](references/portability-2026.md) | portability decisionの一次資料 |
 | [`incidents/`](incidents/) | dated historical incident records。current statusではない |
 | [`markdown-governance.md`](markdown-governance.md) | Markdown ownership、retention、validation rules |
+<!-- /GENERATED -->
 
 ## Precedence
 
