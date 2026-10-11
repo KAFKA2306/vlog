@@ -35,6 +35,10 @@ powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog
 
 Windows verificationはactual Windows hostで行います。
 
+### Checkout topology
+
+WindowsとWSL/Linuxは各native filesystem上の独立cloneで運用し、versionは`git rev-parse HEAD`のSHAで揃えます。`/mnt/<drive>`やWSL UNCをproduction checkoutにしません。Bootstrapとmigration手順は[portability contract](architecture/portability.md)を正準とします。
+
 ## Diagnose
 
 ```bash

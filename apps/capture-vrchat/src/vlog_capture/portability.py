@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import platform
 import re
+import subprocess
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -72,6 +73,25 @@ def shared_checkout_reason(
         if "wsl$" in host or "wsl.localhost" in host:
             return "Windows runtime is using a WSL UNC checkout"
         return "UNC checkout is not a canonical VLog production topology"
+    return None
+
+
+def _head_sha(root: Path) -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def checkout_identity_reason(first: Path, second: Path) -> str | None:
+    if first.resolve() == second.resolve():
+        return "checkouts must be independent roots"
+    first_sha, second_sha = _head_sha(first), _head_sha(second)
+    if first_sha != second_sha:
+        return f"checkout commit SHAs differ: {first_sha} != {second_sha}"
     return None
 
 

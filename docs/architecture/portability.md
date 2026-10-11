@@ -29,6 +29,29 @@ GitHub commit SHA
 
 WindowsとWSL/Linuxは同じphysical checkoutを共有する必要がありません。Windows-mounted WSL path、WSL UNC、一般UNCはboundary locationであり、canonical production code checkoutではありません。
 
+### Native-root checkout contract (#79)
+
+- 各OSはnative filesystem上に独立した`git clone`を持つ。Windows: ローカルドライブ上のcheckout。WSL/Linux: Linux home配下のcheckout。
+- `/mnt/<drive>/...`をLinux production runtimeの、`\\wsl$\...` / `\\wsl.localhost\...` / 一般UNCをWindows production checkoutの正本にしない。判定は`shared_checkout_reason`。
+- host間のversion調整は`git rev-parse HEAD`のcommit SHAだけで行う。一方のphysical pathを他方のconfig、remote、alternates、環境変数へ書かない。判定は`checkout_identity_reason`。
+- 各checkoutのrootは`VLOG_PROJECT_ROOT`またはscript位置とrepository markerから自分自身で解決する。
+- 再現可能な証明: `tests/test_native_checkouts.py`が、異なるnative-rootの2 cloneが同一SHAで結ばれ、互いのpathを要求しないことをfixtureで検証する。actual WSL/Windows host上の実行は含まない(Environment-verifiedではない)。
+
+#### Bootstrap
+
+1. 各hostで同じremoteからnative filesystemへclone: `git clone <remote> <native-root>`。
+2. 各hostで`task`の初期setupを実行し、`VLOG_PROJECT_ROOT`は必要な場合のみ自host内のpathを指定する。
+3. 対象commitを`git rev-parse HEAD`で比較し、不一致ならpullして揃える。
+
+#### Migration from a shared checkout
+
+non-destructiveな手順だけを定義します。削除は本手順に含めません。
+
+1. [`phase0-inventory`](../operations/phase0-inventory.md)でinventoryとbackupを完了する。
+2. 新しいnative-root cloneを追加で作成する。既存checkoutとdataは移動・削除しない。
+3. 新cloneで検証後にsupervisor(Task Scheduler / systemd)の参照を切り替える。
+4. 旧shared checkoutの撤去は、reconciliation完了後に別の明示承認で行う。
+
 Evidence transportは別のconcernです。private object-storage cutover完了までは明示的なtemporary data bridgeを許容しますが、それによってcheckout pathをauthorityにはしません。
 
 ## Path support matrix
