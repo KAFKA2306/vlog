@@ -149,7 +149,7 @@ def generate(
         date.fromisoformat(date_filter)
     model = None
     report = {"generated": 0, "unchanged": 0, "no_text": 0, "parse_issues": 0}
-    prompt_hash = digest(settings.prompts["summarizer"]["template"].encode())
+    prompt_hash = digest(settings.prompts["muchio_diary"]["template"].encode())
     for path in sorted(logs.glob("*.jsonl")):
         day = path.stem
         if not DAY_PATTERN.fullmatch(day):
