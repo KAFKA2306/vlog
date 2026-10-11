@@ -15,6 +15,7 @@
 | [`OPERATIONS.md`](OPERATIONS.md) | diagnosis、supervision、incident evidence、recovery |
 | [`MAINTENANCE.md`](MAINTENANCE.md) | repeatable repository / infrastructure maintenance |
 | [`operations/phase0-inventory.md`](operations/phase0-inventory.md) | destructive migration前のnon-destructive inventory |
+| [`operations/reader-deploy-contract.md`](operations/reader-deploy-contract.md) | Reader Vercel Root Directory、deploy起点、release identity照合 |
 | [`image.md`](image.md) | current illustration-generation boundary |
 | [`adr/README.md`](adr/README.md) | architecture decision index and status |
 | [`references/portability-2026.md`](references/portability-2026.md) | portability decisionの一次資料 |

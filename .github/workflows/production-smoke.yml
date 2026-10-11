@@ -7,6 +7,7 @@ on:
       - 'docs/SPEC.md'
       - 'apps/reader/app/api/health/route.ts'
       - 'apps/reader/tests/health-route.test.ts'
+      - 'scripts/reader_identity.py'
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -25,6 +26,9 @@ jobs:
     env:
       BASE_URL: https://kaflog.vercel.app
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Verify deployment health metadata
         shell: bash
         run: |
@@ -43,29 +47,7 @@ jobs:
 
           printf '%s' "$body" > /tmp/kaflog-health.json
 
-          python3 - <<'PY'
-          import json
-
-          with open('/tmp/kaflog-health.json', encoding='utf-8') as handle:
-              payload = json.load(handle)
-
-          assert payload.get('status') == 'ok', payload
-          assert payload.get('environment') == 'production', payload
-
-          deployment_id = payload.get('deploymentId')
-          assert isinstance(deployment_id, str) and deployment_id.startswith('dpl_'), payload
-
-          sha = payload.get('gitCommitSha') or None
-          ref = payload.get('gitCommitRef') or None
-          if sha is not None or ref is not None:
-              assert isinstance(sha, str) and len(sha) >= 7, payload
-              assert ref == 'main', payload
-              print(f"production commit: {sha}")
-          else:
-              print('::warning::production deployment has no Git commit provenance')
-
-          print(f"deployment id: {deployment_id}")
-          PY
+          python3 scripts/reader_identity.py /tmp/kaflog-health.json .
 
       - name: Verify public Reader routes
         shell: bash
