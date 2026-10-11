@@ -66,6 +66,93 @@ def test_publish_refuses_changed_diary_before_network(tmp_path: Path) -> None:
         muchio_diary.publish(tmp_path, day, sha)
 
 
+class _Query:
+    def __init__(self, client: "_FakeClient") -> None:
+        self.client = client
+        self.op = ""
+        self.rows: list[dict] = []
+
+    def select(self, *_: object) -> "_Query":
+        self.op = "select"
+        return self
+
+    def eq(self, *_: object) -> "_Query":
+        return self
+
+    def upsert(self, rows: list[dict], on_conflict: str) -> "_Query":
+        self.op = "upsert"
+        self.client.upserted.extend(rows)
+        self.rows = rows
+        return self
+
+    def execute(self) -> object:
+        from types import SimpleNamespace
+
+        if self.op == "select":
+            return SimpleNamespace(data=self.client.existing)
+        return SimpleNamespace(data=[{**r} for r in self.rows])
+
+
+class _FakeClient:
+    def __init__(self, existing: list[dict]) -> None:
+        self.existing = existing
+        self.upserted: list[dict] = []
+
+    def table(self, _: str) -> _Query:
+        return _Query(self)
+
+
+def _reviewed(tmp_path: Path, day: str) -> str:
+    (tmp_path / f"{day}.md").write_text("reviewed", encoding="utf-8")
+    (tmp_path / f"{day}.json").write_text(
+        json.dumps({"date": day, "published": False}), encoding="utf-8"
+    )
+    return muchio_diary.review(tmp_path, day)
+
+
+def _fake_supabase(monkeypatch: pytest.MonkeyPatch, client: _FakeClient) -> None:
+    import supabase
+    from vlog_capture.infrastructure.settings import settings
+
+    monkeypatch.setattr(supabase, "create_client", lambda *_: client)
+    monkeypatch.setattr(settings, "supabase_url", "http://x", raising=False)
+    monkeypatch.setattr(settings, "supabase_service_role_key", "k", raising=False)
+
+
+def test_publish_coexists_with_non_muchio_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    day = "2026-10-09"
+    sha = _reviewed(tmp_path, day)
+    client = _FakeClient([{"file_path": f"summaries/{day}.md", "content": "vlog"}])
+    _fake_supabase(monkeypatch, client)
+    muchio_diary.publish(tmp_path, day, sha)
+    assert [r["file_path"] for r in client.upserted] == [f"muchio/{day}"]
+
+
+def test_publish_refuses_existing_muchio_row_with_different_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    day = "2026-10-09"
+    sha = _reviewed(tmp_path, day)
+    client = _FakeClient([{"file_path": f"muchio/{day}", "content": "other text"}])
+    _fake_supabase(monkeypatch, client)
+    with pytest.raises(RuntimeError, match="Muchio"):
+        muchio_diary.publish(tmp_path, day, sha)
+    assert client.upserted == []
+
+
+def test_publish_allows_republish_of_identical_muchio_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    day = "2026-10-09"
+    sha = _reviewed(tmp_path, day)
+    client = _FakeClient([{"file_path": f"muchio/{day}", "content": "reviewed"}])
+    _fake_supabase(monkeypatch, client)
+    muchio_diary.publish(tmp_path, day, sha)
+    assert len(client.upserted) == 1
+
+
 def test_review_seals_edited_body(tmp_path: Path) -> None:
     day = "2026-10-09"
     target = tmp_path / f"{day}.md"

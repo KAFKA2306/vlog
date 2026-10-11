@@ -255,17 +255,17 @@ def publish(output: Path, day: str, expected_hash: str) -> str:
         )
     client = create_client(settings.supabase_url, settings.supabase_service_role_key)
     existing = (
-        client.table("daily_entries").select("file_path").eq("date", day).execute()
+        client.table("daily_entries")
+        .select("file_path,content")
+        .eq("date", day)
+        .execute()
     )
-    other_paths = [
-        row.get("file_path")
-        for row in (getattr(existing, "data", None) or [])
-        if row.get("file_path") != f"muchio/{day}"
-    ]
-    if other_paths:
-        raise RuntimeError(
-            "Existing diary on date; merge/review instead of duplicating"
-        )
+    for row in getattr(existing, "data", None) or []:
+        if (
+            row.get("file_path") == f"muchio/{day}"
+            and digest((row.get("content") or "").encode("utf-8")) != actual
+        ):
+            raise RuntimeError("Muchio row exists on date with different content")
     response = (
         client.table("daily_entries")
         .upsert(
