@@ -30,7 +30,7 @@ def require_local_endpoint(url: str) -> None:
 
 def load_template() -> str:
     prompts = yaml.safe_load(PROMPTS_PATH.read_text(encoding="utf-8"))
-    return prompts["summarizer"]["template"]
+    return prompts["muchio_diary"]["template"]
 
 
 def private_output_dir() -> Path:

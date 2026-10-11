@@ -24,10 +24,16 @@ def test_muchio_generate_uses_existing_prompt_and_skips_unchanged(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from vlog_capture.infrastructure import ai
+    from vlog_capture.infrastructure.settings import settings
 
     calls = []
 
+    templates = []
+
     class FakeSummarizer:
+        def __init__(self, template: str) -> None:
+            templates.append(template)
+
         def summarize(self, transcript: str, date_str: str) -> str:
             calls.append((transcript, date_str))
             return f"【{date_str} 日記】\n観測された言葉を記録"
@@ -44,6 +50,7 @@ def test_muchio_generate_uses_existing_prompt_and_skips_unchanged(
     assert first["generated"] == 1
     assert first["no_text"] == 0
     assert calls and "secret" not in calls[0][0]
+    assert templates == [settings.prompts["muchio_diary"]["template"]]
     assert (output / "2026-10-09.md").is_file()
     metadata = json.loads((output / "2026-10-09.json").read_text())
     assert metadata["published"] is False

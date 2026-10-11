@@ -246,9 +246,13 @@ class ComedyWriter:
 
 
 class Summarizer:
-    def __init__(self) -> None:
+    def __init__(self, template: str | None = None) -> None:
         self._model = None
-        self._prompt_template = settings.prompts["summarizer"]["template"]
+        self._prompt_template = (
+            template
+            if template is not None
+            else settings.prompts["summarizer"]["template"]
+        )
         self._tracer = TraceLogger()
 
     def summarize(
