@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from vlog_capture.gpu_libraries import discover
 from vlog_capture.portability import (
     classify_path,
     foreign_absolute_reason,
@@ -230,8 +231,8 @@ def collect(*, redact: bool = False) -> dict[str, Any]:
         "tools": tools,
         "toolchain": chain,
         "gpu_python_libraries": {
-            "nvidia.cublas.lib": module_origin("nvidia.cublas.lib"),
-            "nvidia.cudnn.lib": module_origin("nvidia.cudnn.lib"),
+            item.package: str(item.directory) if item.directory else "MISSING"
+            for item in discover()
         },
         "host_checks": {
             "windows_task_scheduler": "available"

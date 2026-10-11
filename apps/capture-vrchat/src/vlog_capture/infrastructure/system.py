@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import psutil
+from vlog_capture.gpu_libraries import prepare_environment
 from vlog_capture.infrastructure.settings import settings
 
 if TYPE_CHECKING:
@@ -219,6 +220,8 @@ class Transcriber:
 
             device = settings.whisper_device
             compute_type = settings.whisper_compute_type
+            if device == "cuda":
+                prepare_environment()
             if device == "cuda" and ctranslate2.get_cuda_device_count() == 0:
                 device = "cpu"
                 compute_type = "int8"
