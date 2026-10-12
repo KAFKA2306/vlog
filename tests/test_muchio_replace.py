@@ -109,3 +109,29 @@ def test_local_generation_uses_muchio_diary_and_never_the_summarizer(
             nikki_local.PROMPTS_PATH.read_text(encoding="utf-8")
         )["muchio_diary"]["template"]
     )
+
+
+def test_context_window_fits_a_capped_transcript_plus_template(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import urllib.request
+
+    sent: list[dict] = []
+
+    class _Response:
+        def __enter__(self) -> "_Response":
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps({"response": "x"}).encode()
+
+    def fake_urlopen(request: urllib.request.Request, timeout: int) -> _Response:
+        sent.append(json.loads(request.data))
+        return _Response()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    nikki_local.ollama_generate("p")
+    assert sent[0]["options"]["num_ctx"] >= 16384
