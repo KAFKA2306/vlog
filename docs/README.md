@@ -9,18 +9,14 @@
 |---|---|
 | [`SPEC.md`](SPEC.md) | 製品不変条件、保存境界、動作保証、完了判定 |
 | [`../README.md`](../README.md) | repository入口、最小setup、主要documentation route |
-| [`overview.md`](overview.md) | 非規範的な短いproduct orientation。仕様や進捗の正準ではない |
 | [`architecture/human-memory-v2.md`](architecture/human-memory-v2.md) | target architecture、canonical stores、migration phases |
 | [`architecture/portability.md`](architecture/portability.md) | cross-platform path/env/filesystem/tool execution contract |
 | [`architecture.md`](architecture.md) | current executable runtimeとdeployable boundaries |
 | [`OPERATIONS.md`](OPERATIONS.md) | diagnosis、supervision、incident evidence、recovery |
 | [`MAINTENANCE.md`](MAINTENANCE.md) | repeatable repository / infrastructure maintenance |
-| [`operations/phase0-inventory.md`](operations/phase0-inventory.md) | destructive migration前のnon-destructive inventory |
 | [`operations/reader-deploy-contract.md`](operations/reader-deploy-contract.md) | Reader Vercel Root Directory、deploy起点、release identity照合 |
 | [`image.md`](image.md) | current illustration-generation boundary |
 | [`adr/README.md`](adr/README.md) | architecture decision index and status |
-| [`references/portability-2026.md`](references/portability-2026.md) | portability decisionの一次資料 |
-| [`incidents/`](incidents/) | dated historical incident records。current statusではない |
 | [`markdown-governance.md`](markdown-governance.md) | Markdown ownership、retention、validation rules |
 <!-- /GENERATED -->
 
@@ -55,7 +51,6 @@ READMEやoverviewへ日付付き進捗表、service availability、dependency ve
 - 未完了workとacceptance evidence: GitHub Issue / Pull Request
 - repository state: current `main`、tests、CI
 - live service state: 対象environmentのhealth / deployment / operational evidence
-- dated incident: [`incidents/`](incidents/)
 
 ## Maintenance rules
 

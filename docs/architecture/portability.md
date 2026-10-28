@@ -47,7 +47,7 @@ WindowsとWSL/Linuxは同じphysical checkoutを共有する必要がありま�
 
 non-destructiveな手順だけを定義します。削除は本手順に含めません。
 
-1. [`phase0-inventory`](../operations/phase0-inventory.md)でinventoryとbackupを完了する。
+1. inventoryとbackupを完了する。
 2. 新しいnative-root cloneを追加で作成する。既存checkoutとdataは移動・削除しない。
 3. 新cloneで検証後にsupervisor(Task Scheduler / systemd)の参照を切り替える。
 4. 旧shared checkoutの撤去は、reconciliation完了後に別の明示承認で行う。
@@ -129,7 +129,3 @@ Repository portabilityは継続的に次で検証します。
 - clean relocation / installed-entrypoint checks
 
 これらはphysical-host operationを証明しません。VRChat process detection、physical audio、GPU transcription、Task Scheduler、systemd recovery、live Supabase、full VRChat-to-KafLog flowは対象environmentの実測が必要です。
-
-## Primary references
-
-See [2026 portability references](../references/portability-2026.md).

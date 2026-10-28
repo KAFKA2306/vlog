@@ -9,12 +9,10 @@ Markdownはrepository contractの一部です。各文書は1つの明確な責�
 | repository entry | `README.md` | purpose、minimal setup、canonical routesのみ |
 | product contract | `docs/SPEC.md` | product invariants、storage/publication boundary、verification / completion contract |
 | documentation map | `docs/README.md` | authority、precedence、status vocabulary |
-| orientation | `docs/overview.md` | short non-normative overview。status / parallel specを保持しない |
 | architecture / contracts | `docs/architecture*`, `docs/*contract.md` | currentまたはtarget stateを明示して記述 |
 | operations / maintenance | `docs/OPERATIONS.md`, `docs/MAINTENANCE.md`, `docs/operations/` | executable runbookとrepeatable procedure |
 | component docs | component `README.md` | local boundaryとentry pointだけ |
 | decisions | `docs/adr/` | decision rationaleと明示的audit status |
-| incidents | `docs/incidents/` | dated evidence。current statusとして使わない |
 | agent routers | `AGENTS.md`, `.agent/`, `.claude/`, `.gemini/` | canonical docsへの短いrouting |
 | tool memory | `.serena/` | pointerのみ。production statusやprivate memoryを保持しない |
 
@@ -25,7 +23,7 @@ Generic tutorial、theme library、communication template、unrelated language-m
 - Product ruleを変更するときは`docs/SPEC.md`を更新し、README / overviewへコピーしない。
 - Current runtime structureは`docs/architecture.md`、target architectureは`docs/architecture/human-memory-v2.md`へ分離する。
 - Commandは`Taskfile.yaml`、package / Python requirement / console entry pointはmanifest、model selectionはconfiguration / consuming codeをauthorityとする。
-- Point-in-time progressはGitHub Issue / PR、live stateはactual environment evidence、dated incidentは`docs/incidents/`へ置く。
+- Point-in-time progressはGitHub Issue / PR、live stateはactual environment evidence。
 - Generated narrative / illustration / graph / vector dataはderived artifactとして明示する。
 - Completion claimはrepository、CI、environment evidenceを分離する。
 

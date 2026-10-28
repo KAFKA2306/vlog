@@ -106,7 +106,6 @@ Current runtimeはlocal Evidence / artifact stateとexisting Supabase projection
 
 - [Product specification and guarantees](SPEC.md)
 - [Documentation index](README.md)
-- [Product overview](overview.md)
 - [Human Memory v2 target architecture](architecture/human-memory-v2.md)
 - [Cross-platform portability](architecture/portability.md)
 - [Operations](OPERATIONS.md)
