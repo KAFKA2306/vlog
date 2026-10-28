@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-PROMPTS = Path(__file__).resolve().parents[1] / "data/prompts.yaml"
+PROMPTS = Path(__file__).resolve().parents[2] / "data/prompts.yaml"
 SUMMARIZER_SHA256 = "1c3c44ce1f50f01b91fcbc7a08b4cc716d5dead6f97a2e602db78ab01044803b"
 SAFETY_LINES = (
     "ただし、** や # などの強調記号は一切使用しないでください。見出しには【 】を使用してください。",

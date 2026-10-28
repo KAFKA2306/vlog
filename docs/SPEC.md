@@ -89,13 +89,13 @@ file existenceやdirectory scanによる処理状態はtemporary mechanismです
 
 ### B. Reader表示保証 — Reader変更ごと
 
-`.github/workflows/reader-visual-regression.yml` が固定fixtureを使い、desktop/mobileの代表画面を実際に起動してscreenshotを取得し、承認済みbaselineとpixel比較します。
+現在、このrepositoryのCIにはReader表示の自動比較は含まれていません（visual regression workflowは削除済み）。
 
 対象にはhome、Diary、Novel、People Said、Timelineを含みます。
 
 ### C. Public production保証 — 1時間ごと
 
-`.github/workflows/production-smoke.yml` が `https://kaflog.vercel.app` を外部から確認します。
+現在、このrepositoryのCIには外部からのproduction確認は含まれていません（production smoke workflowは削除済み）。
 
 必須:
 

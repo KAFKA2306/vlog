@@ -7,7 +7,7 @@ import re
 import subprocess
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_PREFIXES = (
     ".github/workflows/",
     "infra/systemd/",
@@ -84,7 +84,7 @@ def tracked_files() -> list[str]:
 def violations(paths: list[str] | None = None) -> list[str]:
     failures: list[str] = []
     for relative in paths or tracked_files():
-        if relative == "scripts/check_runtime_contract.py":
+        if relative == "scripts/check/check_runtime_contract.py":
             continue
         if relative not in RUNTIME_FILES and not relative.startswith(RUNTIME_PREFIXES):
             continue

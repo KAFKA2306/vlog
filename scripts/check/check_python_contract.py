@@ -2,7 +2,7 @@ import re
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SUPPORTED_MINORS = {(3, 12)}
 PIN_PATTERNS = (
     re.compile(r"python-version:\s*['\"]?(\d+\.\d+)"),
@@ -17,7 +17,10 @@ MINOR_PATH_PREFIXES = (
     "apps/capture-vrchat/src/",
     "Taskfile.yaml",
 )
-SELF = {"scripts/check_python_contract.py", "scripts/check_runtime_contract.py"}
+SELF = {
+    "scripts/check/check_python_contract.py",
+    "scripts/check/check_runtime_contract.py",
+}
 
 
 def minor(text: str) -> tuple[int, int]:
