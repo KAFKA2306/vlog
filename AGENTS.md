@@ -38,6 +38,8 @@ Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific fi
 - Generate docs and ledgers from the star schema, the single source of truth. Edit the schema, never the generated output. When a generated view lacks a fact, add the fact to the schema. Reason: hand-edited docs and ledgers drift from the code.
 - Continuously research the latest OSS, articles, skills, and MCP servers relevant to the task. When a better option exists, adopt it destructively: replace the old implementation in the same change, with no compatibility shims or dual paths. Reason: keeping old and new side by side doubles the maintenance cost.
 - Track unresolved questions, deferred work, and external prerequisites as GitHub issues in `KAFKA2306/vlog`. Do not leave them only in chat or temporary files. Issue bodies state background, current state, decisions needed, and completion criteria, and must exclude private content (diary text, conversation logs, credentials, personal data). Check open issues for duplicates before creating one.
+- Recording, transcription, conversion, storage, and publication are the product's core value. Pruning removes demos, unused adapters, duplicate docs, and tests that verify nothing; it never removes these paths. Reason: they are what the owner depends on.
+- A test, Taskfile task, or CI workflow that references a document is not a reason to keep that document. Reason: doc-only checks and references are maintenance cost, not safety.
 
 ## Outcome-first task interpretation (Altitude / Depth / Range / Speed)
 
