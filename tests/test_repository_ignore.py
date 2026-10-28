@@ -29,7 +29,7 @@ TRACKED = [
     "Taskfile.yaml",
     "scripts/asset_manifest.py",
     "pyproject.toml",
-    "docs/OPERATIONS.md",
+    "docs/SPEC.md",
     ".gitignore",
 ]
 

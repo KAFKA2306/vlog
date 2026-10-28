@@ -68,12 +68,8 @@ tasks:
     cmd: $UV run --no-sync python scripts/check_python_contract.py
 
   doc:check:
-    desc: repository/Markdown境界を検証
+    desc: repository境界を検証
     cmd: $UV run --no-sync python scripts/check_repository_boundaries.py
-
-  ledger:generate:
-    desc: star schemaからdocs ledgerを再生成
-    cmd: $UV run --no-sync python scripts/generate_ledger.py
 
   systemd:install:
     desc: portable systemd unitsをinstall

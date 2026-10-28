@@ -113,7 +113,7 @@ release identityとして次も必須です。欠落・空値・不一致はFAIL
 - `gitCommitRef = main`
 - `gitCommitSha` が40桁hexで、`KAFKA2306/vlog` の実在commitに解決できる
 
-Vercel Root Directory、environment分離、deploy起点、metadata照合のcontractは[`operations/reader-deploy-contract.md`](operations/reader-deploy-contract.md)を正準とします。Vercel dashboard / 実deployの観測は、repository checkだけからPASSへ昇格しません。
+Vercel Root Directory、environment分離、deploy起点、metadata照合のcontractは本文書の範囲外で、repository内の正準文書は持ちません。Vercel dashboard / 実deployの観測は、repository checkだけからPASSへ昇格しません。
 
 主要routeのいずれかがHTTP成功を返さない場合、その時点のpublic productionは動作確認済みとは扱いません。
 
@@ -152,9 +152,7 @@ production smokeもgreen
 ## 7. 正準文書
 
 - この文書: 製品仕様と動作保証
-- `docs/architecture/human-memory-v2.md`: target architectureとmigration
-- `docs/architecture.md`: 現行runtime architecture
-- `docs/OPERATIONS.md`: 運用手順
+- `docs/operations/muchio-diary.md`: 日記パイプライン
 - GitHub Issue: 未完了作業と検証証拠
 
 仕様、実装方法、進捗を同じ文書で混同しません。

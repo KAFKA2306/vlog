@@ -101,10 +101,7 @@ jobs:
         run: uv run --no-sync ruff format --check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Enforce canonical repository ratchet
         run: |
-          grep -Fq 'Evidence -> Human Memory -> Narrative Artifact -> Public Projection' docs/architecture/human-memory-v2.md
-          grep -Fq 'Graphiti, Cognee, pgvector, and Qdrant are rebuildable projections' docs/architecture/human-memory-v2.md
           grep -Fq '## 5. 動作保証' docs/SPEC.md
-          grep -Fq 'physical path is not authority' docs/architecture/portability.md
           grep -Fq 'https://kaflog.vercel.app' .github/workflows/production-smoke.yml
           grep -Fq 'only the default branch and same-repository open-PR heads may persist' .github/workflows/branch-lifecycle.yml
           grep -Fq 'closed PR heads and orphan branches are deleted' .github/workflows/branch-lifecycle.yml

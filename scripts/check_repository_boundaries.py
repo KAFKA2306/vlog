@@ -2,13 +2,10 @@
 from __future__ import annotations
 
 import argparse
-import re
 import subprocess
 import sys
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import unquote
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
@@ -24,10 +21,6 @@ REQUIRED_PATHS = (
     "infra/windows",
     "infra/supabase",
     "schemas",
-    "docs/architecture",
-    "docs/operations",
-    "docs/adr/README.md",
-    "docs/markdown-governance.md",
 )
 PRIVATE_ROOTS = (
     "journal/",
@@ -70,25 +63,8 @@ RETIRED_PATHS = (
     "vlog-daily-failure.service",
     "apps/capture-vrchat/src/vlog_capture/infrastructure/audit.py",
     "scripts/migrate_runtime_state.py",
-    "docs/daily_pipeline_contract.md",
-)
-RETIRED_MARKDOWN = {
-    "docs/DAILY_MONITORING.md",
-    "docs/logs/20260220_crash_analysis.md",
-    "docs/requirements/requirements.md",
-}
-NON_PORTABLE_TEXT = (
-    re.compile(r"file://", re.IGNORECASE),
-    re.compile(r"/home/[A-Za-z0-9_.-]+/"),
-    re.compile(r"[A-Za-z]:\\\\"),
-)
-MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
-H1 = re.compile(r"^#\s+\S", re.MULTILINE)
-CODD_FRONTMATTER = re.compile(
-    r"\A---\s*\n.*?^codd:\s*$.*?^---\s*$", re.MULTILINE | re.DOTALL
 )
 MAX_GIT_FILE_BYTES = 100 * 1024 * 1024
-MAX_AGENT_MARKDOWN_LINES = 180
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,112 +85,6 @@ def tracked_files(root: Path) -> list[str]:
         for item in result.stdout.split(b"\0")
         if item
     )
-
-
-def _strip_code_fences(text: str) -> str:
-    return re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-
-
-def _local_link_failure(root: Path, source: Path, raw_target: str) -> str | None:
-    target = raw_target.strip()
-    if not target or target.startswith(("http://", "https://", "mailto:", "tel:", "#")):
-        return None
-    target = unquote(target.split("#", 1)[0].split("?", 1)[0])
-    if target.startswith("<") and target.endswith(">"):
-        target = target[1:-1]
-    if not target:
-        return None
-    candidate = (source.parent / target).resolve()
-    try:
-        candidate.relative_to(root)
-    except ValueError:
-        return f"link escapes repository: {raw_target}"
-    if not candidate.exists():
-        return f"link target is missing: {raw_target}"
-    return None
-
-
-def check_markdown(root: Path, tracked: list[str]) -> list[Violation]:
-    violations: list[Violation] = []
-    for relative in tracked:
-        path = root / relative
-        if path.suffix.lower() not in {".md", ".markdown"} or not path.is_file():
-            continue
-        text = path.read_text(encoding="utf-8")
-        if relative != "GEMINI.md" and not H1.search(text):
-            violations.append(
-                Violation(
-                    "markdown-missing-h1",
-                    relative,
-                    "retained Markdown requires an H1 heading",
-                )
-            )
-        if CODD_FRONTMATTER.search(text):
-            violations.append(
-                Violation(
-                    "retired-codd-metadata",
-                    relative,
-                    "CoDD front matter must remain removed",
-                )
-            )
-        for pattern in NON_PORTABLE_TEXT:
-            match = pattern.search(text)
-            if match:
-                violations.append(
-                    Violation(
-                        "non-portable-markdown",
-                        relative,
-                        f"contains non-portable path text: {match.group(0)}",
-                    )
-                )
-        for raw_target in MARKDOWN_LINK.findall(_strip_code_fences(text)):
-            failure = _local_link_failure(root, path, raw_target)
-            if failure:
-                violations.append(Violation("broken-markdown-link", relative, failure))
-        if relative.startswith((".agent/", ".claude/", ".gemini/")):
-            line_count = len(text.splitlines())
-            if line_count > MAX_AGENT_MARKDOWN_LINES:
-                violations.append(
-                    Violation(
-                        "oversized-agent-doc",
-                        relative,
-                        f"agent Markdown has {line_count} lines; route to canonical docs instead",
-                    )
-                )
-    for retired in sorted(RETIRED_MARKDOWN):
-        if retired in tracked:
-            violations.append(
-                Violation(
-                    "retired-markdown", retired, "retired document must not return"
-                )
-            )
-    return violations
-
-
-def check_generated_ledgers(root: Path) -> list[Violation]:
-    with tempfile.TemporaryDirectory() as scratch:
-        subprocess.run(
-            [
-                sys.executable,
-                str(Path(__file__).with_name("generate_ledger.py")),
-                "--root",
-                str(root),
-                "--out",
-                scratch,
-            ],
-            check=True,
-        )
-        regenerated = Path(scratch)
-        return [
-            Violation(
-                "stale-generated-ledger",
-                path.relative_to(regenerated).as_posix(),
-                "differs from regenerated output; run `task ledger:generate`",
-            )
-            for path in sorted(regenerated.rglob("*.md"))
-            if not (root / path.relative_to(regenerated)).is_file()
-            or (root / path.relative_to(regenerated)).read_bytes() != path.read_bytes()
-        ]
 
 
 def check(root: Path) -> list[Violation]:
@@ -243,9 +113,6 @@ def check(root: Path) -> list[Violation]:
                     "missing-boundary", required, "required v2 boundary is absent"
                 )
             )
-
-    violations.extend(check_markdown(root, tracked))
-    violations.extend(check_generated_ledgers(root))
 
     for relative in tracked:
         path = root / relative
@@ -291,7 +158,7 @@ def check(root: Path) -> list[Violation]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate Human Memory v2 repository and Markdown boundaries."
+        description="Validate public/private repository boundaries."
     )
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     return parser.parse_args()
@@ -302,7 +169,7 @@ def main() -> int:
     root = args.root.expanduser().resolve()
     violations = check(root)
     if not violations:
-        print("Repository and Markdown boundary check passed.")
+        print("Repository boundary check passed.")
         return 0
     for violation in violations:
         print(
