@@ -6,12 +6,10 @@ requires-python = "==3.12.*"
 members = [
     "vlog",
     "vlog-capture",
-    "vlog-companion",
     "vlog-graphiti",
     "vlog-ingestion",
     "vlog-memory-domain",
     "vlog-privacy",
-    "vlog-vrchat-osc",
     "vlog-vrcpet",
 ]
 
@@ -2827,12 +2825,10 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "vlog-capture" },
-    { name = "vlog-companion" },
     { name = "vlog-graphiti" },
     { name = "vlog-ingestion" },
     { name = "vlog-memory-domain" },
     { name = "vlog-privacy" },
-    { name = "vlog-vrchat-osc" },
     { name = "vlog-vrcpet" },
 ]
 
@@ -2856,12 +2852,10 @@ requires-dist = [
     { name = "cognee", extras = ["all"], marker = "extra == 'cognee'", specifier = ">=1.0.0" },
     { name = "vlog-capture", editable = "apps/capture-vrchat" },
     { name = "vlog-capture", extras = ["gpu"], marker = "extra == 'gpu'", editable = "apps/capture-vrchat" },
-    { name = "vlog-companion", editable = "packages/companion" },
     { name = "vlog-graphiti", editable = "adapters/graphiti" },
     { name = "vlog-ingestion", editable = "packages/ingestion" },
     { name = "vlog-memory-domain", editable = "packages/memory-domain" },
     { name = "vlog-privacy", editable = "packages/privacy" },
-    { name = "vlog-vrchat-osc", editable = "adapters/vrchat-osc" },
     { name = "vlog-vrcpet", editable = "adapters/vrcpet" },
 ]
 provides-extras = ["gpu", "cognee"]
@@ -2889,11 +2883,9 @@ dependencies = [
     { name = "sounddevice" },
     { name = "soundfile" },
     { name = "supabase" },
-    { name = "vlog-companion" },
     { name = "vlog-ingestion" },
     { name = "vlog-memory-domain" },
     { name = "vlog-privacy" },
-    { name = "vlog-vrchat-osc" },
     { name = "vlog-vrcpet" },
 ]
 
@@ -2932,19 +2924,12 @@ requires-dist = [
     { name = "supabase", specifier = ">=2.0.0" },
     { name = "torch", marker = "extra == 'gpu'", specifier = ">=2.5.1" },
     { name = "transformers", marker = "extra == 'gpu'", specifier = ">=4.46.3" },
-    { name = "vlog-companion", editable = "packages/companion" },
     { name = "vlog-ingestion", editable = "packages/ingestion" },
     { name = "vlog-memory-domain", editable = "packages/memory-domain" },
     { name = "vlog-privacy", editable = "packages/privacy" },
-    { name = "vlog-vrchat-osc", editable = "adapters/vrchat-osc" },
     { name = "vlog-vrcpet", editable = "adapters/vrcpet" },
 ]
 provides-extras = ["gpu"]
-
-[[package]]
-name = "vlog-companion"
-version = "0.1.0"
-source = { editable = "packages/companion" }
 
 [[package]]
 name = "vlog-graphiti"
@@ -2983,11 +2968,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "vlog-memory-domain", editable = "packages/memory-domain" }]
-
-[[package]]
-name = "vlog-vrchat-osc"
-version = "0.1.0"
-source = { editable = "adapters/vrchat-osc" }
 
 [[package]]
 name = "vlog-vrcpet"

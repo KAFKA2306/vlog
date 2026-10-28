@@ -79,7 +79,6 @@ file existenceやdirectory scanによる処理状態はtemporary mechanismです
 - Python sourceがcompileできる
 - Ruff lint / format check
 - public/private repository boundary
-- companion browser/runtime contract parity
 - systemd unit templateの構文
 - Python tests
 - Reader unit tests
