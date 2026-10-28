@@ -13,6 +13,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from scripts.nikki_local import DRAFT_HEADER
+
 TEXT_KEYS = {
     "text",
     "message",
@@ -228,7 +230,15 @@ def review(output: Path, day: str) -> str:
     return actual
 
 
-def publish(output: Path, day: str, expected_hash: str) -> str:
+def _non_muchio(rows: Any) -> list[tuple[str, str]]:
+    return sorted(
+        (row.get("file_path") or "", row.get("content") or "")
+        for row in rows or []
+        if not (row.get("file_path") or "").startswith("muchio/")
+    )
+
+
+def publish(output: Path, day: str, expected_hash: str, replace: bool = False) -> str:
     """Publish only an explicitly reviewed diary, never a raw observation."""
     from supabase import create_client
     from vlog_capture.infrastructure.settings import settings
@@ -250,6 +260,9 @@ def publish(output: Path, day: str, expected_hash: str) -> str:
         raise ValueError("Diary content or manifest differs from the reviewed hash")
     if not content.strip():
         raise ValueError("Diary is empty")
+    text = content.decode("utf-8")
+    if DRAFT_HEADER in text or re.search(r"^# \d{4}-\d{2}-\d{2}", text, re.M):
+        raise ValueError("Diary still has the draft header or date heading")
     if not settings.supabase_url or not settings.supabase_service_role_key:
         raise RuntimeError(
             "VLOG_SUPABASE_URL and VLOG_SUPABASE_SERVICE_ROLE_KEY required"
@@ -261,9 +274,11 @@ def publish(output: Path, day: str, expected_hash: str) -> str:
         .eq("date", day)
         .execute()
     )
+    before = _non_muchio(getattr(existing, "data", None))
     for row in getattr(existing, "data", None) or []:
         if (
-            row.get("file_path") == f"muchio/{day}"
+            not replace
+            and row.get("file_path") == f"muchio/{day}"
             and digest((row.get("content") or "").encode("utf-8")) != actual
         ):
             raise RuntimeError("Muchio row exists on date with different content")
@@ -291,6 +306,14 @@ def publish(output: Path, day: str, expected_hash: str) -> str:
         or rows[0].get("is_public") is not True
     ):
         raise RuntimeError("Public row upsert could not be verified")
+    after = (
+        client.table("daily_entries")
+        .select("file_path,content")
+        .eq("date", day)
+        .execute()
+    )
+    if _non_muchio(getattr(after, "data", None)) != before:
+        raise RuntimeError("non-Muchio row changed during publish")
     metadata["published"] = True
     metadata["published_sha256"] = actual
     metadata["published_at"] = datetime.now(timezone.utc).isoformat()
@@ -313,6 +336,11 @@ def main() -> None:
     )
     parser.add_argument("--date")
     parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Replace an existing muchio/<date> row with different content",
+    )
+    parser.add_argument(
         "--sha", help="Full SHA-256 digest of the diary text you reviewed"
     )
     args = parser.parse_args()
@@ -330,7 +358,7 @@ def main() -> None:
     else:
         if not args.date or not args.sha:
             parser.error("publish requires --date and --sha (reviewed content hash)")
-        print(publish(args.output, args.date, args.sha))
+        print(publish(args.output, args.date, args.sha, args.replace))
 
 
 if __name__ == "__main__":

@@ -71,7 +71,7 @@ def ollama_generate(prompt: str) -> str:
             "prompt": prompt,
             "stream": False,
             "think": False,
-            "options": {"temperature": 0.3, "num_ctx": 8192},
+            "options": {"temperature": 0.3, "num_ctx": 16384},
         }
     ).encode("utf-8")
     request = urllib.request.Request(
