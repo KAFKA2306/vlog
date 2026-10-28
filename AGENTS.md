@@ -38,3 +38,11 @@ Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific fi
 - Generate docs and ledgers from the star schema, the single source of truth. Edit the schema, never the generated output. When a generated view lacks a fact, add the fact to the schema. Reason: hand-edited docs and ledgers drift from the code.
 - Continuously research the latest OSS, articles, skills, and MCP servers relevant to the task. When a better option exists, adopt it destructively: replace the old implementation in the same change, with no compatibility shims or dual paths. Reason: keeping old and new side by side doubles the maintenance cost.
 - Track unresolved questions, deferred work, and external prerequisites as GitHub issues in `KAFKA2306/vlog`. Do not leave them only in chat or temporary files. Issue bodies state background, current state, decisions needed, and completion criteria, and must exclude private content (diary text, conversation logs, credentials, personal data). Check open issues for duplicates before creating one.
+
+## Outcome-first task interpretation (Altitude / Depth / Range / Speed)
+
+- **Altitude:** Interpret a task as a verifiable user outcome, not only the named intermediate step. Infer the smallest justified acceptance criteria from the request and current repository state; do not silently expand scope or override explicit instructions.
+- **Depth:** Use primary/current evidence and real domain tools and methods. Verify the actual postcondition independently of agent self-report, preferably on the exact changed revision or target runtime.
+- **Range:** Combine code, data, tests, runtime/UI, and domain expertise when that materially improves the outcome, while respecting canonical owners and avoiding duplicate systems.
+- **Speed:** Complete authorized read-only and reversible work through implementation, focused checks, and read-back without unnecessary approval loops. Bound retries and stop at the proven outcome.
+- These principles never bypass repository-specific security, privacy, permission, publication, spending, destructive-action, or release boundaries. State verified results and any remaining `UNVERIFIED` layers.
