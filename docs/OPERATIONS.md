@@ -29,10 +29,6 @@ journalctl --user -u vlog.service -u vlog-daily.service --since "24 hours ago"
 
 ### Windows
 
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1
-```
-
 Windows verificationはactual Windows hostで行います。
 
 ### Checkout topology
@@ -77,4 +73,3 @@ Structured eventの実装は`apps/capture-vrchat/src/vlog_capture/infrastructure
 - [Documentation index](README.md)
 - [Maintenance](MAINTENANCE.md)
 - [Current runtime architecture](architecture.md)
-- [Phase 0 inventory](operations/phase0-inventory.md)

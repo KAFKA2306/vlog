@@ -1,6 +1,6 @@
 # VRCPet / Muchio private observation adapter
 
-This adapter ingests files produced by VRCPet/Muchio as a **private observation source** for Human Memory v2. It is an external-data boundary, not a second diary generator and not an extension of `packages/companion`.
+This adapter ingests files produced by VRCPet/Muchio as a **private observation source** for Human Memory v2. It is an external-data boundary, not a second diary generator.
 
 ## Boundary
 

@@ -15,11 +15,9 @@ dependencies = [
     "sounddevice>=0.4.6",
     "soundfile>=0.12.1",
     "supabase>=2.0.0",
-    "vlog-companion",
     "vlog-ingestion",
     "vlog-memory-domain",
     "vlog-privacy",
-    "vlog-vrchat-osc",
     "vlog-vrcpet",
 ]
 

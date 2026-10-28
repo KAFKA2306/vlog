@@ -114,11 +114,9 @@ jobs:
           test ! -e .github/workflows/weekly-repo-research.yml
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check_repository_boundaries.py
-      - name: Enforce companion browser/runtime parity
-        run: uv run --no-sync python scripts/check_companion_contract_parity.py
       - name: Verify installed package imports and CLI
         run: |
-          uv run --no-sync python -c "import vlog_capture, vlog_memory_domain, vlog_ingestion, vlog_companion, vlog_privacy, vlog_vrchat_osc"
+          uv run --no-sync python -c "import vlog_capture, vlog_memory_domain, vlog_ingestion, vlog_privacy"
           uv run --no-sync vlog --help
           uv run --no-sync vlog-operations --help
       - name: Verify rendered systemd units

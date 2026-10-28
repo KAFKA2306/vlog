@@ -23,10 +23,6 @@ dim_doc:
     authority_class: "repository entry"
     owner: "README.md"
     authority: "repository入口、最小setup、主要documentation route"
-  - path: docs/overview.md
-    authority_class: "orientation"
-    owner: "docs/overview.md"
-    authority: "非規範的な短いproduct orientation。仕様や進捗の正準ではない"
   - path: docs/architecture/human-memory-v2.md
     authority_class: "architecture / contracts"
     owner: "docs/architecture*"
@@ -47,10 +43,6 @@ dim_doc:
     authority_class: "operations / maintenance"
     owner: "docs/MAINTENANCE.md"
     authority: "repeatable repository / infrastructure maintenance"
-  - path: docs/operations/phase0-inventory.md
-    authority_class: "operations / maintenance"
-    owner: "docs/operations/"
-    authority: "destructive migration前のnon-destructive inventory"
   - path: docs/operations/reader-deploy-contract.md
     authority_class: "operations / maintenance"
     owner: "docs/operations/"
@@ -63,14 +55,6 @@ dim_doc:
     authority_class: "decisions"
     owner: "docs/adr/"
     authority: "architecture decision index and status"
-  - path: docs/references/portability-2026.md
-    authority_class: "decisions"
-    owner: "docs/adr/"
-    authority: "portability decisionの一次資料"
-  - path: docs/incidents/
-    authority_class: "incidents"
-    owner: "docs/incidents/"
-    authority: "dated historical incident records。current statusではない"
   - path: docs/markdown-governance.md
     authority_class: "documentation map"
     owner: "docs/README.md"

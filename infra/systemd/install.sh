@@ -77,4 +77,3 @@ PY
 "$SYSTEMCTL_EXE" --user --no-pager status vlog.service || true
 echo "Rendered units: $UNIT_DIR"
 echo "Operations report is stored under VLOG_STATE_HOME/reports (or the platform default)."
-echo "Optional Windows watchdog: powershell.exe -ExecutionPolicy Bypass -File infra/windows/install-vlog-watchdog.ps1"

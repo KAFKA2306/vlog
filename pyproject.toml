@@ -8,9 +8,7 @@ dependencies = [
     "vlog-capture",
     "vlog-memory-domain",
     "vlog-ingestion",
-    "vlog-companion",
     "vlog-privacy",
-    "vlog-vrchat-osc",
     "vlog-vrcpet",
     "vlog-graphiti",
 ]
@@ -23,9 +21,7 @@ cognee = ["cognee[all]>=1.0.0"]
 vlog-capture = { workspace = true }
 vlog-memory-domain = { workspace = true }
 vlog-ingestion = { workspace = true }
-vlog-companion = { workspace = true }
 vlog-privacy = { workspace = true }
-vlog-vrchat-osc = { workspace = true }
 vlog-vrcpet = { workspace = true }
 vlog-graphiti = { workspace = true }
 
@@ -34,9 +30,7 @@ members = [
     "apps/capture-vrchat",
     "packages/memory-domain",
     "packages/ingestion",
-    "packages/companion",
     "packages/privacy",
-    "adapters/vrchat-osc",
     "adapters/vrcpet",
     "adapters/graphiti",
 ]
