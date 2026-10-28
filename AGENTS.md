@@ -7,12 +7,9 @@ VLog is a public OSS engine: Evidence -> reviewable memory -> narrative artifact
 Use, in order:
 
 1. implementation, tests, schemas, package manifests, and `Taskfile.yaml`;
-2. [product specification](docs/SPEC.md);
-3. [Human Memory v2 target](docs/architecture/human-memory-v2.md);
-4. [current runtime](docs/architecture.md) and runbooks;
-5. [ADRs](docs/adr/README.md).
+2. [product specification](docs/SPEC.md).
 
-Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific files are routers only.
+Agent-specific files are routers only.
 
 ## Invariants
 
@@ -35,6 +32,5 @@ Use [docs/README.md](docs/README.md) as the documentation map. Agent-specific fi
 - Delegate all work and issue solving to subagents (code changes in isolated worktrees). The main session plans, dispatches, reviews reports, and runs outward-facing actions (push, publish, deploy, issue close, deletes) only after owner confirmation. Reason: keeps the main context small and each change reviewable.
 - Keep one working branch, `main`. Feature and subagent branches are short-lived: merge or delete them in the same session. Reason: parallel branches diverge and hide what is actually shipped.
 - Keep one worktree per checkout. Remove subagent worktrees once their work is merged or discarded. Reason: stale worktrees hold unmerged state no one reviews.
-- Generate docs and ledgers from the star schema, the single source of truth. Edit the schema, never the generated output. When a generated view lacks a fact, add the fact to the schema. Reason: hand-edited docs and ledgers drift from the code.
 - Continuously research the latest OSS, articles, skills, and MCP servers relevant to the task. When a better option exists, adopt it destructively: replace the old implementation in the same change, with no compatibility shims or dual paths. Reason: keeping old and new side by side doubles the maintenance cost.
 - Track unresolved questions, deferred work, and external prerequisites as GitHub issues in `KAFKA2306/vlog`. Do not leave them only in chat or temporary files. Issue bodies state background, current state, decisions needed, and completion criteria, and must exclude private content (diary text, conversation logs, credentials, personal data). Check open issues for duplicates before creating one.

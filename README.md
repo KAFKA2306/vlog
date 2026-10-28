@@ -14,12 +14,7 @@ VLogは、VRChatのEvidenceからreview可能なHuman Memory、Narrative Artifac
 |---|---|
 | 公開Reader | [KafLog](https://kaflog.vercel.app/) |
 | 製品仕様・動作保証 | [`docs/SPEC.md`](docs/SPEC.md) |
-| 文書マップ | [`docs/README.md`](docs/README.md) |
-| Human Memory v2 | [`docs/architecture/human-memory-v2.md`](docs/architecture/human-memory-v2.md) |
-| 現行runtime | [`docs/architecture.md`](docs/architecture.md) |
-| portability | [`docs/architecture/portability.md`](docs/architecture/portability.md) |
-| 運用 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) |
-| 保守 | [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) |
+| 日記パイプライン | [`docs/operations/muchio-diary.md`](docs/operations/muchio-diary.md) |
 | agent router | [`AGENTS.md`](AGENTS.md) |
 
 ## Repository boundaries
@@ -30,7 +25,7 @@ packages/   storage非依存domain capabilities
 adapters/   persistence・storage・external integrations
 infra/      systemd・Windows・Supabase assets
 schemas/    versioned interchange contracts
-docs/       specification・architecture・operations・ADRs
+docs/       specification・operations
 ```
 
 Python runtimeはuv workspace上の`vlog_capture` packageです。製品操作は`vlog`、運用診断は`vlog-operations`、repository orchestrationは`task`を使います。
