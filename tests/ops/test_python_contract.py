@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scripts import check_python_contract as contract
+from scripts.check import check_python_contract as contract
 
 
 def write(root: Path, relative: str, text: str) -> None:

@@ -1,8 +1,6 @@
 # VLog Human Memory Engine
 
 [![Test and Security Audit](https://github.com/KAFKA2306/vlog/actions/workflows/test.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/test.yml)
-[![Reader Visual Regression](https://github.com/KAFKA2306/vlog/actions/workflows/reader-visual-regression.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/reader-visual-regression.yml)
-[![Production Smoke](https://github.com/KAFKA2306/vlog/actions/workflows/production-smoke.yml/badge.svg)](https://github.com/KAFKA2306/vlog/actions/workflows/production-smoke.yml)
 
 VLogは、VRChatのEvidenceからreview可能なHuman Memory、Narrative Artifact、明示承認されたPublic Projectionを生成する公開OSSエンジンです。
 

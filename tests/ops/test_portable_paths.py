@@ -1,4 +1,4 @@
-from scripts.check_portable_paths import path_violations, validate_paths
+from scripts.check.check_portable_paths import path_violations, validate_paths
 
 
 def test_portable_paths_accept_spaces_and_unicode():

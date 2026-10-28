@@ -4,7 +4,12 @@ from pathlib import Path
 import pytest
 
 from scripts import muchio_diary, nikki_local
-from tests.test_muchio_diary import _fake_supabase, _FakeClient, _Query, _reviewed
+from tests.capture.test_muchio_diary import (
+    _fake_supabase,
+    _FakeClient,
+    _Query,
+    _reviewed,
+)
 
 DAY = "2026-10-09"
 
