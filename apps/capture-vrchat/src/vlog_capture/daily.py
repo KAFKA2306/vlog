@@ -251,13 +251,13 @@ class DailyPipeline:
     def _quarantine_unusable_recordings(self) -> None:
         from scripts.hygiene_check import quarantine, scan
 
-        recording_dir = self.project_root / "data/recordings"
+        recording_dir = self.data_root / "recordings"
         findings = scan(recording_dir)
         if findings:
             quarantine(
                 findings,
-                self.project_root / "data/archives/quarantine",
-                self.project_root / "data/error_events.jsonl",
+                self.data_root / "archives" / "quarantine",
+                self.state_root / "error_events.jsonl",
             )
 
     def _stage(
