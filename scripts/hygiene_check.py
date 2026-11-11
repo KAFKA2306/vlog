@@ -7,12 +7,12 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from vlog_capture.portability import runtime_directories
 from vlog_capture.infrastructure.observability import (
     EventStatus,
     OperationalEventLog,
     Severity,
 )
+from vlog_capture.portability import runtime_directories
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
