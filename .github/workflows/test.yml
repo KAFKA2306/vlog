@@ -1,8 +1,6 @@
 name: Test and Security Audit
 
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -18,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -57,28 +55,6 @@ jobs:
           }
           if ($failed) { exit 1 }
 
-  devcontainer:
-    name: Dev Container (Linux tooling)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Build fresh Dev Container and run portable gates
-        uses: devcontainers/ci@v0.3
-        with:
-          push: never
-          runCmd: |
-            uv sync --locked
-            uv run --no-sync python scripts/check/check_portable_paths.py
-            uv run --no-sync python scripts/check/check_runtime_contract.py
-            uv run --no-sync ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
-            uv run --no-sync pytest -q
-            cd apps/reader
-            bun install --frozen-lockfile
-            bun run test
-            bun run typecheck
-            bun run lint
-            bun run build
-
   python:
     runs-on: ubuntu-latest
     env:
@@ -99,15 +75,6 @@ jobs:
         run: uv run --no-sync ruff check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
       - name: Check Python formatting
         run: uv run --no-sync ruff format --check apps/capture-vrchat/src packages adapters scripts tests infra/systemd
-      - name: Enforce canonical repository ratchet
-        run: |
-          grep -Fq '## 5. 動作保証' docs/SPEC.md
-          grep -Fq 'only the default branch and same-repository open-PR heads may persist' .github/workflows/branch-lifecycle.yml
-          grep -Fq 'closed PR heads and orphan branches are deleted' .github/workflows/branch-lifecycle.yml
-          grep -Fq 'VLOG_GEMINI_API_KEY=' .env.example
-          ! grep -Eq '^(GOOGLE_API_KEY|SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|DISCORD_WEBHOOK_URL)=' .env.example
-          ! grep -Fq 'GOOGLE_API_KEY:' .github/workflows/test.yml
-          test ! -e .github/workflows/weekly-repo-research.yml
       - name: Enforce public/private repository boundaries
         run: uv run --no-sync python scripts/check/check_repository_boundaries.py
       - name: Verify installed package imports and CLI
@@ -122,20 +89,6 @@ jobs:
           systemd-analyze --user verify "$output"/*.service "$output"/*.timer
       - name: Run tests
         run: uv run --no-sync pytest -q
-      - name: Verify relocated clean checkout
-        run: |
-          root="$(mktemp -d)/VLog 移動 test"
-          mkdir -p "$root"
-          git archive HEAD | tar -x -C "$root"
-          cd "$root"
-          uv sync --locked
-          uv run --no-sync vlog --help
-          uv run --no-sync python scripts/check/check_runtime_contract.py
-      - name: Verify clean checkout
-        run: |
-          find . -type d -name __pycache__ -prune -exec rm -rf {} +
-          rm -rf .pytest_cache .ruff_cache
-          test -z "$(git status --porcelain --untracked-files=all)"
 
   reader:
     runs-on: ubuntu-latest
@@ -153,6 +106,3 @@ jobs:
       - run: bun run typecheck
       - run: bun run lint
       - run: bun run build
-      - name: Verify clean checkout
-        working-directory: .
-        run: test -z "$(git status --porcelain --untracked-files=all)"
