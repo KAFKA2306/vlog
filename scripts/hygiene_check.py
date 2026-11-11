@@ -7,6 +7,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from vlog_capture.portability import runtime_directories
 from vlog_capture.infrastructure.observability import (
     EventStatus,
     OperationalEventLog,
@@ -105,12 +106,12 @@ def quarantine(findings: list[Finding], directory: Path, event_log: Path) -> lis
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Detect unusable local recordings")
     parser.add_argument(
-        "--recording-dir", type=Path, default=PROJECT_ROOT / "data/recordings"
+        "--recording-dir", type=Path, default=runtime_directories().data / "recordings"
     )
     parser.add_argument(
         "--quarantine-dir",
         type=Path,
-        default=PROJECT_ROOT / "data/archives/quarantine",
+        default=runtime_directories().data / "archives" / "quarantine",
     )
     parser.add_argument("--min-bytes", type=int, default=DEFAULT_MIN_BYTES)
     parser.add_argument("--quarantine", action="store_true")
@@ -133,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     moved = quarantine(
         findings,
         args.quarantine_dir,
-        PROJECT_ROOT / "data/error_events.jsonl",
+        runtime_directories().state / "error_events.jsonl",
     )
     print(f"Quarantined {len(moved)} recording(s) to {args.quarantine_dir}.")
     return 0
