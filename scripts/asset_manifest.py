@@ -59,11 +59,7 @@ def _data_candidates(root: Path) -> list[str]:
     data = root / DATA_DIR
     if not data.is_dir():
         return []
-    return [
-        path.relative_to(root).as_posix()
-        for path in data.rglob("*")
-        if path.is_file()
-    ]
+    return [path.relative_to(root).as_posix() for path in data.rglob("*") if path.is_file()]
 
 
 def _sha256(path: Path) -> str:
