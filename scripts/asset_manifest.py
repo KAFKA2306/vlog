@@ -247,12 +247,12 @@ def _main() -> None:
     )
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument(
-        "--db", type=Path, default=runtime_directories().data / "asset_manifest.sqlite"
+        "--db", type=Path, default=runtime_directories().data / "asset_manifest.sqlite",
     )
     parser.add_argument("--stage", default="")
     parser.add_argument("--muchio", type=Path, default=Path("config/muchio.yaml"))
     parser.add_argument(
-        "--recording-dir", type=Path, default=runtime_directories().data / "archives"
+        "--recording-dir", type=Path, default=runtime_directories().data / "archives",
     )
     parser.add_argument(
         "--vrcpet-logs",
