@@ -36,6 +36,7 @@ Agent-specific files are routers only.
 - Track unresolved questions, deferred work, and external prerequisites as GitHub issues in `KAFKA2306/vlog`. Do not leave them only in chat or temporary files. Issue bodies state background, current state, decisions needed, and completion criteria, and must exclude private content (diary text, conversation logs, credentials, personal data). Check open issues for duplicates before creating one.
 - Recording, transcription, conversion, storage, and publication are the product's core value. Pruning removes demos, unused adapters, duplicate docs, and tests that verify nothing; it never removes these paths. Reason: they are what the owner depends on.
 - A test, Taskfile task, or CI workflow that references a document is not a reason to keep that document. Reason: doc-only checks and references are maintenance cost, not safety.
+- CI is reserved for privacy/secret boundaries, portable runtime checks, the changed code's meaningful regressions, and release verification. Do not run the same Python/reader suite again inside a Dev Container or repeat PR tests on every main push; deployment validates actual production separately. Reason: redundant runners add cost without independent evidence.
 
 ## Outcome-first task interpretation (Altitude / Depth / Range / Speed)
 
