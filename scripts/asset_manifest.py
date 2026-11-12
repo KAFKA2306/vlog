@@ -60,7 +60,9 @@ def _data_candidates(root: Path) -> list[str]:
     if not data.is_dir():
         return []
     return [
-        path.relative_to(root).as_posix() for path in data.rglob("*") if path.is_file()
+        path.relative_to(root).as_posix()
+        for path in data.rglob("*")
+        if path.is_file()
     ]
 
 
